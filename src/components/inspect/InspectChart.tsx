@@ -1,0 +1,349 @@
+import { useMemo, type ReactNode } from 'react';
+import {
+  Box,
+  CloseButton,
+  Dialog,
+  HStack,
+  Portal,
+  Stack,
+  Text,
+  chakra,
+} from '@chakra-ui/react';
+import {
+  Bar,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import type { ChartView, Distribution, TargetState } from '../../types';
+import { ShapeCardLabel } from '../chart/Sparkline';
+import { sortedKeys } from '../../engine/distribution';
+import { formatPercent } from '../chart/format';
+import { useApp } from '../../state/useApp';
+
+interface InspectChartProps {
+  exprName: string;
+  dist: Distribution;
+  color: string;
+  children: ReactNode;
+}
+
+interface ChartDatum {
+  x: number;
+  value: number;
+  matches: boolean;
+}
+
+function targetMatches(x: number, target: TargetState): boolean {
+  if (target.value === null) return true;
+  switch (target.ruling) {
+    case 'gte':
+      return x >= target.value;
+    case 'gt':
+      return x > target.value;
+    case 'lte':
+      return x <= target.value;
+    case 'lt':
+      return x < target.value;
+    case 'eq':
+      return x === target.value;
+  }
+}
+
+function buildChartData(
+  dist: Distribution,
+  view: ChartView,
+  target: TargetState | undefined,
+): ChartDatum[] {
+  if (dist.size === 0) return [];
+  const keys = sortedKeys(dist);
+  const min = keys[0]!;
+  const max = keys[keys.length - 1]!;
+  const span = max - min + 1;
+
+  const data = new Array<ChartDatum>(span);
+
+  if (view === 'pmf' || view === 'target') {
+    for (let i = 0; i < span; i++) {
+      const x = min + i;
+      const p = dist.get(x) ?? 0;
+      const matches =
+        view === 'target' && target ? targetMatches(x, target) : true;
+      data[i] = { x, value: p, matches };
+    }
+    return data;
+  }
+
+  if (view === 'cdf') {
+    let cum = 0;
+    for (let i = 0; i < span; i++) {
+      const x = min + i;
+      cum += dist.get(x) ?? 0;
+      data[i] = { x, value: cum, matches: true };
+    }
+    return data;
+  }
+
+  let cum = 1;
+  for (let i = 0; i < span; i++) {
+    const x = min + i;
+    data[i] = { x, value: cum, matches: true };
+    cum -= dist.get(x) ?? 0;
+  }
+  return data;
+}
+
+function formatPctTick(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function formatTooltipValue(value: number | string): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+function tooltipLabel(view: ChartView, x: number | string): string {
+  switch (view) {
+    case 'cdf':
+      return `≤ ${x}`;
+    case 'ccdf':
+      return `≥ ${x}`;
+    default:
+      return `Result: ${x}`;
+  }
+}
+
+export function InspectChart({
+  exprName,
+  dist,
+  color,
+  children,
+}: InspectChartProps) {
+  return (
+    <Dialog.Root
+      lazyMount
+      unmountOnExit
+      placement="center"
+      size={{ mdDown: 'full', md: 'lg' }}
+    >
+      <Dialog.Trigger asChild>
+        <chakra.button
+          type="button"
+          cursor="pointer"
+          bg="transparent"
+          borderWidth="0"
+          p={0}
+          m={0}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          width="100%"
+          aria-label={`Inspect chart for ${exprName}`}
+          borderRadius="sm"
+          _focusVisible={{
+            outline: '2px solid',
+            outlineColor: 'colorPalette.solid',
+            outlineOffset: '2px',
+          }}
+        >
+          {children}
+        </chakra.button>
+      </Dialog.Trigger>
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <HStack gap={3} align="center">
+                <Box
+                  w="10px"
+                  h="10px"
+                  borderRadius="2px"
+                  bg={color}
+                  flexShrink={0}
+                />
+                <Dialog.Title>{exprName}</Dialog.Title>
+              </HStack>
+            </Dialog.Header>
+            <Dialog.Body>
+              <InspectChartBody dist={dist} color={color} />
+            </Dialog.Body>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+interface InspectChartBodyProps {
+  dist: Distribution;
+  color: string;
+}
+
+export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
+  const { chartView, target } = useApp();
+  const effectiveView: ChartView =
+    chartView === 'target' && target.value === null ? 'pmf' : chartView;
+
+  const data = useMemo(
+    () => buildChartData(dist, effectiveView, target),
+    [dist, effectiveView, target],
+  );
+
+  const topResults = useMemo(
+    () =>
+      Array.from(dist.entries())
+        .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+        .slice(0, 10),
+    [dist],
+  );
+
+  const yDomain: [number, number | 'auto'] =
+    effectiveView === 'pmf' || effectiveView === 'target'
+      ? [0, 'auto']
+      : [0, 1];
+
+  const isBarView = effectiveView === 'pmf' || effectiveView === 'target';
+
+  return (
+    <Stack gap={3}>
+      <Box bg="bg.subtle" borderRadius="md" px={3} py={3}>
+      <ShapeCardLabel />
+      <Box w="100%" h={{ base: '280px', md: '360px' }} mt={2}>
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+          initialDimension={{ width: 1, height: 1 }}
+        >
+          <ComposedChart
+            data={data}
+            margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+            barGap={0}
+            barCategoryGap="10%"
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="var(--chakra-colors-border-subtle)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="x"
+              type="number"
+              domain={['dataMin', 'dataMax']}
+              padding={{ left: 8, right: 8 }}
+              tickLine={false}
+              axisLine={{ stroke: 'var(--chakra-colors-border-emphasized)' }}
+              tick={{
+                fontSize: 11,
+                fill: 'var(--chakra-colors-fg-muted)',
+                fontFamily: 'ui-monospace, monospace',
+              }}
+              allowDecimals={false}
+            />
+            <YAxis
+              tickFormatter={formatPctTick}
+              tickLine={false}
+              axisLine={{ stroke: 'var(--chakra-colors-border-emphasized)' }}
+              tick={{
+                fontSize: 11,
+                fill: 'var(--chakra-colors-fg-muted)',
+                fontFamily: 'ui-monospace, monospace',
+              }}
+              domain={yDomain}
+              {...(!isBarView && { ticks: [0, 0.25, 0.5, 0.75, 1] })}
+              width={48}
+            />
+            <RechartsTooltip
+              cursor={{ fill: 'var(--chakra-colors-bg-emphasized)' }}
+              formatter={(value) => [formatTooltipValue(value as number), '']}
+              labelFormatter={(label) => tooltipLabel(effectiveView, label)}
+              contentStyle={{
+                backgroundColor: 'var(--chakra-colors-bg-inverted)',
+                border: 'none',
+                borderRadius: 4,
+                fontSize: 12,
+                color: 'var(--chakra-colors-fg-inverted)',
+                padding: '6px 10px',
+              }}
+              itemStyle={{ color: 'var(--chakra-colors-fg-inverted)' }}
+              labelStyle={{
+                color: 'var(--chakra-colors-fg-inverted)',
+                fontWeight: 600,
+              }}
+            />
+            {isBarView ? (
+              <Bar
+                dataKey="value"
+                fill={color}
+                fillOpacity={0.75}
+                radius={[2, 2, 0, 0]}
+                isAnimationActive={false}
+              >
+                {effectiveView === 'target' &&
+                  data.map((d, i) => (
+                    <Cell
+                      key={`c-${i}`}
+                      fill={color}
+                      fillOpacity={d.matches ? 0.85 : 0.18}
+                    />
+                  ))}
+              </Bar>
+            ) : (
+              <Line
+                dataKey="value"
+                type="monotone"
+                stroke={color}
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0 }}
+                isAnimationActive={false}
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </Box>
+      </Box>
+      <Box bg="bg.subtle" borderRadius="md" px={3} py={3}>
+        <Text
+          fontSize="2xs"
+          fontWeight="semibold"
+          color="fg.muted"
+          textTransform="uppercase"
+          letterSpacing="wider"
+          mb={2}
+        >
+          Most likely results
+        </Text>
+        <Stack gap={1}>
+          {topResults.map(([value, p]) => (
+            <HStack key={value} justify="space-between">
+              <Text
+                fontFamily="mono"
+                fontSize="sm"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {value}
+              </Text>
+              <Text
+                fontFamily="mono"
+                fontSize="sm"
+                color="fg.muted"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {formatPercent(p)}
+              </Text>
+            </HStack>
+          ))}
+        </Stack>
+      </Box>
+    </Stack>
+  );
+}
