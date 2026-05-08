@@ -40,18 +40,30 @@ interface ChartDatum {
 }
 
 function targetMatches(x: number, target: TargetState): boolean {
-  if (target.value === null) return true;
+  if (target.values.length === 0) return true;
   switch (target.ruling) {
-    case 'gte':
-      return x >= target.value;
-    case 'gt':
-      return x > target.value;
-    case 'lte':
-      return x <= target.value;
-    case 'lt':
-      return x < target.value;
+    case 'gte': {
+      let lo = Infinity;
+      for (const v of target.values) if (v < lo) lo = v;
+      return x >= lo;
+    }
+    case 'gt': {
+      let lo = Infinity;
+      for (const v of target.values) if (v < lo) lo = v;
+      return x > lo;
+    }
+    case 'lte': {
+      let hi = -Infinity;
+      for (const v of target.values) if (v > hi) hi = v;
+      return x <= hi;
+    }
+    case 'lt': {
+      let hi = -Infinity;
+      for (const v of target.values) if (v > hi) hi = v;
+      return x < hi;
+    }
     case 'eq':
-      return x === target.value;
+      return target.values.includes(x);
   }
 }
 
@@ -191,7 +203,7 @@ interface InspectChartBodyProps {
 export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
   const { chartView, target } = useApp();
   const effectiveView: ChartView =
-    chartView === 'target' && target.value === null ? 'pmf' : chartView;
+    chartView === 'target' && target.values.length === 0 ? 'pmf' : chartView;
 
   const data = useMemo(
     () => buildChartData(dist, effectiveView, target),

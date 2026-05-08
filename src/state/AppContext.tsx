@@ -10,12 +10,13 @@ import {
   type PartPatch,
   type TargetPatch,
 } from './useApp';
-import type {
-  ChartView,
-  DicePart,
-  Expression,
-  PersistedState,
-  TargetState,
+import {
+  MAX_TARGETS,
+  type ChartView,
+  type DicePart,
+  type Expression,
+  type PersistedState,
+  type TargetState,
 } from '../types';
 
 const STORAGE_KEY = 'dicetable.v2';
@@ -42,7 +43,7 @@ const initialState: PersistedState = {
   ui: {
     expandedId: null,
     chartView: 'pmf',
-    target: { value: null, ruling: 'gte' },
+    target: { values: [], ruling: 'gte' },
   },
 };
 
@@ -118,7 +119,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (patch: TargetPatch) => {
       setState((prev) => {
         const next: TargetState = { ...prev.ui.target };
-        if ('value' in patch) next.value = patch.value ?? null;
+        if (patch.values !== undefined) {
+          const seen = new Set<number>();
+          const cleaned: number[] = [];
+          for (const v of patch.values) {
+            if (!Number.isInteger(v)) continue;
+            if (seen.has(v)) continue;
+            seen.add(v);
+            cleaned.push(v);
+            if (cleaned.length >= MAX_TARGETS) break;
+          }
+          cleaned.sort((a, b) => a - b);
+          next.values = cleaned;
+        }
         if (patch.ruling !== undefined) next.ruling = patch.ruling;
         return { ...prev, ui: { ...prev.ui, target: next } };
       });

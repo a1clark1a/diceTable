@@ -21,7 +21,7 @@ import {
   mode as distMode,
   stddev as distStddev,
 } from '../engine/stats';
-import type { Distribution, Expression } from '../types';
+import type { Distribution, Expression, TargetRuling } from '../types';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
@@ -34,6 +34,14 @@ import { TIPS } from './ui/tips';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
+
+const RULING_SYMBOL: Record<TargetRuling, string> = {
+  gte: '≥',
+  gt: '>',
+  lte: '≤',
+  lt: '<',
+  eq: '=',
+};
 
 interface CardStats {
   dist: Distribution;
@@ -105,7 +113,8 @@ export function RollsCards() {
     [expressions, dists, tooComplex],
   );
 
-  const showHit = target.value !== null;
+  const showHit = target.values.length > 0;
+  const rulingSymbol = RULING_SYMBOL[target.ruling];
 
   return (
     <Stack gap={3}>
@@ -138,8 +147,10 @@ export function RollsCards() {
         <Stack gap={2}>
           {cards.map(({ expr, color, stats, tooComplex: cardTooComplex }) => {
             const expanded = expandedId === expr.id;
-            const hit = showHit && stats.hasDist
-              ? hitProbability(stats.dist, target.value!, target.ruling)
+            const hits = showHit && stats.hasDist
+              ? target.values.map((v) =>
+                  hitProbability(stats.dist, v, target.ruling),
+                )
               : null;
             return (
               <RollCard
@@ -147,7 +158,9 @@ export function RollsCards() {
                 expr={expr}
                 color={color}
                 stats={stats}
-                hit={hit}
+                hits={hits}
+                targetValues={target.values}
+                rulingSymbol={rulingSymbol}
                 expanded={expanded}
                 showHit={showHit}
                 tooComplex={cardTooComplex}
@@ -178,7 +191,9 @@ interface RollCardProps {
   expr: Expression;
   color: string;
   stats: CardStats;
-  hit: number | null;
+  hits: number[] | null;
+  targetValues: number[];
+  rulingSymbol: string;
   expanded: boolean;
   showHit: boolean;
   tooComplex: boolean;
@@ -192,7 +207,9 @@ const RollCard = memo(function RollCard({
   expr,
   color,
   stats,
-  hit,
+  hits,
+  targetValues,
+  rulingSymbol,
   expanded,
   showHit,
   tooComplex,
@@ -369,10 +386,32 @@ const RollCard = memo(function RollCard({
           />
           {showHit && (
             <StatPill
-              label="Hit %"
+              label={`Hit % ${rulingSymbol}`}
               tip={TIPS.hit}
-              value={hit === null ? EM_DASH : formatPercent(hit)}
-              valueColor={hit === null ? undefined : hitColor(hit)}
+              value={
+                hits === null ? (
+                  EM_DASH
+                ) : (
+                  <Stack gap={0.5} align="center">
+                    {hits.map((p, i) => (
+                      <HStack key={targetValues[i]} gap={2} justify="center">
+                        {targetValues.length > 1 && (
+                          <Text as="span" color="fg.muted" fontSize="2xs">
+                            {targetValues[i]}
+                          </Text>
+                        )}
+                        <Text
+                          as="span"
+                          color={hitColor(p)}
+                          fontWeight={p >= 0.66 ? 'semibold' : undefined}
+                        >
+                          {formatPercent(p)}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </Stack>
+                )
+              }
             />
           )}
         </Grid>
@@ -421,10 +460,9 @@ interface StatPillProps {
   label: string;
   value: ReactNode;
   tip: string;
-  valueColor?: string | undefined;
 }
 
-function StatPill({ label, value, valueColor, tip }: StatPillProps) {
+function StatPill({ label, value, tip }: StatPillProps) {
   return (
     <Box bg="bg.subtle" borderRadius="md" px={2} py={1.5} textAlign="center">
       <HelpTerm tip={tip}>
@@ -439,14 +477,13 @@ function StatPill({ label, value, valueColor, tip }: StatPillProps) {
           {label}
         </Text>
       </HelpTerm>
-      <Text
+      <Box
         fontFamily="mono"
         fontSize="sm"
-        color={valueColor}
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {value}
-      </Text>
+      </Box>
     </Box>
   );
 }

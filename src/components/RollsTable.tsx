@@ -21,7 +21,7 @@ import {
   mode as distMode,
   stddev as distStddev,
 } from '../engine/stats';
-import type { Distribution, Expression } from '../types';
+import type { Distribution, Expression, TargetRuling } from '../types';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
@@ -34,6 +34,14 @@ import { TIPS } from './ui/tips';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
+
+const RULING_SYMBOL: Record<TargetRuling, string> = {
+  gte: '≥',
+  gt: '>',
+  lte: '≤',
+  lt: '<',
+  eq: '=',
+};
 
 interface RowStats {
   dist: Distribution;
@@ -105,7 +113,8 @@ export function RollsTable() {
     [expressions, dists, tooComplex],
   );
 
-  const showHit = target.value !== null;
+  const showHit = target.values.length > 0;
+  const rulingSymbol = RULING_SYMBOL[target.ruling];
 
   return (
     <Stack gap={3}>
@@ -140,7 +149,9 @@ export function RollsTable() {
                 </Table.ColumnHeader>
                 {showHit && (
                   <Table.ColumnHeader textAlign="end">
-                    <HelpTerm tip={TIPS.hit}>Hit %</HelpTerm>
+                    <HelpTerm tip={TIPS.hit}>
+                      Hit % {rulingSymbol}
+                    </HelpTerm>
                   </Table.ColumnHeader>
                 )}
                 <Table.ColumnHeader textAlign="end" w="140px">
@@ -151,8 +162,10 @@ export function RollsTable() {
             <Table.Body>
               {rows.map(({ expr, color, stats, tooComplex: rowTooComplex }) => {
                 const expanded = expandedId === expr.id;
-                const hit = showHit && stats.hasDist
-                  ? hitProbability(stats.dist, target.value!, target.ruling)
+                const hits = showHit && stats.hasDist
+                  ? target.values.map((v) =>
+                      hitProbability(stats.dist, v, target.ruling),
+                    )
                   : null;
                 return (
                   <RollTableRow
@@ -160,7 +173,8 @@ export function RollsTable() {
                     expr={expr}
                     color={color}
                     stats={stats}
-                    hit={hit}
+                    hits={hits}
+                    targetValues={target.values}
                     expanded={expanded}
                     showHit={showHit}
                     tooComplex={rowTooComplex}
@@ -229,7 +243,8 @@ interface RollTableRowProps {
   expr: Expression;
   color: string;
   stats: RowStats;
-  hit: number | null;
+  hits: number[] | null;
+  targetValues: number[];
   expanded: boolean;
   showHit: boolean;
   tooComplex: boolean;
@@ -243,7 +258,8 @@ const RollTableRow = memo(function RollTableRow({
   expr,
   color,
   stats,
-  hit,
+  hits,
+  targetValues,
   expanded,
   showHit,
   tooComplex,
@@ -399,10 +415,29 @@ const RollTableRow = memo(function RollTableRow({
             textAlign="end"
             fontFamily="mono"
             style={{ fontVariantNumeric: 'tabular-nums' }}
-            color={hit === null ? undefined : hitColor(hit)}
-            fontWeight={hit !== null && hit >= 0.66 ? 'semibold' : undefined}
           >
-            {hit === null ? EM_DASH : formatPercent(hit)}
+            {hits === null ? (
+              EM_DASH
+            ) : (
+              <Stack gap={0.5} align="flex-end">
+                {hits.map((p, i) => (
+                  <HStack key={targetValues[i]} gap={2} justify="flex-end">
+                    {targetValues.length > 1 && (
+                      <Text as="span" color="fg.muted" fontSize="xs">
+                        {targetValues[i]}
+                      </Text>
+                    )}
+                    <Text
+                      as="span"
+                      color={hitColor(p)}
+                      fontWeight={p >= 0.66 ? 'semibold' : undefined}
+                    >
+                      {formatPercent(p)}
+                    </Text>
+                  </HStack>
+                ))}
+              </Stack>
+            )}
           </Table.Cell>
         )}
         <Table.Cell textAlign="end">

@@ -15,7 +15,7 @@ const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
 
 function useEffectiveChartView(): ChartView {
   const { chartView, target } = useApp();
-  return chartView === 'target' && target.value === null ? 'pmf' : chartView;
+  return chartView === 'target' && target.values.length === 0 ? 'pmf' : chartView;
 }
 
 export function ShapeHeaderLabel() {
@@ -77,18 +77,30 @@ function formatPct(p: number): string {
 }
 
 function targetMatches(x: number, target: TargetState): boolean {
-  if (target.value === null) return true;
+  if (target.values.length === 0) return true;
   switch (target.ruling) {
-    case 'gte':
-      return x >= target.value;
-    case 'gt':
-      return x > target.value;
-    case 'lte':
-      return x <= target.value;
-    case 'lt':
-      return x < target.value;
+    case 'gte': {
+      let lo = Infinity;
+      for (const v of target.values) if (v < lo) lo = v;
+      return x >= lo;
+    }
+    case 'gt': {
+      let lo = Infinity;
+      for (const v of target.values) if (v < lo) lo = v;
+      return x > lo;
+    }
+    case 'lte': {
+      let hi = -Infinity;
+      for (const v of target.values) if (v > hi) hi = v;
+      return x <= hi;
+    }
+    case 'lt': {
+      let hi = -Infinity;
+      for (const v of target.values) if (v > hi) hi = v;
+      return x < hi;
+    }
     case 'eq':
-      return x === target.value;
+      return target.values.includes(x);
   }
 }
 
@@ -106,7 +118,7 @@ function buildGeometry(
   const span = max - min + 1;
 
   const effectiveView: ChartView =
-    view === 'target' && (!target || target.value === null) ? 'pmf' : view;
+    view === 'target' && (!target || target.values.length === 0) ? 'pmf' : view;
 
   const heightAt = new Array<number>(span);
   const tipAt = new Array<string>(span);

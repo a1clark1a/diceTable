@@ -68,7 +68,7 @@ describe('Sparkline', () => {
   });
 
   it('fades bars below the target in target view with ruling gte', () => {
-    const target: TargetState = { value: 4, ruling: 'gte' };
+    const target: TargetState = { values: [4], ruling: 'gte' };
     const { container } = render(
       <Plain>
         <Sparkline
@@ -86,7 +86,7 @@ describe('Sparkline', () => {
   });
 
   it('does not fade any bars in target view when no target value is set', () => {
-    const target: TargetState = { value: null, ruling: 'gte' };
+    const target: TargetState = { values: [], ruling: 'gte' };
     const { container } = render(
       <Plain>
         <Sparkline
@@ -102,6 +102,42 @@ describe('Sparkline', () => {
     ).forEach((r) => {
       expect(r.getAttribute('fill-opacity')).toBe('0.75');
     });
+  });
+
+  it('uses the lowest target as the gte threshold when multiple values are set', () => {
+    const target: TargetState = { values: [3, 5], ruling: 'gte' };
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          view="target"
+          target={target}
+        />
+      </Plain>,
+    );
+    const opacities = Array.from(
+      container.querySelectorAll('rect:not([fill="transparent"])'),
+    ).map((r) => r.getAttribute('fill-opacity'));
+    expect(opacities).toEqual(['0.18', '0.18', '0.75', '0.75', '0.75', '0.75']);
+  });
+
+  it('only highlights listed values for an eq ruling with multiple targets', () => {
+    const target: TargetState = { values: [2, 5], ruling: 'eq' };
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          view="target"
+          target={target}
+        />
+      </Plain>,
+    );
+    const opacities = Array.from(
+      container.querySelectorAll('rect:not([fill="transparent"])'),
+    ).map((r) => r.getAttribute('fill-opacity'));
+    expect(opacities).toEqual(['0.18', '0.75', '0.18', '0.18', '0.75', '0.18']);
   });
 
   it('shows PMF tooltip text "value: percent" for each bar', () => {
@@ -160,7 +196,10 @@ describe('ShapeHeaderLabel', () => {
       ui: {
         expandedId: null,
         chartView,
-        target: { value: targetValue, ruling: 'gte' },
+        target: {
+          values: targetValue === null ? [] : [targetValue],
+          ruling: 'gte',
+        },
       },
     };
     window.localStorage.setItem(

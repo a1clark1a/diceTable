@@ -25,7 +25,7 @@ export type PartPatch = {
 };
 
 export type TargetPatch = {
-  value?: number | null;
+  values?: number[];
   ruling?: TargetRuling;
 };
 

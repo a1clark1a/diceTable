@@ -4,7 +4,7 @@ export const TIPS = {
   ccdf:
     'How often you’ll roll at least a given number — useful for "beat the DC" checks. (Complementary CDF.)',
   targetView:
-    'Shows each row’s chances with a marker at your target value.',
+    'Shows each row’s chances against your targets — bars left to right go in target order.',
   sigma:
     'How spread out the results are. Lower σ means more consistent rolls.',
   mean: 'The average result you’d see over many rolls.',
@@ -15,10 +15,10 @@ export const TIPS = {
   min: 'The smallest possible result.',
   max: 'The largest possible result.',
   mod: 'A flat number added to every roll’s total.',
-  hit: 'How often this roll meets the target.',
+  hit: 'How often each row meets the target. With multiple targets, you’ll see one row per target.',
   roll: 'Open the roller — pick how many times to roll, see recent results. History stays until you reload the page.',
   target:
-    'A reference number, like an AC or save DC. The Hit % column shows how often each row meets it.',
+    'Reference numbers like ACs or save DCs — up to 5. Press Enter to add each; the Hit % column shows how often each row meets each one.',
   rollMode:
     'Applies to the whole roll. Advantage rolls twice and takes the higher; disadvantage rolls twice and takes the lower.',
   rollModeNormal: 'Roll once.',

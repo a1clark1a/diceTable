@@ -53,11 +53,11 @@ interface ChartDatum {
   [seriesKey: string]: number;
 }
 
-interface HitBar {
+interface HitRow {
   id: string;
   name: string;
   color: string;
-  hit: number;
+  hits: number[];
 }
 
 const VIEW_OPTIONS: { value: ChartView; label: string; tip: string }[] = [
@@ -147,14 +147,13 @@ function buildChartData(series: RowSeries[], view: ChartView): ChartDatum[] {
   return data;
 }
 
-function buildHitBars(series: RowSeries[], target: TargetState): HitBar[] {
-  if (target.value === null) return [];
-  const value = target.value;
+function buildHitRows(series: RowSeries[], target: TargetState): HitRow[] {
+  if (target.values.length === 0) return [];
   return series.map((s) => ({
     id: s.id,
     name: s.name,
     color: s.color,
-    hit: hitProbability(s.dist, value, target.ruling),
+    hits: target.values.map((v) => hitProbability(s.dist, v, target.ruling)),
   }));
 }
 
@@ -172,7 +171,7 @@ export function OverlayChart() {
   const { dists } = useDistributions();
 
   const overLimit = expressions.length > CHART_ROW_LIMIT;
-  const hasTarget = target.value !== null;
+  const hasTarget = target.values.length > 0;
   const effectiveView: ChartView =
     chartView === "target" && !hasTarget ? "pmf" : chartView;
 
@@ -189,8 +188,8 @@ export function OverlayChart() {
     () => buildChartData(series, effectiveView),
     [series, effectiveView],
   );
-  const hitBars = useMemo(
-    () => (effectiveView === "target" ? buildHitBars(series, target) : []),
+  const hitRows = useMemo(
+    () => (effectiveView === "target" ? buildHitRows(series, target) : []),
     [series, target, effectiveView],
   );
 
@@ -299,8 +298,8 @@ export function OverlayChart() {
             <ChartColumn size={28} strokeWidth={1.5} aria-hidden />
             <Text fontSize="sm">No valid rows yet — add a roll above.</Text>
           </Stack>
-        ) : effectiveView === "target" && target.value !== null ? (
-          <TargetHitView bars={hitBars} target={target} />
+        ) : effectiveView === "target" && target.values.length > 0 ? (
+          <TargetHitView rows={hitRows} target={target} />
         ) : (
           <Box w="100%" h={{ base: "260px", md: "320px" }}>
             <ResponsiveContainer
@@ -413,8 +412,15 @@ export function OverlayChart() {
 }
 
 interface TargetHitViewProps {
-  bars: HitBar[];
+  rows: HitRow[];
   target: TargetState;
+}
+
+interface TargetChartDatum {
+  id: string;
+  name: string;
+  color: string;
+  [hitKey: string]: number | string;
 }
 
 function formatPctLabel(
@@ -424,25 +430,79 @@ function formatPctLabel(
   return formatPercent(value);
 }
 
-function TargetHitView({ bars, target }: TargetHitViewProps) {
-  if (target.value === null) return null;
+function targetOpacity(targetIndex: number, totalTargets: number): number {
+  if (totalTargets <= 1) return 0.85;
+  const min = 0.35;
+  const max = 0.9;
+  const step = (max - min) / (totalTargets - 1);
+  return max - step * targetIndex;
+}
+
+function TargetHitView({ rows, target }: TargetHitViewProps) {
+  if (target.values.length === 0) return null;
+  const symbol = RULING_SYMBOL[target.ruling];
+  const targetCount = target.values.length;
+
+  const data: TargetChartDatum[] = rows.map((r) => {
+    const datum: TargetChartDatum = {
+      id: r.id,
+      name: r.name,
+      color: r.color,
+    };
+    r.hits.forEach((h, ti) => {
+      datum[`hit_${ti}`] = h;
+    });
+    return datum;
+  });
+
+  const targetsLabel = target.values.join(", ");
+  const showLabels = rows.length * targetCount <= 24;
+
   return (
     <Stack gap={3}>
-      <Text
-        fontSize="xs"
-        color="fg.muted"
-        fontFamily="mono"
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      >
-        Hit rate · Target {RULING_SYMBOL[target.ruling]} {target.value}
-      </Text>
+      <HStack gap={3} flexWrap="wrap">
+        <Text
+          fontSize="xs"
+          color="fg.muted"
+          fontFamily="mono"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          Hit rate · Target {symbol} {targetsLabel}
+        </Text>
+        {targetCount > 1 && (
+          <HStack gap={2} fontSize="xs" color="fg.muted">
+            <Text as="span" fontFamily="mono">
+              Bars (left → right):
+            </Text>
+            {target.values.map((v, ti) => (
+              <HStack key={v} gap={1}>
+                <Box
+                  w="10px"
+                  h="10px"
+                  borderRadius="2px"
+                  bg="fg.muted"
+                  opacity={targetOpacity(ti, targetCount)}
+                />
+                <Text
+                  as="span"
+                  fontFamily="mono"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  {symbol}
+                  {v}
+                </Text>
+              </HStack>
+            ))}
+          </HStack>
+        )}
+      </HStack>
       <Box
         w="100%"
         h={{ base: "260px", md: "320px" }}
-        maxW={`${bars.length * 100 + 96}px`}
+        maxW={`${rows.length * (targetCount * 28 + 40) + 96}px`}
         mx="auto"
         role="img"
-        aria-label={`Hit rate per roll for target ${RULING_SYMBOL[target.ruling]} ${target.value}`}
+        aria-label={`Hit rate per roll for targets ${symbol} ${targetsLabel}`}
       >
         <ResponsiveContainer
           width="100%"
@@ -450,7 +510,7 @@ function TargetHitView({ bars, target }: TargetHitViewProps) {
           initialDimension={{ width: 1, height: 1 }}
         >
           <BarChart
-            data={bars}
+            data={data}
             margin={{ top: 24, right: 16, bottom: 8, left: 0 }}
             barCategoryGap="14%"
           >
@@ -490,9 +550,9 @@ function TargetHitView({ bars, target }: TargetHitViewProps) {
             />
             <RechartsTooltip
               cursor={{ fill: "var(--chakra-colors-bg-emphasized)" }}
-              formatter={(value) => [
+              formatter={(value, name) => [
                 formatTooltipValue(value as number),
-                "Hit",
+                name,
               ]}
               labelFormatter={(label) => String(label)}
               contentStyle={{
@@ -509,29 +569,34 @@ function TargetHitView({ bars, target }: TargetHitViewProps) {
                 fontWeight: 600,
               }}
             />
-            <Bar
-              dataKey="hit"
-              name="Hit"
-              fillOpacity={0.85}
-              radius={[2, 2, 0, 0]}
-              maxBarSize={72}
-              isAnimationActive={false}
-            >
-              {bars.map((b) => (
-                <Cell key={b.id} fill={b.color} />
-              ))}
-              <LabelList
-                dataKey="hit"
-                position="top"
-                formatter={formatPctLabel}
-                style={{
-                  fill: "var(--chakra-colors-fg)",
-                  fontSize: 11,
-                  fontFamily: "ui-monospace, monospace",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              />
-            </Bar>
+            {target.values.map((v, ti) => (
+              <Bar
+                key={v}
+                dataKey={`hit_${ti}`}
+                name={`${symbol}${v}`}
+                fillOpacity={targetOpacity(ti, targetCount)}
+                radius={[2, 2, 0, 0]}
+                maxBarSize={56}
+                isAnimationActive={false}
+              >
+                {data.map((d) => (
+                  <Cell key={d.id} fill={d.color} />
+                ))}
+                {showLabels && (
+                  <LabelList
+                    dataKey={`hit_${ti}`}
+                    position="top"
+                    formatter={formatPctLabel}
+                    style={{
+                      fill: "var(--chakra-colors-fg)",
+                      fontSize: 10,
+                      fontFamily: "ui-monospace, monospace",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  />
+                )}
+              </Bar>
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </Box>
