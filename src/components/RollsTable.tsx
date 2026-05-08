@@ -5,12 +5,9 @@ import {
   HStack,
   IconButton,
   Input,
-  Popover,
-  Portal,
   Stack,
   Table,
   Text,
-  chakra,
 } from '@chakra-ui/react';
 import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
@@ -30,15 +27,13 @@ import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
+import { RowSparkline, ShapeHeaderLabel } from './chart/Sparkline';
 import { EM_DASH, formatNumber, formatPercent } from './chart/format';
 import { HelpTerm } from './ui/help-term';
 import { TIPS } from './ui/tips';
+import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
-import {
-  InspectMean,
-  InspectMode,
-  InspectSigma,
-} from './inspect/InspectStat';
+import { InspectMean, InspectSigma } from './inspect/InspectStat';
 
 interface RowStats {
   dist: Distribution;
@@ -135,21 +130,13 @@ export function RollsTable() {
                   <HelpTerm tip={TIPS.mod}>Mod</HelpTerm>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.mean}>Mean</HelpTerm>
+                  <HelpTerm tip={TIPS.meanSigma}>Mean ± σ</HelpTerm>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.min}>Min</HelpTerm>
+                  <HelpTerm tip={TIPS.range}>Range</HelpTerm>
                 </Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.max}>Max</HelpTerm>
-                </Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.mode}>Mode</HelpTerm>
-                </Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.sigma} ariaLabel="Standard deviation">
-                    σ
-                  </HelpTerm>
+                <Table.ColumnHeader textAlign="center" w="100px">
+                  <ShapeHeaderLabel />
                 </Table.ColumnHeader>
                 {showHit && (
                   <Table.ColumnHeader textAlign="end">
@@ -185,7 +172,7 @@ export function RollsTable() {
                 );
               })}
               <Table.Row>
-                <Table.Cell colSpan={showHit ? 10 : 9} py={3}>
+                <Table.Cell colSpan={showHit ? 8 : 7} py={3}>
                   <Button
                     size="sm"
                     variant="outline"
@@ -235,72 +222,6 @@ function EmptyState({ onAdd }: EmptyStateProps) {
         </Button>
       </Stack>
     </Box>
-  );
-}
-
-interface ModeCellProps {
-  modes: number[];
-}
-
-function ModeCell({ modes }: ModeCellProps) {
-  if (modes.length === 0) return <>{EM_DASH}</>;
-  if (modes.length <= 3) return <>{modes.join(', ')}</>;
-
-  const visible = modes.slice(0, 3).join(', ');
-  const hidden = modes.length - 3;
-
-  return (
-    <Popover.Root positioning={{ placement: 'top' }}>
-      <Popover.Trigger asChild>
-        <chakra.button
-          type="button"
-          fontFamily="mono"
-          color="fg"
-          cursor="pointer"
-          borderRadius="sm"
-          px={1}
-          mx={-1}
-          bg="transparent"
-          _hover={{
-            color: 'colorPalette.fg',
-            bg: 'bg.muted',
-          }}
-          _focusVisible={{
-            outline: '2px solid',
-            outlineColor: 'colorPalette.solid',
-            outlineOffset: '1px',
-          }}
-          aria-label={`Show all ${modes.length} tied results`}
-          title="Click to see all tied results"
-        >
-          {visible},{' '}
-          <Text
-            as="span"
-            textDecoration="underline"
-            textDecorationStyle="dotted"
-          >
-            +{hidden}
-          </Text>
-        </chakra.button>
-      </Popover.Trigger>
-      <Portal>
-        <Popover.Positioner>
-          <Popover.Content maxW="280px">
-            <Popover.Arrow>
-              <Popover.ArrowTip />
-            </Popover.Arrow>
-            <Popover.Body>
-              <Text fontSize="xs" color="fg.muted" mb={1}>
-                {modes.length} results are equally likely
-              </Text>
-              <Text fontFamily="mono" fontSize="sm" wordBreak="break-word">
-                {modes.join(', ')}
-              </Text>
-            </Popover.Body>
-          </Popover.Content>
-        </Popover.Positioner>
-      </Portal>
-    </Popover.Root>
   );
 }
 
@@ -421,14 +342,28 @@ const RollTableRow = memo(function RollTableRow({
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {stats.hasDist ? (
-            <InspectMean
-              exprName={expr.name}
-              hasDist={stats.hasDist && !tooComplex}
-              dist={stats.dist}
-              mean={stats.mean}
-            >
-              {formatNumber(stats.mean, 3)}
-            </InspectMean>
+            <>
+              <InspectMean
+                exprName={expr.name}
+                hasDist={stats.hasDist && !tooComplex}
+                dist={stats.dist}
+                mean={stats.mean}
+              >
+                {formatNumber(stats.mean, 2)}
+              </InspectMean>
+              <Text as="span" color="fg.muted" mx={1}>
+                ±
+              </Text>
+              <InspectSigma
+                exprName={expr.name}
+                hasDist={stats.hasDist && !tooComplex}
+                dist={stats.dist}
+                mean={stats.mean}
+                stddev={stats.stddev}
+              >
+                {formatNumber(stats.stddev, 2)}
+              </InspectSigma>
+            </>
           ) : (
             EM_DASH
           )}
@@ -438,50 +373,25 @@ const RollTableRow = memo(function RollTableRow({
           fontFamily="mono"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          {stats.hasDist ? stats.min : EM_DASH}
+          {stats.hasDist ? `${stats.min}–${stats.max}` : EM_DASH}
         </Table.Cell>
-        <Table.Cell
-          textAlign="end"
-          fontFamily="mono"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        >
-          {stats.hasDist ? stats.max : EM_DASH}
-        </Table.Cell>
-        <Table.Cell
-          textAlign="end"
-          fontFamily="mono"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        >
-          {stats.mode.length > 0 && stats.mode.length <= 3 ? (
-            <InspectMode
+        <Table.Cell textAlign="center" verticalAlign="middle">
+          {stats.hasDist && !tooComplex ? (
+            <InspectChart
               exprName={expr.name}
-              hasDist={stats.hasDist && !tooComplex}
               dist={stats.dist}
-              modes={stats.mode}
+              color={color}
             >
-              {stats.mode.join(', ')}
-            </InspectMode>
+              <RowSparkline
+                dist={stats.dist}
+                color={color}
+                exprName={expr.name}
+              />
+            </InspectChart>
           ) : (
-            <ModeCell modes={stats.mode} />
-          )}
-        </Table.Cell>
-        <Table.Cell
-          textAlign="end"
-          fontFamily="mono"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        >
-          {stats.hasDist ? (
-            <InspectSigma
-              exprName={expr.name}
-              hasDist={stats.hasDist && !tooComplex}
-              dist={stats.dist}
-              mean={stats.mean}
-              stddev={stats.stddev}
-            >
-              {formatNumber(stats.stddev, 3)}
-            </InspectSigma>
-          ) : (
-            EM_DASH
+            <Text as="span" color="fg.muted">
+              {EM_DASH}
+            </Text>
           )}
         </Table.Cell>
         {showHit && (
@@ -534,7 +444,7 @@ const RollTableRow = memo(function RollTableRow({
       </Table.Row>
       {expanded && (
         <Table.Row>
-          <Table.Cell colSpan={showHit ? 10 : 9} p={0} bg="bg.subtle">
+          <Table.Cell colSpan={showHit ? 8 : 7} p={0} bg="bg.subtle">
             <RollExpand expression={expr} />
           </Table.Cell>
         </Table.Row>

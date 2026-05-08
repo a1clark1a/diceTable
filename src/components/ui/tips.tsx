@@ -8,6 +8,9 @@ export const TIPS = {
   sigma:
     'How spread out the results are. Lower σ means more consistent rolls.',
   mean: 'The average result you’d see over many rolls.',
+  meanSigma:
+    'The average result, with how spread out rolls land around it. Lower σ means more consistent rolls.',
+  range: 'The smallest and largest possible results.',
   mode: 'The result(s) you’ll see most often. When many results are equally likely, only a few are shown — click to see all of them.',
   min: 'The smallest possible result.',
   max: 'The largest possible result.',

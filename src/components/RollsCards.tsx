@@ -27,9 +27,11 @@ import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
+import { RowSparkline, ShapeCardLabel } from './chart/Sparkline';
 import { EM_DASH, formatNumber, formatPercent } from './chart/format';
 import { HelpTerm } from './ui/help-term';
 import { TIPS } from './ui/tips';
+import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
 
@@ -300,48 +302,51 @@ const RollCard = memo(function RollCard({
           </HStack>
         </HStack>
 
-        <Grid templateColumns="repeat(4, 1fr)" gap={2} mt={3}>
+        {stats.hasDist && !tooComplex && (
+          <Box mt={3} bg="bg.subtle" borderRadius="md" px={3} py={2}>
+            <HStack gap={3} align="center">
+              <ShapeCardLabel />
+              <Box flex="1">
+                <InspectChart
+                  exprName={expr.name}
+                  dist={stats.dist}
+                  color={color}
+                >
+                  <RowSparkline
+                    dist={stats.dist}
+                    color={color}
+                    exprName={expr.name}
+                    height={36}
+                    fill
+                  />
+                </InspectChart>
+              </Box>
+            </HStack>
+          </Box>
+        )}
+
+        <Grid
+          templateColumns={showHit ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'}
+          gap={2}
+          mt={3}
+        >
           <StatPill
-            label="Mean"
-            tip={TIPS.mean}
+            label="Mean ± σ"
+            tip={TIPS.meanSigma}
             value={
               stats.hasDist ? (
-                <InspectMean
-                  exprName={expr.name}
-                  hasDist={stats.hasDist && !tooComplex}
-                  dist={stats.dist}
-                  mean={stats.mean}
-                >
-                  {formatNumber(stats.mean, 2)}
-                </InspectMean>
-              ) : (
-                EM_DASH
-              )
-            }
-          />
-          <StatPill
-            label="Min"
-            tip={TIPS.min}
-            value={stats.hasDist ? String(stats.min) : EM_DASH}
-          />
-          <StatPill
-            label="Max"
-            tip={TIPS.max}
-            value={stats.hasDist ? String(stats.max) : EM_DASH}
-          />
-          {showHit ? (
-            <StatPill
-              label="Hit %"
-              tip={TIPS.hit}
-              value={hit === null ? EM_DASH : formatPercent(hit)}
-              valueColor={hit === null ? undefined : hitColor(hit)}
-            />
-          ) : (
-            <StatPill
-              label="σ"
-              tip={TIPS.sigma}
-              value={
-                stats.hasDist ? (
+                <>
+                  <InspectMean
+                    exprName={expr.name}
+                    hasDist={stats.hasDist && !tooComplex}
+                    dist={stats.dist}
+                    mean={stats.mean}
+                  >
+                    {formatNumber(stats.mean, 2)}
+                  </InspectMean>
+                  <Text as="span" color="fg.muted" mx={1}>
+                    ±
+                  </Text>
                   <InspectSigma
                     exprName={expr.name}
                     hasDist={stats.hasDist && !tooComplex}
@@ -351,10 +356,23 @@ const RollCard = memo(function RollCard({
                   >
                     {formatNumber(stats.stddev, 2)}
                   </InspectSigma>
-                ) : (
-                  EM_DASH
-                )
-              }
+                </>
+              ) : (
+                EM_DASH
+              )
+            }
+          />
+          <StatPill
+            label="Range"
+            tip={TIPS.range}
+            value={stats.hasDist ? `${stats.min}–${stats.max}` : EM_DASH}
+          />
+          {showHit && (
+            <StatPill
+              label="Hit %"
+              tip={TIPS.hit}
+              value={hit === null ? EM_DASH : formatPercent(hit)}
+              valueColor={hit === null ? undefined : hitColor(hit)}
             />
           )}
         </Grid>

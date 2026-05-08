@@ -216,25 +216,6 @@ export function OverlayChart() {
         borderRadius="md"
         p={{ base: 3, md: 4 }}
       >
-        {overLimit ? (
-          <Stack
-            minH="280px"
-            align="center"
-            justify="center"
-            gap={3}
-            color="fg.muted"
-            textAlign="center"
-            px={4}
-          >
-            <ChartColumn size={28} strokeWidth={1.5} aria-hidden />
-            <Text fontSize="sm" maxW="48ch">
-              Comparison chart is disabled past {CHART_ROW_LIMIT} rolls
-              (currently {expressions.length}). Remove rows to re-enable —
-              per-row stats remain in the table above.
-            </Text>
-          </Stack>
-        ) : (
-          <>
         <HStack
           justify="space-between"
           align="flex-start"
@@ -290,7 +271,24 @@ export function OverlayChart() {
           )}
         </HStack>
 
-        {series.length === 0 ? (
+        {overLimit ? (
+          <Stack
+            minH="240px"
+            align="center"
+            justify="center"
+            gap={3}
+            color="fg.muted"
+            textAlign="center"
+            px={4}
+          >
+            <ChartColumn size={28} strokeWidth={1.5} aria-hidden />
+            <Text fontSize="sm" maxW="52ch">
+              Comparison chart is disabled past {CHART_ROW_LIMIT} rolls
+              (currently {expressions.length}). The view toggle above still
+              drives the Shape column in the table.
+            </Text>
+          </Stack>
+        ) : series.length === 0 ? (
           <Stack
             minH="280px"
             align="center"
@@ -408,8 +406,6 @@ export function OverlayChart() {
               </ComposedChart>
             </ResponsiveContainer>
           </Box>
-        )}
-          </>
         )}
       </Box>
     </Stack>
