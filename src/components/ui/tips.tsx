@@ -35,6 +35,10 @@ export const TIPS = {
     'The results most likely to come up, ordered by chance.',
   inspectSigma:
     'The shaded band is one σ either side of the mean — most rolls land here.',
+  share:
+    'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
+  import:
+    'Bring rolls in from a share link, JSON, or a file. Choose to add to the table or replace it.',
 };
 
 export function tipForKeep(token: string): string {

@@ -84,7 +84,7 @@ function validatePart(v: unknown): DicePart | null {
   return part;
 }
 
-function validateExpression(v: unknown): Expression | null {
+export function validateExpression(v: unknown): Expression | null {
   if (!isRecord(v)) return null;
   if (!isNonEmptyString(v.id)) return null;
   if (typeof v.name !== 'string') return null;

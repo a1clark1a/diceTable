@@ -45,6 +45,8 @@ export interface AppContextValue {
   addPart: (exprId: string) => void;
   removePart: (exprId: string, partId: string) => void;
   updatePart: (exprId: string, partId: string, patch: PartPatch) => void;
+  replaceExpressions: (exprs: Expression[]) => void;
+  addExpressions: (exprs: Expression[]) => void;
 }
 
 export const AppContext = createContext<AppContextValue | null>(null);

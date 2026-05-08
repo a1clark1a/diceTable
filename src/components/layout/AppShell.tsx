@@ -1,8 +1,11 @@
 import { Box, Flex } from '@chakra-ui/react';
 import { type ReactNode } from 'react';
 import { Header } from '../Header';
+import { Toaster } from '../share/Toaster';
+import { useShareLinkAutoload } from '../share/useShareLinkAutoload';
 
 export function AppShell({ children }: { children: ReactNode }) {
+  useShareLinkAutoload();
   return (
     <Flex direction="column" minH="100dvh" bg="bg">
       <Header />
@@ -17,6 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </Box>
       </Box>
+      <Toaster />
     </Flex>
   );
 }

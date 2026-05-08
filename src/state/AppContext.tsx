@@ -2,6 +2,7 @@ import { useCallback, useMemo, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { validatePersistedState } from './persistedSchema';
 import { defaultPart, newId } from './defaultPart';
+import { renameCollisions } from '../share/rename';
 import {
   AppContext,
   type AppContextValue,
@@ -52,6 +53,14 @@ function defaultExpression(): Expression {
     parts: [defaultPart()],
     flatModifier: 0,
     rollMode: 'normal',
+  };
+}
+
+function reIdExpression(expr: Expression): Expression {
+  return {
+    ...expr,
+    id: newId('expr'),
+    parts: expr.parts.map((p) => ({ ...p, id: newId('part') })),
   };
 }
 
@@ -218,6 +227,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [updateExpressionInList],
   );
 
+  const replaceExpressions = useCallback(
+    (incoming: Expression[]) => {
+      const fresh = incoming.map(reIdExpression);
+      setState((prev) => ({
+        ...prev,
+        expressions: fresh,
+        ui: { ...prev.ui, expandedId: null },
+      }));
+    },
+    [setState],
+  );
+
+  const addExpressions = useCallback(
+    (incoming: Expression[]) => {
+      setState((prev) => {
+        const renamed = renameCollisions(prev.expressions, incoming);
+        const fresh = renamed.map(reIdExpression);
+        return {
+          ...prev,
+          expressions: [...prev.expressions, ...fresh],
+          ui: { ...prev.ui, expandedId: null },
+        };
+      });
+    },
+    [setState],
+  );
+
   const value = useMemo<AppContextValue>(
     () => ({
       expressions: state.expressions,
@@ -235,6 +271,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPart,
       removePart,
       updatePart,
+      replaceExpressions,
+      addExpressions,
     }),
     [
       state,
@@ -249,6 +287,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addPart,
       removePart,
       updatePart,
+      replaceExpressions,
+      addExpressions,
     ],
   );
 

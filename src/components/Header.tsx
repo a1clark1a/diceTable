@@ -1,5 +1,7 @@
 import { Box, Heading, HStack, Image } from '@chakra-ui/react';
 import { ColorModeButton } from './ui/color-mode';
+import { ImportDialog } from './share/ImportDialog';
+import { SharePopover } from './share/SharePopover';
 
 export function Header() {
   return (
@@ -18,7 +20,11 @@ export function Header() {
             DiceTable
           </Heading>
         </HStack>
-        <ColorModeButton />
+        <HStack gap={1}>
+          <ImportDialog />
+          <SharePopover />
+          <ColorModeButton />
+        </HStack>
       </HStack>
     </Box>
   );
