@@ -30,18 +30,11 @@ import { hitColor, rowColor } from './chart/palette';
 import { RowSparkline, ShapeCardLabel } from './chart/Sparkline';
 import { EM_DASH, formatNumber, formatPercent } from './chart/format';
 import { HelpTerm } from './ui/help-term';
-import { TIPS } from './ui/tips';
+import { tipForId } from '../docs/glossary';
+import { RulingSymbol } from './targetRuling';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
-
-const RULING_SYMBOL: Record<TargetRuling, string> = {
-  gte: '≥',
-  gt: '>',
-  lte: '≤',
-  lt: '<',
-  eq: '=',
-};
 
 interface CardStats {
   dist: Distribution;
@@ -114,7 +107,6 @@ export function RollsCards() {
   );
 
   const showHit = target.values.length > 0;
-  const rulingSymbol = RULING_SYMBOL[target.ruling];
 
   return (
     <Stack gap={3}>
@@ -160,7 +152,7 @@ export function RollsCards() {
                 stats={stats}
                 hits={hits}
                 targetValues={target.values}
-                rulingSymbol={rulingSymbol}
+                ruling={target.ruling}
                 expanded={expanded}
                 showHit={showHit}
                 tooComplex={cardTooComplex}
@@ -193,7 +185,7 @@ interface RollCardProps {
   stats: CardStats;
   hits: number[] | null;
   targetValues: number[];
-  rulingSymbol: string;
+  ruling: TargetRuling;
   expanded: boolean;
   showHit: boolean;
   tooComplex: boolean;
@@ -209,7 +201,7 @@ const RollCard = memo(function RollCard({
   stats,
   hits,
   targetValues,
-  rulingSymbol,
+  ruling,
   expanded,
   showHit,
   tooComplex,
@@ -298,7 +290,7 @@ const RollCard = memo(function RollCard({
             )}
           </Text>
           <HStack gap={1} align="center">
-            <HelpTerm tip={TIPS.mod}>
+            <HelpTerm tip={tipForId('mod')}>
               <Text as="span" fontSize="xs" color="fg.muted">
                 Mod
               </Text>
@@ -349,7 +341,7 @@ const RollCard = memo(function RollCard({
         >
           <StatPill
             label="Mean ± σ"
-            tip={TIPS.meanSigma}
+            tip={tipForId('meanSigma')}
             value={
               stats.hasDist ? (
                 <>
@@ -381,13 +373,14 @@ const RollCard = memo(function RollCard({
           />
           <StatPill
             label="Range"
-            tip={TIPS.range}
+            tip={tipForId('range')}
             value={stats.hasDist ? `${stats.min}–${stats.max}` : EM_DASH}
           />
           {showHit && (
             <StatPill
-              label={`Hit % ${rulingSymbol}`}
-              tip={TIPS.hit}
+              label="Hit %"
+              accessory={<RulingSymbol ruling={ruling} color="fg.muted" />}
+              tip={tipForId('hit')}
               value={
                 hits === null ? (
                   EM_DASH
@@ -460,23 +453,38 @@ interface StatPillProps {
   label: string;
   value: ReactNode;
   tip: string;
+  accessory?: ReactNode;
 }
 
-function StatPill({ label, value, tip }: StatPillProps) {
+function StatPill({ label, value, tip, accessory }: StatPillProps) {
   return (
     <Box bg="bg.subtle" borderRadius="md" px={2} py={1.5} textAlign="center">
-      <HelpTerm tip={tip}>
-        <Text
-          as="span"
-          fontSize="2xs"
-          fontWeight="semibold"
-          color="fg.muted"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          {label}
-        </Text>
-      </HelpTerm>
+      <HStack as="span" gap={1} justify="center">
+        <HelpTerm tip={tip}>
+          <Text
+            as="span"
+            fontSize="2xs"
+            fontWeight="semibold"
+            color="fg.muted"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            {label}
+          </Text>
+        </HelpTerm>
+        {accessory !== undefined && (
+          <Box
+            as="span"
+            fontSize="2xs"
+            fontWeight="semibold"
+            color="fg.muted"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            {accessory}
+          </Box>
+        )}
+      </HStack>
       <Box
         fontFamily="mono"
         fontSize="sm"

@@ -4,13 +4,13 @@ import type { ChartView, Distribution, TargetState } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
 import { useApp } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
-  pmf: { text: 'PMF', tip: TIPS.pmf },
-  cdf: { text: 'CDF', tip: TIPS.cdf },
-  ccdf: { text: 'CCDF', tip: TIPS.ccdf },
-  target: { text: 'Target', tip: TIPS.targetView },
+  pmf: { text: 'PMF', tip: tipForId('pmf') },
+  cdf: { text: 'CDF', tip: tipForId('cdf') },
+  ccdf: { text: 'CCDF', tip: tipForId('ccdf') },
+  target: { text: 'Target', tip: tipForId('targetView') },
 };
 
 function useEffectiveChartView(): ChartView {

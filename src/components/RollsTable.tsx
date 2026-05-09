@@ -21,7 +21,7 @@ import {
   mode as distMode,
   stddev as distStddev,
 } from '../engine/stats';
-import type { Distribution, Expression, TargetRuling } from '../types';
+import type { Distribution, Expression } from '../types';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
@@ -30,18 +30,11 @@ import { hitColor, rowColor } from './chart/palette';
 import { RowSparkline, ShapeHeaderLabel } from './chart/Sparkline';
 import { EM_DASH, formatNumber, formatPercent } from './chart/format';
 import { HelpTerm } from './ui/help-term';
-import { TIPS } from './ui/tips';
+import { tipForId } from '../docs/glossary';
+import { RulingSymbol } from './targetRuling';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
-
-const RULING_SYMBOL: Record<TargetRuling, string> = {
-  gte: '≥',
-  gt: '>',
-  lte: '≤',
-  lt: '<',
-  eq: '=',
-};
 
 interface RowStats {
   dist: Distribution;
@@ -114,7 +107,6 @@ export function RollsTable() {
   );
 
   const showHit = target.values.length > 0;
-  const rulingSymbol = RULING_SYMBOL[target.ruling];
 
   return (
     <Stack gap={3}>
@@ -136,22 +128,23 @@ export function RollsTable() {
                 <Table.ColumnHeader>Name</Table.ColumnHeader>
                 <Table.ColumnHeader>Dice</Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.mod}>Mod</HelpTerm>
+                  <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.meanSigma}>Mean ± σ</HelpTerm>
+                  <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={TIPS.range}>Range</HelpTerm>
+                  <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="center" w="100px">
                   <ShapeHeaderLabel />
                 </Table.ColumnHeader>
                 {showHit && (
                   <Table.ColumnHeader textAlign="end">
-                    <HelpTerm tip={TIPS.hit}>
-                      Hit % {rulingSymbol}
-                    </HelpTerm>
+                    <HStack as="span" gap={1} justify="end">
+                      <HelpTerm tip={tipForId('hit')}>Hit %</HelpTerm>
+                      <RulingSymbol ruling={target.ruling} color="fg.muted" />
+                    </HStack>
                   </Table.ColumnHeader>
                 )}
                 <Table.ColumnHeader textAlign="end" w="140px">

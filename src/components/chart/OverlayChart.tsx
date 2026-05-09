@@ -30,12 +30,12 @@ import type {
   ChartView,
   Distribution,
   Expression,
-  TargetRuling,
   TargetState,
 } from "../../types";
 import { rowColor } from "./palette";
 import { Tooltip } from "../ui/tooltip";
-import { TIPS } from "../ui/tips";
+import { tipForId } from "../../docs/glossary";
+import { RULING_SYMBOL, RulingSymbol } from "../targetRuling";
 import { formatPercent } from "./format";
 
 interface RowSeries {
@@ -61,21 +61,13 @@ interface HitRow {
 }
 
 const VIEW_OPTIONS: { value: ChartView; label: string; tip: string }[] = [
-  { value: "pmf", label: "PMF", tip: TIPS.pmf },
-  { value: "cdf", label: "CDF", tip: TIPS.cdf },
-  { value: "ccdf", label: "CCDF", tip: TIPS.ccdf },
-  { value: "target", label: "TARGET", tip: TIPS.targetView },
+  { value: "pmf", label: "PMF", tip: tipForId('pmf') },
+  { value: "cdf", label: "CDF", tip: tipForId('cdf') },
+  { value: "ccdf", label: "CCDF", tip: tipForId('ccdf') },
+  { value: "target", label: "TARGET", tip: tipForId('targetView') },
 ];
 
 const CHART_ROW_LIMIT = 20;
-
-const RULING_SYMBOL: Record<TargetRuling, string> = {
-  gte: "≥",
-  gt: ">",
-  lte: "≤",
-  lt: "<",
-  eq: "=",
-};
 
 function buildSeries(
   expressions: Expression[],
@@ -461,14 +453,18 @@ function TargetHitView({ rows, target }: TargetHitViewProps) {
   return (
     <Stack gap={3}>
       <HStack gap={3} flexWrap="wrap">
-        <Text
+        <HStack
+          as="span"
+          gap={1}
           fontSize="xs"
           color="fg.muted"
           fontFamily="mono"
           style={{ fontVariantNumeric: "tabular-nums" }}
         >
-          Hit rate · Target {symbol} {targetsLabel}
-        </Text>
+          <Text as="span">Hit rate · Target</Text>
+          <RulingSymbol ruling={target.ruling} />
+          <Text as="span">{targetsLabel}</Text>
+        </HStack>
         {targetCount > 1 && (
           <HStack gap={2} fontSize="xs" color="fg.muted">
             <Text as="span" fontFamily="mono">
@@ -483,14 +479,15 @@ function TargetHitView({ rows, target }: TargetHitViewProps) {
                   bg="fg.muted"
                   opacity={targetOpacity(ti, targetCount)}
                 />
-                <Text
+                <HStack
                   as="span"
+                  gap={0}
                   fontFamily="mono"
                   style={{ fontVariantNumeric: "tabular-nums" }}
                 >
-                  {symbol}
-                  {v}
-                </Text>
+                  <RulingSymbol ruling={target.ruling} />
+                  <Text as="span">{v}</Text>
+                </HStack>
               </HStack>
             ))}
           </HStack>

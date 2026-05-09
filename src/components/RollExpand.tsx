@@ -11,12 +11,12 @@ import type { Expression, RollMode } from '../types';
 import { DicePartRow } from './editor/DicePartRow';
 import { Tooltip } from './ui/tooltip';
 import { HelpTerm } from './ui/help-term';
-import { TIPS } from './ui/tips';
+import { tipForId } from '../docs/glossary';
 
 const ROLL_MODES: { value: RollMode; label: string; tip: string }[] = [
-  { value: 'normal', label: 'Normal', tip: TIPS.rollModeNormal },
-  { value: 'advantage', label: 'Advantage', tip: TIPS.rollModeAdvantage },
-  { value: 'disadvantage', label: 'Disadvantage', tip: TIPS.rollModeDisadvantage },
+  { value: 'normal', label: 'Normal', tip: tipForId('rollModeNormal') },
+  { value: 'advantage', label: 'Advantage', tip: tipForId('rollModeAdvantage') },
+  { value: 'disadvantage', label: 'Disadvantage', tip: tipForId('rollModeDisadvantage') },
 ];
 
 interface RollExpandProps {
@@ -82,7 +82,7 @@ export function RollExpand({ expression }: RollExpandProps) {
           letterSpacing="wider"
           mb={2}
         >
-          <HelpTerm tip={TIPS.rollMode}>Roll mode</HelpTerm>
+          <HelpTerm tip={tipForId('rollMode')}>Roll mode</HelpTerm>
         </Box>
         <HStack
           gap={0}

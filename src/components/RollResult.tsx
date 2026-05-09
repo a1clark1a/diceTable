@@ -15,7 +15,7 @@ import { Dices } from 'lucide-react';
 import type { Distribution } from '../types';
 import { useRollHistory } from '../state/useRollHistory';
 import { EM_DASH } from './chart/format';
-import { TIPS } from './ui/tips';
+import { tipForId } from '../docs/glossary';
 
 const MAX_COUNT = 1000;
 
@@ -105,7 +105,7 @@ export function RollPopover({
           title={
             disabled
               ? 'No result available — check the dice configuration'
-              : TIPS.roll
+              : tipForId('roll')
           }
           disabled={disabled}
         >

@@ -4,7 +4,6 @@ import {
   type KeyboardEvent,
 } from 'react';
 import {
-  Box,
   HStack,
   IconButton,
   Input,
@@ -17,27 +16,13 @@ import { X } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import { MAX_TARGETS, type TargetRuling } from '../types';
 import { HelpTerm } from './ui/help-term';
-import { TIPS } from './ui/tips';
-
-const RULING_OPTIONS: { value: TargetRuling; label: string; symbol: string }[] = [
-  { value: 'gte', label: '≥ at least', symbol: '≥' },
-  { value: 'gt', label: '> greater than', symbol: '>' },
-  { value: 'lte', label: '≤ at most', symbol: '≤' },
-  { value: 'lt', label: '< less than', symbol: '<' },
-  { value: 'eq', label: '= exactly', symbol: '=' },
-];
-
-const RULING_SYMBOL: Record<TargetRuling, string> = RULING_OPTIONS.reduce(
-  (acc, r) => {
-    acc[r.value] = r.symbol;
-    return acc;
-  },
-  {} as Record<TargetRuling, string>,
-);
-
-function isRuling(value: string): value is TargetRuling {
-  return RULING_OPTIONS.some((r) => r.value === value);
-}
+import { tipForId } from '../docs/glossary';
+import {
+  RULING_OPTIONS,
+  RULING_SYMBOL,
+  RulingSymbol,
+  isTargetRuling,
+} from './targetRuling';
 
 function parseDraft(raw: string): number | null {
   const trimmed = raw.trim();
@@ -116,7 +101,7 @@ export function TargetToolbar() {
       borderRadius="md"
       flexWrap="wrap"
     >
-      <HelpTerm tip={TIPS.target}>
+      <HelpTerm tip={tipForId('target')}>
         <Text
           as="span"
           fontSize="xs"
@@ -132,14 +117,14 @@ export function TargetToolbar() {
         <NativeSelect.Field
           value={target.ruling}
           onChange={(e) => {
-            if (isRuling(e.target.value)) setTarget({ ruling: e.target.value });
+            if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
           }}
           aria-label="Target ruling"
           title="How to compare each roll to the target."
         >
           {RULING_OPTIONS.map((r) => (
             <option key={r.value} value={r.value}>
-              {r.label}
+              {r.shortLabel}
             </option>
           ))}
         </NativeSelect.Field>
@@ -149,7 +134,7 @@ export function TargetToolbar() {
         {target.values.map((v) => (
           <WrapItem key={v}>
             <TargetChip
-              symbol={RULING_SYMBOL[target.ruling]}
+              ruling={target.ruling}
               value={v}
               onRemove={() => removeValue(v)}
             />
@@ -184,12 +169,13 @@ export function TargetToolbar() {
 }
 
 interface TargetChipProps {
-  symbol: string;
+  ruling: TargetRuling;
   value: number;
   onRemove: () => void;
 }
 
-function TargetChip({ symbol, value, onRemove }: TargetChipProps) {
+function TargetChip({ ruling, value, onRemove }: TargetChipProps) {
+  const symbol = RULING_SYMBOL[ruling];
   return (
     <HStack
       gap={1}
@@ -203,12 +189,10 @@ function TargetChip({ symbol, value, onRemove }: TargetChipProps) {
       fontFamily="mono"
       fontSize="xs"
     >
-      <Box as="span" color="fg.muted">
-        {symbol}
-      </Box>
-      <Box as="span" style={{ fontVariantNumeric: 'tabular-nums' }}>
+      <RulingSymbol ruling={ruling} color="fg.muted" />
+      <Text as="span" style={{ fontVariantNumeric: 'tabular-nums' }}>
         {value}
-      </Box>
+      </Text>
       <IconButton
         aria-label={`Remove target ${symbol} ${value}`}
         size="2xs"

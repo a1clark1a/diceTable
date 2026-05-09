@@ -15,7 +15,7 @@ import { Trash2 } from 'lucide-react';
 import type { DicePart, ExplodeRule, KeepRule, RerollRule } from '../../types';
 import type { PartPatch } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
 import { validatePart } from './validatePart';
 
 function defaultKeep(part: DicePart): KeepRule {
@@ -198,7 +198,7 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
         <Box>
           <HStack justify="space-between">
             <Text fontSize="sm" fontWeight="medium">
-              <HelpTerm tip={TIPS.keep}>Keep</HelpTerm>
+              <HelpTerm tip={tipForId('keep')}>Keep</HelpTerm>
             </Text>
             <Switch.Root
               size="sm"
@@ -260,7 +260,7 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
         <Box>
           <HStack justify="space-between">
             <Text fontSize="sm" fontWeight="medium">
-              <HelpTerm tip={TIPS.reroll}>Reroll</HelpTerm>
+              <HelpTerm tip={tipForId('reroll')}>Reroll</HelpTerm>
             </Text>
             <Switch.Root
               size="sm"
@@ -317,7 +317,7 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
         <Box>
           <HStack justify="space-between">
             <Text fontSize="sm" fontWeight="medium">
-              <HelpTerm tip={TIPS.explode}>Explode</HelpTerm>
+              <HelpTerm tip={tipForId('explode')}>Explode</HelpTerm>
             </Text>
             <Switch.Root
               size="sm"

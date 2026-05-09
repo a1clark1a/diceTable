@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "description": "Maps docs sections to source files whose changes likely invalidate them. Consumed by the /check-docs-drift skill. Paths are forward-slash, relative to repo root, matching `git diff --name-only` output.",
+  "sections": [
+    {
+      "id": "math.uniform",
+      "label": "The Math · §1 A single die — uniform distribution",
+      "deps": ["src/engine/distribution.ts", "src/docs/math.tsx"]
+    },
+    {
+      "id": "math.convolution",
+      "label": "The Math · §2 Multiple dice — convolution",
+      "deps": ["src/engine/distribution.ts", "src/engine/expression.ts", "src/docs/math.tsx"]
+    },
+    {
+      "id": "math.modifier",
+      "label": "The Math · §3 Modifier — distribution shift",
+      "deps": ["src/engine/distribution.ts", "src/engine/expression.ts", "src/docs/math.tsx"]
+    },
+    {
+      "id": "math.keep",
+      "label": "The Math · §4 Keep highest / lowest",
+      "deps": ["src/engine/parts.ts", "src/docs/math.tsx"]
+    },
+    {
+      "id": "math.advantage",
+      "label": "The Math · §5 Advantage / Disadvantage",
+      "deps": ["src/engine/expression.ts", "src/docs/math.tsx"]
+    },
+    {
+      "id": "math.reroll",
+      "label": "The Math · §6 Reroll — once vs. always",
+      "deps": ["src/engine/parts.ts", "src/docs/math.tsx"]
+    },
+    {
+      "id": "math.explode",
+      "label": "The Math · §7 Explode — recursive convolution with depth cap",
+      "deps": ["src/engine/parts.ts", "src/docs/math.tsx"]
+    },
+
+    {
+      "id": "screenshot.quickstart-01",
+      "label": "Quickstart · Step 1 (Add your first roll)",
+      "deps": [
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/state/AppContext.tsx"
+      ],
+      "asset": "public/docs/screenshots/quickstart-01.png"
+    },
+    {
+      "id": "screenshot.quickstart-02",
+      "label": "Quickstart · Step 2 (Read dice notation)",
+      "deps": [
+        "src/components/editor/ExpressionRender.tsx",
+        "src/components/editor/DicePartRow.tsx"
+      ],
+      "asset": "public/docs/screenshots/quickstart-02.png"
+    },
+    {
+      "id": "screenshot.quickstart-03",
+      "label": "Quickstart · Step 3 (Read the chart)",
+      "deps": [
+        "src/components/chart/OverlayChart.tsx",
+        "src/components/chart/Sparkline.tsx",
+        "src/components/chart/palette.ts"
+      ],
+      "asset": "public/docs/screenshots/quickstart-03.png"
+    },
+    {
+      "id": "screenshot.quickstart-04",
+      "label": "Quickstart · Step 4 (Roll modes — advantage / disadvantage)",
+      "deps": [
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx"
+      ],
+      "asset": "public/docs/screenshots/quickstart-04.png"
+    },
+    {
+      "id": "screenshot.quickstart-05",
+      "label": "Quickstart · Step 5 (Keep, reroll, explode)",
+      "deps": [
+        "src/components/RollExpand.tsx",
+        "src/components/editor/DicePartRow.tsx"
+      ],
+      "asset": "public/docs/screenshots/quickstart-05.png"
+    },
+    {
+      "id": "screenshot.quickstart-06",
+      "label": "Quickstart · Step 6 (Compare rolls)",
+      "deps": [
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/chart/OverlayChart.tsx",
+        "src/components/chart/palette.ts"
+      ],
+      "asset": "public/docs/screenshots/quickstart-06.png"
+    },
+    {
+      "id": "screenshot.quickstart-07",
+      "label": "Quickstart · Step 7 (Set targets and read Hit %)",
+      "deps": [
+        "src/components/TargetToolbar.tsx",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx"
+      ],
+      "asset": "public/docs/screenshots/quickstart-07.png"
+    },
+    {
+      "id": "screenshot.quickstart-08",
+      "label": "Quickstart · Step 8 (Share and import)",
+      "deps": [
+        "src/components/share/SharePopover.tsx",
+        "src/components/share/ImportDialog.tsx"
+      ],
+      "asset": "public/docs/screenshots/quickstart-08.png"
+    },
+
+    {
+      "id": "glossary.notation",
+      "label": "Glossary · Dice notation group",
+      "deps": [
+        "src/types.ts",
+        "src/engine/expression.ts",
+        "src/engine/parts.ts",
+        "src/docs/glossary.ts"
+      ]
+    },
+    {
+      "id": "glossary.roll-modes",
+      "label": "Glossary · Roll modes group",
+      "deps": ["src/engine/expression.ts", "src/docs/glossary.ts"]
+    },
+    {
+      "id": "glossary.statistics",
+      "label": "Glossary · Statistics group",
+      "deps": ["src/engine/stats.ts", "src/docs/glossary.ts"]
+    },
+    {
+      "id": "glossary.distributions",
+      "label": "Glossary · Distributions and charts group",
+      "deps": [
+        "src/engine/distribution.ts",
+        "src/components/chart/OverlayChart.tsx",
+        "src/docs/glossary.ts"
+      ]
+    },
+    {
+      "id": "glossary.app",
+      "label": "Glossary · App concepts group",
+      "deps": [
+        "src/components/RollsTable.tsx",
+        "src/components/TargetToolbar.tsx",
+        "src/components/inspect/InspectChart.tsx",
+        "src/components/inspect/InspectDistribution.tsx",
+        "src/components/RollExpand.tsx",
+        "src/docs/glossary.ts"
+      ]
+    }
+  ]
+}

@@ -22,7 +22,7 @@ import type { Expression } from '../../types';
 import { useApp } from '../../state/useApp';
 import { detectAndDecode, type DecodeError } from '../../share/decode';
 import { Tooltip } from '../ui/tooltip';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
 import { toaster } from './toaster-store';
 
 const MAX_FILE_BYTES = 1_000_000;
@@ -154,7 +154,7 @@ export function ImportDialog() {
       placement="center"
       size={{ mdDown: 'full', md: 'md' }}
     >
-      <Tooltip content={TIPS.import} disabled={open}>
+      <Tooltip content={tipForId('import')} disabled={open}>
         <Dialog.Trigger asChild>
           <Button
             variant="ghost"
