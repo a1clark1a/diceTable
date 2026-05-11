@@ -87,9 +87,10 @@ export function TheMath() {
   return (
     <Stack gap={6}>
       <Text fontSize="md" color="fg.muted">
-        DiceTable computes every number by full enumeration — no Monte Carlo,
-        no normal-distribution approximations. Speed comes from input bounds,
-        not from giving up exactness.
+        Every percentage you see on a roll is the real chance, not an
+        estimate or a simulation. The walkthroughs below show how each piece
+        of dice notation turns into those numbers, in case you ever want to
+        peek at why a roll behaves the way it does.
       </Text>
       <Box
         colorPalette="blue"
@@ -103,8 +104,9 @@ export function TheMath() {
         py={3}
         fontSize="sm"
       >
-        Each operation below has the same shape: a plain-English description, a
-        worked numeric example, and a math-notation snippet of the calculation.
+        Each step below has the same layout: a short explanation in plain
+        words, a small worked example with real numbers, and a formula
+        snippet for anyone who wants to read the math directly.
       </Box>
       <Stack gap={4}>
         {mathOps.map((op) => (
@@ -124,11 +126,11 @@ export function TheMath() {
         fontSize="sm"
         css={{ '& code, & em': { fontSize: 'inherit' } }}
       >
-        Putting it together: a row like <Code>2d6kh1 + 1d4r1 + 3</Code> is
-        built bottom-up — each <em>part</em> produces its own distribution
-        (using the math above), parts are convolved together, then the
-        modifier shifts the result. Roll mode (advantage / disadvantage) is
-        applied last, to the full distribution.
+        Putting it together: a roll like <Code>2d6kh1 + 1d4r1 + 3</Code> is
+        built one piece at a time. Each die part gets its own odds first,
+        then the parts combine, then the modifier shifts the whole thing up
+        or down. Advantage or disadvantage, if you set one, applies last to
+        the finished roll.
       </Box>
     </Stack>
   );

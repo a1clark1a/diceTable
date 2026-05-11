@@ -39,81 +39,96 @@
     },
 
     {
-      "id": "screenshot.quickstart-01",
+      "id": "quickstart.add-roll",
       "label": "Quickstart · Step 1 (Add your first roll)",
       "deps": [
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
-        "src/state/AppContext.tsx"
-      ],
-      "asset": "public/docs/screenshots/quickstart-01.png"
+        "src/state/AppContext.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
     {
-      "id": "screenshot.quickstart-02",
+      "id": "quickstart.notation",
       "label": "Quickstart · Step 2 (Read dice notation)",
       "deps": [
         "src/components/editor/ExpressionRender.tsx",
-        "src/components/editor/DicePartRow.tsx"
-      ],
-      "asset": "public/docs/screenshots/quickstart-02.png"
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
     {
-      "id": "screenshot.quickstart-03",
+      "id": "quickstart.chart",
       "label": "Quickstart · Step 3 (Read the chart)",
       "deps": [
         "src/components/chart/OverlayChart.tsx",
         "src/components/chart/Sparkline.tsx",
-        "src/components/chart/palette.ts"
-      ],
-      "asset": "public/docs/screenshots/quickstart-03.png"
+        "src/components/chart/palette.ts",
+        "src/components/inspect/InspectChart.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
     {
-      "id": "screenshot.quickstart-04",
-      "label": "Quickstart · Step 4 (Roll modes — advantage / disadvantage)",
-      "deps": [
-        "src/components/RollsTable.tsx",
-        "src/components/RollsCards.tsx"
-      ],
-      "asset": "public/docs/screenshots/quickstart-04.png"
-    },
-    {
-      "id": "screenshot.quickstart-05",
-      "label": "Quickstart · Step 5 (Keep, reroll, explode)",
+      "id": "quickstart.expand",
+      "label": "Quickstart · Step 4 (Expand a row — dice parts and roll mode)",
       "deps": [
         "src/components/RollExpand.tsx",
-        "src/components/editor/DicePartRow.tsx"
-      ],
-      "asset": "public/docs/screenshots/quickstart-05.png"
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
     {
-      "id": "screenshot.quickstart-06",
+      "id": "quickstart.modifiers",
+      "label": "Quickstart · Step 5 (Per-die modifiers — keep, reroll, explode)",
+      "deps": [
+        "src/components/RollExpand.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
+    },
+    {
+      "id": "quickstart.compare",
       "label": "Quickstart · Step 6 (Compare rolls)",
       "deps": [
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/components/chart/OverlayChart.tsx",
-        "src/components/chart/palette.ts"
-      ],
-      "asset": "public/docs/screenshots/quickstart-06.png"
+        "src/components/chart/palette.ts",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
     {
-      "id": "screenshot.quickstart-07",
-      "label": "Quickstart · Step 7 (Set targets and read Hit %)",
+      "id": "quickstart.targets",
+      "label": "Quickstart · Step 7 (Set targets, ruling, and Hit %)",
       "deps": [
         "src/components/TargetToolbar.tsx",
+        "src/components/targetRuling.tsx",
+        "src/components/chart/OverlayChart.tsx",
         "src/components/RollsTable.tsx",
-        "src/components/RollsCards.tsx"
-      ],
-      "asset": "public/docs/screenshots/quickstart-07.png"
+        "src/components/RollsCards.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
     {
-      "id": "screenshot.quickstart-08",
-      "label": "Quickstart · Step 8 (Share and import)",
+      "id": "quickstart.roll",
+      "label": "Quickstart · Step 8 (Roll the dice)",
+      "deps": [
+        "src/components/RollResult.tsx",
+        "src/state/useRollHistory.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
+    },
+    {
+      "id": "quickstart.share",
+      "label": "Quickstart · Step 9 (Share and import)",
       "deps": [
         "src/components/share/SharePopover.tsx",
-        "src/components/share/ImportDialog.tsx"
-      ],
-      "asset": "public/docs/screenshots/quickstart-08.png"
+        "src/components/share/ImportDialog.tsx",
+        "src/components/docs/Quickstart.tsx"
+      ]
     },
 
     {

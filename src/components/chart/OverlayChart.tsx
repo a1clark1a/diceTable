@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -162,6 +162,8 @@ export function OverlayChart() {
   const { expressions, chartView, setChartView, target } = useApp();
   const { dists } = useDistributions();
 
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   const overLimit = expressions.length > CHART_ROW_LIMIT;
   const hasTarget = target.values.length > 0;
   const effectiveView: ChartView =
@@ -188,6 +190,11 @@ export function OverlayChart() {
   const yDomain: [number, number | "auto"] =
     effectiveView === "pmf" ? [0, "auto"] : [0, 1];
   const showLegend = !overLimit && series.length > 0 && effectiveView !== "target";
+
+  const focusedId =
+    hoveredId !== null && series.some((s) => s.id === hoveredId)
+      ? hoveredId
+      : null;
 
   return (
     <Stack gap={2}>
@@ -242,22 +249,37 @@ export function OverlayChart() {
 
           {showLegend && (
             <Wrap gap={3} flex="1" justify="flex-end">
-              {series.map((s) => (
-                <WrapItem key={s.id}>
-                  <HStack gap={2}>
-                    <Box
-                      w="10px"
-                      h="10px"
-                      borderRadius="2px"
-                      bg={s.color}
-                      flexShrink={0}
-                    />
-                    <Text fontSize="xs" color="fg.muted">
-                      {s.name}
-                    </Text>
-                  </HStack>
-                </WrapItem>
-              ))}
+              {series.map((s) => {
+                const dim = focusedId !== null && focusedId !== s.id;
+                return (
+                  <WrapItem key={s.id}>
+                    <HStack
+                      gap={2}
+                      role="button"
+                      tabIndex={0}
+                      cursor="pointer"
+                      opacity={dim ? 0.4 : 1}
+                      transition="opacity 120ms ease-out"
+                      aria-label={`Focus ${s.name} in chart`}
+                      onMouseEnter={() => setHoveredId(s.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      onFocus={() => setHoveredId(s.id)}
+                      onBlur={() => setHoveredId(null)}
+                    >
+                      <Box
+                        w="10px"
+                        h="10px"
+                        borderRadius="2px"
+                        bg={s.color}
+                        flexShrink={0}
+                      />
+                      <Text fontSize="xs" color="fg.muted">
+                        {s.name}
+                      </Text>
+                    </HStack>
+                  </WrapItem>
+                );
+              })}
             </Wrap>
           )}
         </HStack>
@@ -288,7 +310,7 @@ export function OverlayChart() {
             color="fg.muted"
           >
             <ChartColumn size={28} strokeWidth={1.5} aria-hidden />
-            <Text fontSize="sm">No valid rows yet — add a roll above.</Text>
+            <Text fontSize="sm">No valid rows yet. Add a roll above.</Text>
           </Stack>
         ) : effectiveView === "target" && target.values.length > 0 ? (
           <TargetHitView rows={hitRows} target={target} />
@@ -302,8 +324,6 @@ export function OverlayChart() {
               <ComposedChart
                 data={data}
                 margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
-                barGap={0}
-                barCategoryGap="10%"
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -365,35 +385,50 @@ export function OverlayChart() {
                   }}
                 />
                 {effectiveView === "pmf"
-                  ? series.map((s) => (
-                      <Bar
-                        key={s.id}
-                        dataKey={s.id}
-                        name={s.name}
-                        fill={s.color}
-                        fillOpacity={0.7}
-                        radius={[2, 2, 0, 0]}
-                        isAnimationActive={false}
-                      />
-                    ))
-                  : series.map((s) => (
-                      <Line
-                        key={s.id}
-                        dataKey={s.id}
-                        name={s.name}
-                        type="monotone"
-                        stroke={s.color}
-                        strokeWidth={2.5}
-                        dot={{
-                          r: 3,
-                          fill: s.color,
-                          stroke: "var(--chakra-colors-bg-panel)",
-                          strokeWidth: 1.5,
-                        }}
-                        activeDot={{ r: 5, strokeWidth: 0 }}
-                        isAnimationActive={false}
-                      />
-                    ))}
+                  ? series.map((s) => {
+                      const focused = focusedId === s.id;
+                      const opacity =
+                        focusedId === null ? 0.9 : focused ? 1 : 0.2;
+                      return (
+                        <Line
+                          key={s.id}
+                          dataKey={s.id}
+                          name={s.name}
+                          type="step"
+                          stroke={s.color}
+                          strokeWidth={focused ? 2.25 : 1.75}
+                          strokeOpacity={opacity}
+                          dot={false}
+                          activeDot={{ r: 4, strokeWidth: 0 }}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })
+                  : series.map((s) => {
+                      const focused = focusedId === s.id;
+                      const opacity =
+                        focusedId === null ? 0.9 : focused ? 1 : 0.2;
+                      return (
+                        <Line
+                          key={s.id}
+                          dataKey={s.id}
+                          name={s.name}
+                          type="monotone"
+                          stroke={s.color}
+                          strokeWidth={focused ? 3 : 2.5}
+                          strokeOpacity={opacity}
+                          dot={{
+                            r: 3,
+                            fill: s.color,
+                            stroke: "var(--chakra-colors-bg-panel)",
+                            strokeWidth: 1.5,
+                            opacity,
+                          }}
+                          activeDot={{ r: 5, strokeWidth: 0 }}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
               </ComposedChart>
             </ResponsiveContainer>
           </Box>

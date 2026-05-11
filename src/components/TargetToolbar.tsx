@@ -85,7 +85,7 @@ export function TargetToolbar() {
   );
 
   const hint = isFull
-    ? `Up to ${MAX_TARGETS} targets — remove one to add another.`
+    ? `Up to ${MAX_TARGETS} targets. Remove one to add another.`
     : target.values.length === 0
       ? 'Add a target to show Hit % per row.'
       : 'Add another target or clear to hide Hit %.';

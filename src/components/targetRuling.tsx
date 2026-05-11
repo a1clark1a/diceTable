@@ -16,31 +16,31 @@ export const RULING_OPTIONS: readonly RulingMeta[] = [
     value: 'gte',
     symbol: '≥',
     shortLabel: '≥ at least',
-    tip: 'At least — a roll equal to or above the target counts as a hit.',
+    tip: 'At least: a roll equal to or above the target counts as a hit.',
   },
   {
     value: 'gt',
     symbol: '>',
     shortLabel: '> greater than',
-    tip: 'Greater than — strictly above the target; an equal roll does not count.',
+    tip: 'Greater than: strictly above the target; an equal roll does not count.',
   },
   {
     value: 'lte',
     symbol: '≤',
     shortLabel: '≤ at most',
-    tip: 'At most — a roll equal to or below the target counts as a hit.',
+    tip: 'At most: a roll equal to or below the target counts as a hit.',
   },
   {
     value: 'lt',
     symbol: '<',
     shortLabel: '< less than',
-    tip: 'Less than — strictly below the target; an equal roll does not count.',
+    tip: 'Less than: strictly below the target; an equal roll does not count.',
   },
   {
     value: 'eq',
     symbol: '=',
     shortLabel: '= exactly',
-    tip: 'Exactly — only a roll matching the target counts as a hit.',
+    tip: 'Exactly: only a roll matching the target counts as a hit.',
   },
 ];
 

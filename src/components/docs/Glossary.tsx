@@ -115,10 +115,9 @@ export function Glossary() {
   return (
     <Stack gap={8}>
       <Text fontSize="md" color="fg.muted">
-        Every term that shows up in the table, the chart, or a tooltip.
-        Plain-language first, then a deeper note where the meaning isn’t obvious
-        from the short version. The formal name appears in the small mono pill
-        when it adds something.
+        A quick reference for every term DiceTable uses. Stats like σ, dice
+        shorthand like kh3, chart names like CCDF: if you see it somewhere
+        and aren’t sure what it means, the answer is here.
       </Text>
       <Stack gap={8}>
         {GLOSSARY_GROUP_ORDER.map((group) => (

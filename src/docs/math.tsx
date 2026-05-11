@@ -13,8 +13,8 @@ export interface MathOp {
 export const mathOps: readonly MathOp[] = [
   {
     id: 'uniform',
-    title: '1 · A single die — uniform distribution',
-    subtitle: 'building block for everything else',
+    title: '1 · A single die: every face equally likely',
+    subtitle: 'the building block for everything else',
     plain: (
       <Text>
         A fair N-sided die has the same chance of landing on each face. For a
@@ -33,21 +33,22 @@ P(X = k) = 0        otherwise`,
   },
   {
     id: 'convolution',
-    title: '2 · Multiple dice — convolution',
-    subtitle: 'how 2d6 becomes the bell-shaped 2..12 distribution',
+    title: '2 · Multiple dice: convolution',
+    subtitle: 'how 2d6 makes a bell-shaped curve from 2 to 12',
     plain: (
       <Text>
-        When you sum two independent dice, the chance of getting any specific
-        total is the sum of every pair of face values that add up to it. This
-        operation — combining two distributions into the distribution of their
-        sum — is called <em>convolution</em>.
+        When you roll two dice and add them up, the chance of any given total
+        is just the count of every face pair that produces it, divided by all
+        the pairs that could come up. The move of taking two sets of odds
+        and combining them into the odds of their sum has a name:{' '}
+        <em>convolution</em>.
       </Text>
     ),
     example: (
       <Text>
         Pairs that sum to 7:{' '}
-        <Code>(1,6), (2,5), (3,4), (4,3), (5,2), (6,1)</Code> — six pairs out
-        of 36 total → <Code>P(sum = 7) = 6/36 ≈ 0.1667</Code>
+        <Code>(1,6), (2,5), (3,4), (4,3), (5,2), (6,1)</Code>. Six pairs out
+        of 36 total, so <Code>P(sum = 7) = 6/36 ≈ 0.1667</Code>.
       </Text>
     ),
     snippet: `// convolution of two independent distributions
@@ -59,13 +60,13 @@ P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
   },
   {
     id: 'modifier',
-    title: '3 · Modifier — distribution shift',
-    subtitle: '+M slides every outcome up by M',
+    title: '3 · Modifier: shifting the whole roll',
+    subtitle: '+M slides every result up by M (or down, if it’s negative)',
     plain: (
       <Text>
-        Adding a flat <Code>+M</Code> doesn’t change any probabilities — it
-        just relabels every outcome. The shape of the chart is identical, just
-        shifted to the right.
+        Adding a flat <Code>+M</Code> doesn’t change any of the chances. It
+        just relabels every result. The chart looks the same as before, just
+        slid sideways.
       </Text>
     ),
     example: (
@@ -78,21 +79,22 @@ P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
   },
   {
     id: 'keep',
-    title: '4 · Keep highest / lowest — combinatorial enumeration',
-    subtitle: 'e.g. 4d6kh3 — the classic ability-score roll',
+    title: '4 · Keep highest / lowest: looking at every possible roll',
+    subtitle: 'e.g. 4d6kh3, the classic ability-score roll',
     plain: (
       <Text>
-        For each possible outcome of the full pool of N dice, sort the rolled
-        faces, drop the ones we’re not keeping, and sum the rest. We weight
-        each outcome by its probability. There’s no closed-form shortcut —
-        DiceTable enumerates every ordered draw.
+        For every way the dice could come up, sort the faces, drop the ones
+        you aren’t keeping, and add up the rest. There’s no shortcut formula
+        for this one, so DiceTable just goes through every possible roll and
+        weights it by how often it would actually happen.
       </Text>
     ),
     example: (
       <Text>
-        All <Code>6⁴ = 1296</Code> ordered outcomes of 4d6. For each, sort
-        descending, sum the top 3. Mean works out to <Code>≈ 12.24</Code> (vs.{' '}
-        <Code>10.5</Code> for plain 3d6).
+        4d6 has <Code>6⁴ = 1296</Code> possible rolls. Sort each one
+        descending and add the top 3. The average works out to{' '}
+        <Code>≈ 12.24</Code>, noticeably higher than{' '}
+        <Code>10.5</Code> for plain 3d6.
       </Text>
     ),
     snippet: `// keep the K highest of N dice
@@ -106,19 +108,22 @@ for each ordered outcome (r₁, r₂, …, r_N):
   {
     id: 'advantage',
     title: '5 · Advantage / Disadvantage',
-    subtitle: 'roll the whole expression twice, take max or min',
+    subtitle: 'roll the whole thing twice, keep the higher (or lower)',
     plain: (
       <Text>
-        Advantage applies to the entire roll, not a single die. We compute the
-        base distribution once, then derive the “max of two independent draws”
-        distribution from it.
+        Advantage applies to the entire roll, not to one die at a time.
+        DiceTable starts from the normal odds of the roll, then works out
+        “if you rolled this twice, how often would the higher result land on
+        each number?” Disadvantage is the same idea, but keeping the lower.
       </Text>
     ),
     example: (
       <Text>
-        P(rolling 20 normally) = <Code>1/20 = 0.05</Code>
+        The chance of rolling a 20 on 1d20 normally is{' '}
+        <Code>1/20 = 0.05</Code>.
         <br />
-        P(rolling 20 with advantage) = <Code>1 − (19/20)² ≈ 0.0975</Code>
+        With advantage it nearly doubles, to{' '}
+        <Code>1 − (19/20)² ≈ 0.0975</Code>.
       </Text>
     ),
     snippet: `// advantage: max of two independent rolls
@@ -131,25 +136,29 @@ P_dis(X = k) = P_dis(X ≥ k) − P_dis(X ≥ k + 1)`,
   },
   {
     id: 'reroll',
-    title: '6 · Reroll — once vs. always',
-    subtitle: 'two flavors with very different math',
+    title: '6 · Reroll: once vs. always',
+    subtitle: 'two flavors that play very differently',
     plain: (
       <Text>
-        <strong>Reroll once:</strong> if the first roll is in the reroll set R,
-        you re-roll exactly once and keep that result no matter what.
+        <strong>Reroll once:</strong> if your first roll matches one of the
+        trigger faces, you reroll one time and keep whatever comes up, even
+        if it triggers again.
         <br />
-        <strong>Reroll always:</strong> keep re-rolling until the result is
-        not in R. Equivalent to drawing only from the acceptable faces.
+        <strong>Reroll always:</strong> keep rerolling until you land on a
+        face that isn’t in the trigger set, so the final result can never be
+        one of the rerolled faces.
       </Text>
     ),
     example: (
       <Text>
-        With probability <Code>5/6</Code> the first roll is kept (faces 2..6).
+        Take 1d6 with “reroll 1 once.” Five times out of six the first roll
+        sticks (faces 2 to 6).
         <br />
-        With probability <Code>1/6</Code> we re-roll and the result is uniform
-        on 1..6.
+        One time in six the 1 triggers a reroll, and the second roll is a
+        normal 1d6.
         <br />
-        So P(face k) = <Code>5/6 · [k ≠ 1] · 1/5 + 1/6 · 1/6</Code>
+        Combining those two cases gives{' '}
+        <Code>P(face k) = 5/6 · [k ≠ 1] · 1/5 + 1/6 · 1/6</Code>.
       </Text>
     ),
     snippet: `// reroll once: blend kept first-roll with uniform second-roll
@@ -162,24 +171,27 @@ P_always(X = k) = 0                              for k ∈ R`,
   },
   {
     id: 'explode',
-    title: '7 · Explode — recursive convolution with a depth cap',
-    subtitle: 'e.g. d6! — roll again on a 6 and add',
+    title: '7 · Explode: chained rolls on a trigger face',
+    subtitle: 'e.g. d6!, roll again on a 6 and add it on',
     plain: (
       <Text>
-        When the die lands on the chosen face F, you roll it again and add.
-        That second roll can also explode, and so on. DiceTable caps recursion
-        at a maximum depth so the computation always terminates — the
-        residual probability tail is small and capped to the highest
-        representable value.
+        When the die lands on the trigger face, you roll it again and add the
+        new result. That second roll can itself trigger another, and so on.
+        In theory the chain could keep going forever, so DiceTable stops it
+        after a few links to keep the chart readable. Whatever tiny chance is
+        left over gets folded into the highest result on the chart.
       </Text>
     ),
     example: (
       <Text>
-        P(total = 6) = <Code>0</Code> (a 6 always explodes)
+        Rolling a 6 on a d6! never stays as 6, because a 6 always triggers
+        another roll. So <Code>P(total = 6) = 0</Code>.
         <br />
-        P(total = 7) = P(roll 6, then 1) = <Code>1/6 · 1/6 ≈ 0.028</Code>
+        A total of 7 means rolling a 6, then a 1:{' '}
+        <Code>1/6 · 1/6 ≈ 0.028</Code>.
         <br />
-        P(total = 12) = P(6, then 6, then depth cap) = <Code>1/36</Code>
+        Reaching 12 takes a 6, then a 6, then whatever the chain cap forces:{' '}
+        <Code>1/36</Code>.
       </Text>
     ),
     snippet: `// recursive: P_explode = non-exploding tail + (exploding face) ⊛ P_explode

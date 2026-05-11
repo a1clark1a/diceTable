@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
@@ -46,7 +45,7 @@ describe('DocsPage routing', () => {
     renderAt('/docs?tab=math');
     expect(
       screen.getByRole('heading', {
-        name: '1 · A single die — uniform distribution',
+        name: '1 · A single die: every face equally likely',
       }),
     ).toBeInTheDocument();
   });
@@ -77,7 +76,7 @@ describe('DocsPage routing', () => {
     expect(currentSearch()).toBe('?tab=math');
     expect(
       screen.getByRole('heading', {
-        name: '1 · A single die — uniform distribution',
+        name: '1 · A single die: every face equally likely',
       }),
     ).toBeInTheDocument();
   });

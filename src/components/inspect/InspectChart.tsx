@@ -10,11 +10,11 @@ import {
   chakra,
 } from '@chakra-ui/react';
 import {
-  Bar,
+  Area,
   CartesianGrid,
-  Cell,
   ComposedChart,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -36,7 +36,7 @@ interface InspectChartProps {
 interface ChartDatum {
   x: number;
   value: number;
-  matches: boolean;
+  valueMatch?: number | null;
 }
 
 function targetMatches(x: number, target: TargetState): boolean {
@@ -80,13 +80,20 @@ function buildChartData(
 
   const data = new Array<ChartDatum>(span);
 
-  if (view === 'pmf' || view === 'target') {
+  if (view === 'pmf') {
+    for (let i = 0; i < span; i++) {
+      const x = min + i;
+      data[i] = { x, value: dist.get(x) ?? 0 };
+    }
+    return data;
+  }
+
+  if (view === 'target') {
     for (let i = 0; i < span; i++) {
       const x = min + i;
       const p = dist.get(x) ?? 0;
-      const matches =
-        view === 'target' && target ? targetMatches(x, target) : true;
-      data[i] = { x, value: p, matches };
+      const matches = target ? targetMatches(x, target) : true;
+      data[i] = { x, value: p, valueMatch: matches ? p : null };
     }
     return data;
   }
@@ -96,7 +103,7 @@ function buildChartData(
     for (let i = 0; i < span; i++) {
       const x = min + i;
       cum += dist.get(x) ?? 0;
-      data[i] = { x, value: cum, matches: true };
+      data[i] = { x, value: cum };
     }
     return data;
   }
@@ -104,7 +111,7 @@ function buildChartData(
   let cum = 1;
   for (let i = 0; i < span; i++) {
     const x = min + i;
-    data[i] = { x, value: cum, matches: true };
+    data[i] = { x, value: cum };
     cum -= dist.get(x) ?? 0;
   }
   return data;
@@ -218,12 +225,32 @@ export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
     [dist],
   );
 
+  const stats = useMemo(() => {
+    if (dist.size === 0) return { mean: 0, modes: [] as number[] };
+    let mean = 0;
+    let maxP = -Infinity;
+    for (const [v, p] of dist.entries()) {
+      mean += v * p;
+      if (p > maxP) maxP = p;
+    }
+    const modes: number[] = [];
+    for (const [v, p] of dist.entries()) {
+      if (p === maxP) modes.push(v);
+    }
+    return { mean, modes };
+  }, [dist]);
+
   const yDomain: [number, number | 'auto'] =
     effectiveView === 'pmf' || effectiveView === 'target'
       ? [0, 'auto']
       : [0, 1];
 
-  const isBarView = effectiveView === 'pmf' || effectiveView === 'target';
+  const isAreaView = effectiveView === 'pmf' || effectiveView === 'target';
+  const soleMode =
+    effectiveView === 'pmf' && stats.modes.length === 1 && dist.size > 0
+      ? stats.modes[0]
+      : undefined;
+  const showMeanTick = effectiveView === 'pmf' && dist.size > 0;
 
   return (
     <Stack gap={3}>
@@ -237,9 +264,7 @@ export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
         >
           <ComposedChart
             data={data}
-            margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
-            barGap={0}
-            barCategoryGap="10%"
+            margin={{ top: 16, right: 16, bottom: 8, left: 0 }}
           >
             <CartesianGrid
               strokeDasharray="3 3"
@@ -252,7 +277,7 @@ export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
               domain={['dataMin', 'dataMax']}
               padding={{ left: 8, right: 8 }}
               tickLine={false}
-              axisLine={{ stroke: 'var(--chakra-colors-border-emphasized)' }}
+              axisLine={false}
               tick={{
                 fontSize: 11,
                 fill: 'var(--chakra-colors-fg-muted)',
@@ -263,14 +288,14 @@ export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
             <YAxis
               tickFormatter={formatPctTick}
               tickLine={false}
-              axisLine={{ stroke: 'var(--chakra-colors-border-emphasized)' }}
+              axisLine={false}
               tick={{
                 fontSize: 11,
                 fill: 'var(--chakra-colors-fg-muted)',
                 fontFamily: 'ui-monospace, monospace',
               }}
               domain={yDomain}
-              {...(!isBarView && { ticks: [0, 0.25, 0.5, 0.75, 1] })}
+              {...(!isAreaView && { ticks: [0, 0.25, 0.5, 0.75, 1] })}
               width={48}
             />
             <RechartsTooltip
@@ -291,32 +316,77 @@ export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
                 fontWeight: 600,
               }}
             />
-            {isBarView ? (
-              <Bar
+            {effectiveView === 'pmf' && (
+              <Area
                 dataKey="value"
+                type="step"
+                stroke={color}
+                strokeWidth={1.75}
                 fill={color}
-                fillOpacity={0.75}
-                radius={[2, 2, 0, 0]}
+                fillOpacity={0.22}
                 isAnimationActive={false}
-              >
-                {effectiveView === 'target' &&
-                  data.map((d, i) => (
-                    <Cell
-                      key={`c-${i}`}
-                      fill={color}
-                      fillOpacity={d.matches ? 0.85 : 0.18}
-                    />
-                  ))}
-              </Bar>
-            ) : (
+              />
+            )}
+            {effectiveView === 'target' && (
+              <>
+                <Area
+                  dataKey="value"
+                  type="step"
+                  stroke="none"
+                  fill={color}
+                  fillOpacity={0.18}
+                  isAnimationActive={false}
+                  tooltipType="none"
+                />
+                <Area
+                  dataKey="valueMatch"
+                  type="step"
+                  stroke={color}
+                  strokeWidth={1.75}
+                  fill={color}
+                  fillOpacity={0.55}
+                  isAnimationActive={false}
+                  connectNulls={false}
+                />
+              </>
+            )}
+            {!isAreaView && (
               <Line
                 dataKey="value"
                 type="monotone"
                 stroke={color}
-                strokeWidth={2.5}
-                dot={false}
+                strokeWidth={2}
+                dot={{
+                  r: 3,
+                  fill: color,
+                  stroke: "var(--chakra-colors-bg-panel)",
+                  strokeWidth: 1.5,
+                }}
                 activeDot={{ r: 4, strokeWidth: 0 }}
                 isAnimationActive={false}
+              />
+            )}
+            {showMeanTick && (
+              <ReferenceLine
+                x={stats.mean}
+                stroke="var(--chakra-colors-fg-muted)"
+                strokeDasharray="2 3"
+                strokeOpacity={0.55}
+                label={{
+                  value: `μ ${stats.mean.toFixed(1)}`,
+                  position: 'top',
+                  fill: 'var(--chakra-colors-fg-muted)',
+                  fontSize: 10,
+                  fontFamily: 'ui-monospace, monospace',
+                }}
+              />
+            )}
+            {soleMode !== undefined && (
+              <ReferenceLine
+                x={soleMode}
+                stroke={color}
+                strokeWidth={1.25}
+                strokeOpacity={0.85}
               />
             )}
           </ComposedChart>

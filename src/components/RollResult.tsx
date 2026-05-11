@@ -104,7 +104,7 @@ export function RollPopover({
           aria-label={`Roll ${exprName}`}
           title={
             disabled
-              ? 'No result available — check the dice configuration'
+              ? 'No result available. Check the dice configuration.'
               : tipForId('roll')
           }
           disabled={disabled}
