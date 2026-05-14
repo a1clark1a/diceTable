@@ -17,12 +17,8 @@ import { useApp } from '../state/useApp';
 import { MAX_TARGETS, type TargetRuling } from '../types';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
-import {
-  RULING_OPTIONS,
-  RULING_SYMBOL,
-  RulingSymbol,
-  isTargetRuling,
-} from './targetRuling';
+import { RulingSymbol } from './targetRuling';
+import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
 
 function parseDraft(raw: string): number | null {
   const trimmed = raw.trim();

@@ -12,16 +12,9 @@ import {
 import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
-import { useDistributions } from '../state/useDistributions';
-import {
-  hitProbability,
-  max as distMax,
-  mean as distMean,
-  min as distMin,
-  mode as distMode,
-  stddev as distStddev,
-} from '../engine/stats';
-import type { Distribution, Expression, TargetRuling } from '../types';
+import { getRowData } from '../state/useDistributions';
+import { hitProbability } from '../engine/stats';
+import type { Expression, TargetRuling } from '../types';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
@@ -35,31 +28,6 @@ import { RulingSymbol } from './targetRuling';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
-
-interface CardStats {
-  dist: Distribution;
-  hasDist: boolean;
-  mean: number;
-  min: number;
-  max: number;
-  mode: number[];
-  stddev: number;
-}
-
-function computeCardStats(dist: Distribution): CardStats {
-  const hasDist = dist.size > 0;
-  return {
-    dist,
-    hasDist,
-    mean: hasDist ? distMean(dist) : 0,
-    min: hasDist ? distMin(dist) : 0,
-    max: hasDist ? distMax(dist) : 0,
-    mode: hasDist ? distMode(dist) : [],
-    stddev: hasDist ? distStddev(dist) : 0,
-  };
-}
-
-const EMPTY_DIST: Distribution = new Map();
 
 function parseMod(raw: string): number {
   const trimmed = raw.trim();
@@ -93,26 +61,13 @@ export function RollsCards() {
     addExpression,
   } = useApp();
 
-  const { dists, tooComplex } = useDistributions();
-
-  const cards = useMemo(
-    () =>
-      expressions.map((expr, idx) => ({
-        expr,
-        color: rowColor(idx),
-        stats: computeCardStats(dists.get(expr.id) ?? EMPTY_DIST),
-        tooComplex: tooComplex.has(expr.id),
-      })),
-    [expressions, dists, tooComplex],
-  );
-
   const showHit = target.values.length > 0;
 
   return (
     <Stack gap={3}>
       <TargetToolbar />
 
-      {cards.length === 0 ? (
+      {expressions.length === 0 ? (
         <Box
           p={6}
           borderWidth="1px"
@@ -137,32 +92,21 @@ export function RollsCards() {
         </Box>
       ) : (
         <Stack gap={2}>
-          {cards.map(({ expr, color, stats, tooComplex: cardTooComplex }) => {
-            const expanded = expandedId === expr.id;
-            const hits = showHit && stats.hasDist
-              ? target.values.map((v) =>
-                  hitProbability(stats.dist, v, target.ruling),
-                )
-              : null;
-            return (
-              <RollCard
-                key={expr.id}
-                expr={expr}
-                color={color}
-                stats={stats}
-                hits={hits}
-                targetValues={target.values}
-                ruling={target.ruling}
-                expanded={expanded}
-                showHit={showHit}
-                tooComplex={cardTooComplex}
-                setExpandedId={setExpandedId}
-                deleteExpression={deleteExpression}
-                renameExpression={renameExpression}
-                updateExpression={updateExpression}
-              />
-            );
-          })}
+          {expressions.map((expr, idx) => (
+            <RollCard
+              key={expr.id}
+              expr={expr}
+              idx={idx}
+              expanded={expandedId === expr.id}
+              showHit={showHit}
+              targetValues={target.values}
+              targetRuling={target.ruling}
+              setExpandedId={setExpandedId}
+              deleteExpression={deleteExpression}
+              renameExpression={renameExpression}
+              updateExpression={updateExpression}
+            />
+          ))}
           <Button
             size="sm"
             variant="outline"
@@ -181,14 +125,11 @@ export function RollsCards() {
 
 interface RollCardProps {
   expr: Expression;
-  color: string;
-  stats: CardStats;
-  hits: number[] | null;
-  targetValues: number[];
-  ruling: TargetRuling;
+  idx: number;
   expanded: boolean;
   showHit: boolean;
-  tooComplex: boolean;
+  targetValues: number[];
+  targetRuling: TargetRuling;
   setExpandedId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
@@ -197,19 +138,25 @@ interface RollCardProps {
 
 const RollCard = memo(function RollCard({
   expr,
-  color,
-  stats,
-  hits,
-  targetValues,
-  ruling,
+  idx,
   expanded,
   showHit,
-  tooComplex,
+  targetValues,
+  targetRuling,
   setExpandedId,
   deleteExpression,
   renameExpression,
   updateExpression,
 }: RollCardProps) {
+  const { stats, tooComplex } = getRowData(expr);
+  const color = rowColor(idx);
+  const hits = useMemo(
+    () =>
+      showHit && stats.hasDist
+        ? targetValues.map((v) => hitProbability(stats.dist, v, targetRuling))
+        : null,
+    [showHit, stats, targetValues, targetRuling],
+  );
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
@@ -379,7 +326,7 @@ const RollCard = memo(function RollCard({
           {showHit && (
             <StatPill
               label="Hit %"
-              accessory={<RulingSymbol ruling={ruling} color="fg.muted" />}
+              accessory={<RulingSymbol ruling={targetRuling} color="fg.muted" />}
               tip={tipForId('hit')}
               value={
                 hits === null ? (

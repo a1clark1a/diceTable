@@ -35,7 +35,8 @@ import type {
 import { rowColor } from "./palette";
 import { Tooltip } from "../ui/tooltip";
 import { tipForId } from "../../docs/glossary";
-import { RULING_SYMBOL, RulingSymbol } from "../targetRuling";
+import { RulingSymbol } from "../targetRuling";
+import { RULING_SYMBOL } from "../targetRulingMeta";
 import { formatPercent } from "./format";
 
 interface RowSeries {

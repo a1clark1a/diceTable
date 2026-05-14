@@ -7,7 +7,8 @@ import {
   type GlossaryEntry,
   type GlossaryGroup,
 } from '../../docs/glossary';
-import { RULING_OPTIONS, RulingSymbol } from '../targetRuling';
+import { RulingSymbol } from '../targetRuling';
+import { RULING_OPTIONS } from '../targetRulingMeta';
 
 function GlossaryAlt({ entry }: { entry: GlossaryEntry }) {
   if (entry.id === 'target-ruling') {

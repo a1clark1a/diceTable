@@ -12,11 +12,22 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { Trash2 } from 'lucide-react';
+import { useCallback } from 'react';
 import type { DicePart, ExplodeRule, KeepRule, RerollRule } from '../../types';
 import type { PartPatch } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
+import { useBufferedValue } from '../../hooks/useBufferedValue';
 import { validatePart } from './validatePart';
+
+function parseInteger(raw: string): number {
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatInteger(n: number): string {
+  return String(n);
+}
 
 function defaultKeep(part: DicePart): KeepRule {
   const safeCount = Math.max(1, part.count);
@@ -89,6 +100,138 @@ function FacePicker({ sides, selected, onChange, ariaLabel }: FacePickerProps) {
   );
 }
 
+interface KeepRuleEditorProps {
+  keep: KeepRule;
+  errorKeepN: string | undefined;
+  onChange: (patch: PartPatch) => void;
+}
+
+function KeepRuleEditor({ keep, errorKeepN, onChange }: KeepRuleEditorProps) {
+  const commitN = useCallback(
+    (n: number) => onChange({ keep: { ...keep, n } }),
+    [onChange, keep],
+  );
+  const nBuf = useBufferedValue<number>({
+    committed: keep.n,
+    commit: commitN,
+    parse: parseInteger,
+    format: formatInteger,
+  });
+  return (
+    <HStack gap={2} mt={2} align="flex-start" flexWrap="wrap">
+      <Field.Root maxW="140px">
+        <Field.Label fontSize="xs" color="fg.muted">
+          Type
+        </Field.Label>
+        <NativeSelect.Root size="sm">
+          <NativeSelect.Field
+            value={keep.type}
+            onChange={(e) => {
+              const type = e.target.value === 'lowest' ? 'lowest' : 'highest';
+              onChange({ keep: { ...keep, type } });
+            }}
+          >
+            <option value="highest">highest</option>
+            <option value="lowest">lowest</option>
+          </NativeSelect.Field>
+          <NativeSelect.Indicator />
+        </NativeSelect.Root>
+      </Field.Root>
+      <Field.Root invalid={errorKeepN !== undefined} maxW="100px">
+        <Field.Label fontSize="xs" color="fg.muted">
+          n
+        </Field.Label>
+        <NumberInput.Root
+          size="sm"
+          min={1}
+          max={999}
+          value={nBuf.value}
+          onValueChange={(e) => nBuf.setValue(e.value)}
+        >
+          <NumberInput.Control />
+          <NumberInput.Input
+            onBlur={nBuf.onBlur}
+            onKeyDown={nBuf.onKeyDown}
+          />
+        </NumberInput.Root>
+        {errorKeepN !== undefined && (
+          <Field.ErrorText fontSize="xs">{errorKeepN}</Field.ErrorText>
+        )}
+      </Field.Root>
+    </HStack>
+  );
+}
+
+interface ExplodeRuleEditorProps {
+  explode: ExplodeRule;
+  partSides: number;
+  errorExplodeFaces: string | undefined;
+  errorExplodeDepth: string | undefined;
+  onChange: (patch: PartPatch) => void;
+}
+
+function ExplodeRuleEditor({
+  explode,
+  partSides,
+  errorExplodeFaces,
+  errorExplodeDepth,
+  onChange,
+}: ExplodeRuleEditorProps) {
+  const commitDepth = useCallback(
+    (depthCap: number) => onChange({ explode: { ...explode, depthCap } }),
+    [onChange, explode],
+  );
+  const depthBuf = useBufferedValue<number>({
+    committed: explode.depthCap,
+    commit: commitDepth,
+    parse: parseInteger,
+    format: formatInteger,
+  });
+  return (
+    <Stack gap={2} mt={2}>
+      <Box>
+        <Text fontSize="xs" color="fg.muted" mb={1}>
+          Faces
+        </Text>
+        <FacePicker
+          sides={partSides}
+          selected={explode.onFaces}
+          onChange={(onFaces) =>
+            onChange({ explode: { ...explode, onFaces } })
+          }
+          ariaLabel="Explode faces"
+        />
+        {errorExplodeFaces !== undefined && (
+          <Text fontSize="xs" color="red.solid" mt={1}>
+            {errorExplodeFaces}
+          </Text>
+        )}
+      </Box>
+      <Field.Root invalid={errorExplodeDepth !== undefined} maxW="140px">
+        <Field.Label fontSize="xs" color="fg.muted">
+          Depth cap
+        </Field.Label>
+        <NumberInput.Root
+          size="sm"
+          min={0}
+          max={50}
+          value={depthBuf.value}
+          onValueChange={(e) => depthBuf.setValue(e.value)}
+        >
+          <NumberInput.Control />
+          <NumberInput.Input
+            onBlur={depthBuf.onBlur}
+            onKeyDown={depthBuf.onKeyDown}
+          />
+        </NumberInput.Root>
+        {errorExplodeDepth !== undefined && (
+          <Field.ErrorText fontSize="xs">{errorExplodeDepth}</Field.ErrorText>
+        )}
+      </Field.Root>
+    </Stack>
+  );
+}
+
 interface DicePartRowProps {
   part: DicePart;
   onChange: (patch: PartPatch) => void;
@@ -99,24 +242,37 @@ interface DicePartRowProps {
 export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRowProps) {
   const errors = validatePart(part);
 
-  const setCount = (raw: string) => {
-    const n = Number.parseInt(raw, 10);
-    onChange({ count: Number.isFinite(n) ? n : 0 });
-  };
-  const setSides = (raw: string) => {
-    const n = Number.parseInt(raw, 10);
-    const sides = Number.isFinite(n) ? n : 0;
-    const patch: PartPatch = { sides };
-    if (part.reroll) {
-      const cleaned = clampFacesToSides(part.reroll.values, sides);
-      patch.reroll = { ...part.reroll, values: cleaned };
-    }
-    if (part.explode) {
-      const cleaned = clampFacesToSides(part.explode.onFaces, sides);
-      patch.explode = { ...part.explode, onFaces: cleaned };
-    }
-    onChange(patch);
-  };
+  const commitCount = useCallback(
+    (count: number) => onChange({ count }),
+    [onChange],
+  );
+  const commitSides = useCallback(
+    (sides: number) => {
+      const patch: PartPatch = { sides };
+      if (part.reroll) {
+        const cleaned = clampFacesToSides(part.reroll.values, sides);
+        patch.reroll = { ...part.reroll, values: cleaned };
+      }
+      if (part.explode) {
+        const cleaned = clampFacesToSides(part.explode.onFaces, sides);
+        patch.explode = { ...part.explode, onFaces: cleaned };
+      }
+      onChange(patch);
+    },
+    [onChange, part.reroll, part.explode],
+  );
+  const countBuf = useBufferedValue<number>({
+    committed: part.count,
+    commit: commitCount,
+    parse: parseInteger,
+    format: formatInteger,
+  });
+  const sidesBuf = useBufferedValue<number>({
+    committed: part.sides,
+    commit: commitSides,
+    parse: parseInteger,
+    format: formatInteger,
+  });
 
   const toggleKeep = (on: boolean) => {
     onChange({ keep: on ? defaultKeep(part) : undefined });
@@ -145,11 +301,14 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
             size="sm"
             min={1}
             max={999}
-            value={String(part.count)}
-            onValueChange={(e) => setCount(e.value)}
+            value={countBuf.value}
+            onValueChange={(e) => countBuf.setValue(e.value)}
           >
             <NumberInput.Control />
-            <NumberInput.Input />
+            <NumberInput.Input
+              onBlur={countBuf.onBlur}
+              onKeyDown={countBuf.onKeyDown}
+            />
           </NumberInput.Root>
           {errors.count !== undefined && (
             <Field.ErrorText fontSize="xs">{errors.count}</Field.ErrorText>
@@ -168,11 +327,14 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
             size="sm"
             min={2}
             max={1000}
-            value={String(part.sides)}
-            onValueChange={(e) => setSides(e.value)}
+            value={sidesBuf.value}
+            onValueChange={(e) => sidesBuf.setValue(e.value)}
           >
             <NumberInput.Control />
-            <NumberInput.Input />
+            <NumberInput.Input
+              onBlur={sidesBuf.onBlur}
+              onKeyDown={sidesBuf.onKeyDown}
+            />
           </NumberInput.Root>
           {errors.sides !== undefined && (
             <Field.ErrorText fontSize="xs">{errors.sides}</Field.ErrorText>
@@ -211,49 +373,11 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
             </Switch.Root>
           </HStack>
           {part.keep && (
-            <HStack gap={2} mt={2} align="flex-start" flexWrap="wrap">
-              <Field.Root maxW="140px">
-                <Field.Label fontSize="xs" color="fg.muted">
-                  Type
-                </Field.Label>
-                <NativeSelect.Root size="sm">
-                  <NativeSelect.Field
-                    value={part.keep.type}
-                    onChange={(e) => {
-                      const type = e.target.value === 'lowest' ? 'lowest' : 'highest';
-                      onChange({ keep: { ...part.keep!, type } });
-                    }}
-                  >
-                    <option value="highest">highest</option>
-                    <option value="lowest">lowest</option>
-                  </NativeSelect.Field>
-                  <NativeSelect.Indicator />
-                </NativeSelect.Root>
-              </Field.Root>
-              <Field.Root invalid={errors.keepN !== undefined} maxW="100px">
-                <Field.Label fontSize="xs" color="fg.muted">
-                  n
-                </Field.Label>
-                <NumberInput.Root
-                  size="sm"
-                  min={1}
-                  max={999}
-                  value={String(part.keep.n)}
-                  onValueChange={(e) => {
-                    const n = Number.parseInt(e.value, 10);
-                    onChange({
-                      keep: { ...part.keep!, n: Number.isFinite(n) ? n : 0 },
-                    });
-                  }}
-                >
-                  <NumberInput.Control />
-                  <NumberInput.Input />
-                </NumberInput.Root>
-                {errors.keepN !== undefined && (
-                  <Field.ErrorText fontSize="xs">{errors.keepN}</Field.ErrorText>
-                )}
-              </Field.Root>
-            </HStack>
+            <KeepRuleEditor
+              keep={part.keep}
+              errorKeepN={errors.keepN}
+              onChange={onChange}
+            />
           )}
         </Box>
 
@@ -330,54 +454,13 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
             </Switch.Root>
           </HStack>
           {part.explode && (
-            <Stack gap={2} mt={2}>
-              <Box>
-                <Text fontSize="xs" color="fg.muted" mb={1}>
-                  Faces
-                </Text>
-                <FacePicker
-                  sides={part.sides}
-                  selected={part.explode.onFaces}
-                  onChange={(onFaces) =>
-                    onChange({ explode: { ...part.explode!, onFaces } })
-                  }
-                  ariaLabel="Explode faces"
-                />
-                {errors.explodeFaces !== undefined && (
-                  <Text fontSize="xs" color="red.solid" mt={1}>
-                    {errors.explodeFaces}
-                  </Text>
-                )}
-              </Box>
-              <Field.Root invalid={errors.explodeDepth !== undefined} maxW="140px">
-                <Field.Label fontSize="xs" color="fg.muted">
-                  Depth cap
-                </Field.Label>
-                <NumberInput.Root
-                  size="sm"
-                  min={0}
-                  max={50}
-                  value={String(part.explode.depthCap)}
-                  onValueChange={(e) => {
-                    const n = Number.parseInt(e.value, 10);
-                    onChange({
-                      explode: {
-                        ...part.explode!,
-                        depthCap: Number.isFinite(n) ? n : 0,
-                      },
-                    });
-                  }}
-                >
-                  <NumberInput.Control />
-                  <NumberInput.Input />
-                </NumberInput.Root>
-                {errors.explodeDepth !== undefined && (
-                  <Field.ErrorText fontSize="xs">
-                    {errors.explodeDepth}
-                  </Field.ErrorText>
-                )}
-              </Field.Root>
-            </Stack>
+            <ExplodeRuleEditor
+              explode={part.explode}
+              partSides={part.sides}
+              errorExplodeFaces={errors.explodeFaces}
+              errorExplodeDepth={errors.explodeDepth}
+              onChange={onChange}
+            />
           )}
         </Box>
       </Stack>

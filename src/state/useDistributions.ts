@@ -2,19 +2,35 @@ import { useMemo } from 'react';
 import { useApp } from './useApp';
 import { expressionDistribution } from '../engine/expression';
 import { expressionTooComplex } from '../engine/complexity';
+import { computeRowStats, type RowStats } from './rowStats';
 import type { Distribution, Expression } from '../types';
+
+export interface RowData {
+  dist: Distribution;
+  tooComplex: boolean;
+  stats: RowStats;
+}
 
 export interface DistributionsSelector {
   dists: Map<string, Distribution>;
   tooComplex: Set<string>;
 }
 
-interface CacheEntry {
-  dist: Distribution;
-  tooComplex: boolean;
-}
+const cache: WeakMap<Expression, RowData> = new WeakMap();
 
-const cache: WeakMap<Expression, CacheEntry> = new WeakMap();
+export function getRowData(expr: Expression): RowData {
+  let entry = cache.get(expr);
+  if (entry === undefined) {
+    const dist = expressionDistribution(expr);
+    entry = {
+      dist,
+      tooComplex: expressionTooComplex(expr),
+      stats: computeRowStats(dist),
+    };
+    cache.set(expr, entry);
+  }
+  return entry;
+}
 
 export function useDistributions(): DistributionsSelector {
   const { expressions } = useApp();
@@ -23,14 +39,7 @@ export function useDistributions(): DistributionsSelector {
     const dists = new Map<string, Distribution>();
     const tooComplex = new Set<string>();
     for (const expr of expressions) {
-      let entry = cache.get(expr);
-      if (entry === undefined) {
-        entry = {
-          dist: expressionDistribution(expr),
-          tooComplex: expressionTooComplex(expr),
-        };
-        cache.set(expr, entry);
-      }
+      const entry = getRowData(expr);
       dists.set(expr.id, entry.dist);
       if (entry.tooComplex) tooComplex.add(expr.id);
     }
