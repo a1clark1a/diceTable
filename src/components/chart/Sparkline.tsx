@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Text } from '@chakra-ui/react';
 import type { ChartView, Distribution, TargetState } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
@@ -7,6 +7,7 @@ import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
 import { buildMonotonePath } from './monotonePath';
+import { effectiveChartView } from './effectiveView';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
   pmf: { text: 'PMF', tip: tipForId('pmf') },
@@ -15,19 +16,18 @@ const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
   target: { text: 'Target', tip: tipForId('targetView') },
 };
 
-function useEffectiveChartView(): ChartView {
-  const { chartView, target } = useApp();
-  return chartView === 'target' && target.values.length === 0 ? 'pmf' : chartView;
-}
-
 export function ShapeHeaderLabel() {
-  const view = useEffectiveChartView();
+  const { chartView, target } = useApp();
+  const view = effectiveChartView(chartView, target);
   const { text, tip } = VIEW_LABELS[view];
   return <HelpTerm tip={tip}>{text}</HelpTerm>;
 }
 
-export function ShapeCardLabel() {
-  const view = useEffectiveChartView();
+interface ShapeCardLabelProps {
+  view: ChartView;
+}
+
+export function ShapeCardLabel({ view }: ShapeCardLabelProps) {
   return (
     <Text
       as="span"
@@ -131,7 +131,7 @@ function buildGeometry(
   const max = keys[keys.length - 1]!;
   const span = max - min + 1;
 
-  const effectiveView: ChartView =
+  const resolvedView: ChartView =
     view === 'target' && (!target || target.values.length === 0) ? 'pmf' : view;
 
   const baselineY = height - 0.5;
@@ -141,7 +141,7 @@ function buildGeometry(
   const heightAt = new Array<number>(span);
   const tipAt = new Array<string>(span);
 
-  if (effectiveView === 'pmf' || effectiveView === 'target') {
+  if (resolvedView === 'pmf' || resolvedView === 'target') {
     let maxP = 0;
     for (const p of dist.values()) {
       if (p > maxP) maxP = p;
@@ -153,7 +153,7 @@ function buildGeometry(
       heightAt[i] = (p / maxP) * usableHeight;
       tipAt[i] = `${xValue}: ${formatPct(p)}`;
     }
-  } else if (effectiveView === 'cdf') {
+  } else if (resolvedView === 'cdf') {
     let cum = 0;
     for (let i = 0; i < span; i++) {
       const xValue = min + i;
@@ -181,7 +181,7 @@ function buildGeometry(
   }
 
   let modeIndex = -1;
-  if (effectiveView === 'pmf' || effectiveView === 'target') {
+  if (resolvedView === 'pmf' || resolvedView === 'target') {
     let maxP = 0;
     let modeCount = 0;
     let modeAt = -1;
@@ -200,7 +200,7 @@ function buildGeometry(
   }
 
   const matchMask = new Array<boolean>(span).fill(false);
-  if (effectiveView === 'target' && target && target.values.length > 0) {
+  if (resolvedView === 'target' && target && target.values.length > 0) {
     for (let i = 0; i < span; i++) {
       matchMask[i] = targetMatches(min + i, target);
     }
@@ -213,7 +213,7 @@ function buildGeometry(
     matchMask,
     stepWidth,
     baselineY,
-    effectiveView,
+    effectiveView: resolvedView,
     empty: false,
   };
 }
@@ -234,7 +234,7 @@ function buildMatchAreaPath(
   return d;
 }
 
-export function Sparkline({
+export const Sparkline = memo(function Sparkline({
   dist,
   color,
   view = 'pmf',
@@ -362,33 +362,36 @@ export function Sparkline({
       ))}
     </svg>
   );
-}
+});
 
 interface RowSparklineProps {
   dist: Distribution;
   color: string;
   exprName: string;
+  view: ChartView;
+  target: TargetState;
   height?: number;
   fill?: boolean;
 }
 
-export function RowSparkline({
+export const RowSparkline = memo(function RowSparkline({
   dist,
   color,
   exprName,
+  view,
+  target,
   height,
   fill,
 }: RowSparklineProps) {
-  const { chartView, target } = useApp();
   return (
     <Sparkline
       dist={dist}
       color={color}
-      view={chartView}
+      view={view}
       target={target}
       {...(height !== undefined && { height })}
       {...(fill !== undefined && { fill })}
       ariaLabel={`Distribution shape for ${exprName}`}
     />
   );
-}
+});

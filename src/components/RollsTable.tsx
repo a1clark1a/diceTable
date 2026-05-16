@@ -14,13 +14,14 @@ import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
 import { hitProbability } from '../engine/stats';
-import type { Expression, TargetRuling } from '../types';
+import type { ChartView, Expression, TargetState } from '../types';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
 import { RowSparkline, ShapeHeaderLabel } from './chart/Sparkline';
+import { effectiveChartView } from './chart/effectiveView';
 import { EM_DASH, formatNumber, formatPercent } from './chart/format';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
@@ -53,6 +54,7 @@ export function RollsTable() {
   const {
     expressions,
     expandedId,
+    chartView,
     target,
     setExpandedId,
     deleteExpression,
@@ -62,6 +64,7 @@ export function RollsTable() {
   } = useApp();
 
   const showHit = target.values.length > 0;
+  const view = effectiveChartView(chartView, target);
 
   return (
     <Stack gap={3}>
@@ -115,8 +118,8 @@ export function RollsTable() {
                   idx={idx}
                   expanded={expandedId === expr.id}
                   showHit={showHit}
-                  targetValues={target.values}
-                  targetRuling={target.ruling}
+                  view={view}
+                  target={target}
                   setExpandedId={setExpandedId}
                   deleteExpression={deleteExpression}
                   renameExpression={renameExpression}
@@ -182,8 +185,8 @@ interface RollTableRowProps {
   idx: number;
   expanded: boolean;
   showHit: boolean;
-  targetValues: number[];
-  targetRuling: TargetRuling;
+  view: ChartView;
+  target: TargetState;
   setExpandedId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
@@ -195,8 +198,8 @@ const RollTableRow = memo(function RollTableRow({
   idx,
   expanded,
   showHit,
-  targetValues,
-  targetRuling,
+  view,
+  target,
   setExpandedId,
   deleteExpression,
   renameExpression,
@@ -207,9 +210,9 @@ const RollTableRow = memo(function RollTableRow({
   const hits = useMemo(
     () =>
       showHit && stats.hasDist
-        ? targetValues.map((v) => hitProbability(stats.dist, v, targetRuling))
+        ? target.values.map((v) => hitProbability(stats.dist, v, target.ruling))
         : null,
-    [showHit, stats, targetValues, targetRuling],
+    [showHit, stats, target],
   );
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
@@ -345,6 +348,8 @@ const RollTableRow = memo(function RollTableRow({
                 dist={stats.dist}
                 color={color}
                 exprName={expr.name}
+                view={view}
+                target={target}
               />
             </InspectChart>
           ) : (
@@ -364,10 +369,10 @@ const RollTableRow = memo(function RollTableRow({
             ) : (
               <Stack gap={0.5} align="flex-end">
                 {hits.map((p, i) => (
-                  <HStack key={targetValues[i]} gap={2} justify="flex-end">
-                    {targetValues.length > 1 && (
+                  <HStack key={target.values[i]} gap={2} justify="flex-end">
+                    {target.values.length > 1 && (
                       <Text as="span" color="fg.muted" fontSize="xs">
-                        {targetValues[i]}
+                        {target.values[i]}
                       </Text>
                     )}
                     <Text

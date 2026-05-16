@@ -1,8 +1,9 @@
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { validatePersistedState } from './persistedSchema';
 import { defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
+import { toaster } from '../components/share/toaster-store';
 import {
   AppContext,
   type AppContextValue,
@@ -84,11 +85,39 @@ function applyPartPatch(part: DicePart, patch: PartPatch): DicePart {
   return next;
 }
 
+function isQuotaError(err: unknown): boolean {
+  if (!(err instanceof DOMException)) return false;
+  // Spec name, legacy code (22), and Firefox-specific name.
+  return (
+    err.name === 'QuotaExceededError' ||
+    err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    err.code === 22
+  );
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
+  const quotaToastFired = useRef(false);
+
+  const onWriteError = useCallback((err: unknown) => {
+    if (!isQuotaError(err) || quotaToastFired.current) return;
+    quotaToastFired.current = true;
+    toaster.create({
+      type: 'error',
+      title: 'Browser storage is full',
+      description:
+        'Edits will stop saving until you free up space. Export your table from the Share menu to back it up.',
+      duration: 10000,
+    });
+  }, []);
+
   const [state, setState] = useLocalStorage<PersistedState>(
     STORAGE_KEY,
     initialState,
-    { version: STATE_VERSION, validate: validatePersistedState },
+    {
+      version: STATE_VERSION,
+      validate: validatePersistedState,
+      onWriteError,
+    },
   );
 
   const updateExpressionInList = useCallback(

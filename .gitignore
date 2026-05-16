@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Local-only dev artifacts
+mock.html
+mock-docs.html
+PLAN.md
+vite.config.profile.ts
+.mcp.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

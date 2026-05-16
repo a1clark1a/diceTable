@@ -12,7 +12,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { Trash2 } from 'lucide-react';
-import { useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import type { DicePart, ExplodeRule, KeepRule, RerollRule } from '../../types';
 import type { PartPatch } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
@@ -239,7 +239,12 @@ interface DicePartRowProps {
   canRemove: boolean;
 }
 
-export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRowProps) {
+export const DicePartRow = memo(function DicePartRow({
+  part,
+  onChange,
+  onRemove,
+  canRemove,
+}: DicePartRowProps) {
   const errors = validatePart(part);
 
   const commitCount = useCallback(
@@ -466,4 +471,4 @@ export function DicePartRow({ part, onChange, onRemove, canRemove }: DicePartRow
       </Stack>
     </Box>
   );
-}
+});

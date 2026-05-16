@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import type { ChartView, Distribution, TargetState } from '../../types';
 import { ShapeCardLabel } from '../chart/Sparkline';
+import { effectiveChartView } from '../chart/effectiveView';
 import { sortedKeys } from '../../engine/distribution';
 import { formatPercent } from '../chart/format';
 import { useApp } from '../../state/useApp';
@@ -209,8 +210,7 @@ interface InspectChartBodyProps {
 
 export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
   const { chartView, target } = useApp();
-  const effectiveView: ChartView =
-    chartView === 'target' && target.values.length === 0 ? 'pmf' : chartView;
+  const effectiveView = effectiveChartView(chartView, target);
 
   const data = useMemo(
     () => buildChartData(dist, effectiveView, target),
@@ -255,7 +255,7 @@ export function InspectChartBody({ dist, color }: InspectChartBodyProps) {
   return (
     <Stack gap={3}>
       <Box bg="bg.subtle" borderRadius="md" px={3} py={3}>
-      <ShapeCardLabel />
+      <ShapeCardLabel view={effectiveView} />
       <Box w="100%" h={{ base: '280px', md: '360px' }} mt={2}>
         <ResponsiveContainer
           width="100%"

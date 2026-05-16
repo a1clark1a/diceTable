@@ -16,6 +16,11 @@ export interface DistributionsSelector {
   tooComplex: Set<string>;
 }
 
+// Keyed by Expression *object identity*. Safe today because every patch in
+// AppContext returns a new Expression — there is no in-place mutation. If a
+// future code path mutates an expression instead of replacing it, this cache
+// will return stale stats. Switch to a content-keyed Map (JSON.stringify) if
+// that invariant is ever relaxed.
 const cache: WeakMap<Expression, RowData> = new WeakMap();
 
 export function getRowData(expr: Expression): RowData {

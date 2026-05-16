@@ -1,4 +1,4 @@
-import { Box, Flex } from '@chakra-ui/react';
+import { Box, Flex, Text } from '@chakra-ui/react';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Toaster } from '../share/Toaster';
@@ -19,6 +19,17 @@ export function AppShell() {
         <Box maxW="1200px" mx="auto" w="100%">
           <Outlet />
         </Box>
+      </Box>
+      <Box
+        as="footer"
+        px={{ base: 3, md: 6 }}
+        py={2}
+        borderTopWidth="1px"
+        borderColor="border.subtle"
+      >
+        <Text fontSize="xs" color="fg.subtle" textAlign="right">
+          build {__COMMIT_SHA__}
+        </Text>
       </Box>
       <Toaster />
     </Flex>
