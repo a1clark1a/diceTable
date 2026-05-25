@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.vercel/
 
 # Local-only dev artifacts
 mock.html
@@ -29,3 +30,12 @@ vite.config.profile.ts
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
+
+# environment variables
+.env
+
+
+.vercel
+.env*.local
