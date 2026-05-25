@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -30,12 +30,13 @@ import type {
   ChartView,
   Distribution,
   Expression,
-  TargetRuling,
   TargetState,
 } from "../../types";
 import { rowColor } from "./palette";
 import { Tooltip } from "../ui/tooltip";
-import { TIPS } from "../ui/tips";
+import { tipForId } from "../../docs/glossary";
+import { RulingSymbol } from "../targetRuling";
+import { RULING_SYMBOL } from "../targetRulingMeta";
 import { formatPercent } from "./format";
 
 interface RowSeries {
@@ -53,29 +54,21 @@ interface ChartDatum {
   [seriesKey: string]: number;
 }
 
-interface HitBar {
+interface HitRow {
   id: string;
   name: string;
   color: string;
-  hit: number;
+  hits: number[];
 }
 
 const VIEW_OPTIONS: { value: ChartView; label: string; tip: string }[] = [
-  { value: "pmf", label: "PMF", tip: TIPS.pmf },
-  { value: "cdf", label: "CDF", tip: TIPS.cdf },
-  { value: "ccdf", label: "CCDF", tip: TIPS.ccdf },
-  { value: "target", label: "TARGET", tip: TIPS.targetView },
+  { value: "pmf", label: "PMF", tip: tipForId('pmf') },
+  { value: "cdf", label: "CDF", tip: tipForId('cdf') },
+  { value: "ccdf", label: "CCDF", tip: tipForId('ccdf') },
+  { value: "target", label: "TARGET", tip: tipForId('targetView') },
 ];
 
 const CHART_ROW_LIMIT = 20;
-
-const RULING_SYMBOL: Record<TargetRuling, string> = {
-  gte: "≥",
-  gt: ">",
-  lte: "≤",
-  lt: "<",
-  eq: "=",
-};
 
 function buildSeries(
   expressions: Expression[],
@@ -147,14 +140,13 @@ function buildChartData(series: RowSeries[], view: ChartView): ChartDatum[] {
   return data;
 }
 
-function buildHitBars(series: RowSeries[], target: TargetState): HitBar[] {
-  if (target.value === null) return [];
-  const value = target.value;
+function buildHitRows(series: RowSeries[], target: TargetState): HitRow[] {
+  if (target.values.length === 0) return [];
   return series.map((s) => ({
     id: s.id,
     name: s.name,
     color: s.color,
-    hit: hitProbability(s.dist, value, target.ruling),
+    hits: target.values.map((v) => hitProbability(s.dist, v, target.ruling)),
   }));
 }
 
@@ -171,8 +163,10 @@ export function OverlayChart() {
   const { expressions, chartView, setChartView, target } = useApp();
   const { dists } = useDistributions();
 
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   const overLimit = expressions.length > CHART_ROW_LIMIT;
-  const hasTarget = target.value !== null;
+  const hasTarget = target.values.length > 0;
   const effectiveView: ChartView =
     chartView === "target" && !hasTarget ? "pmf" : chartView;
 
@@ -189,14 +183,19 @@ export function OverlayChart() {
     () => buildChartData(series, effectiveView),
     [series, effectiveView],
   );
-  const hitBars = useMemo(
-    () => (effectiveView === "target" ? buildHitBars(series, target) : []),
+  const hitRows = useMemo(
+    () => (effectiveView === "target" ? buildHitRows(series, target) : []),
     [series, target, effectiveView],
   );
 
   const yDomain: [number, number | "auto"] =
     effectiveView === "pmf" ? [0, "auto"] : [0, 1];
   const showLegend = !overLimit && series.length > 0 && effectiveView !== "target";
+
+  const focusedId =
+    hoveredId !== null && series.some((s) => s.id === hoveredId)
+      ? hoveredId
+      : null;
 
   return (
     <Stack gap={2}>
@@ -251,22 +250,37 @@ export function OverlayChart() {
 
           {showLegend && (
             <Wrap gap={3} flex="1" justify="flex-end">
-              {series.map((s) => (
-                <WrapItem key={s.id}>
-                  <HStack gap={2}>
-                    <Box
-                      w="10px"
-                      h="10px"
-                      borderRadius="2px"
-                      bg={s.color}
-                      flexShrink={0}
-                    />
-                    <Text fontSize="xs" color="fg.muted">
-                      {s.name}
-                    </Text>
-                  </HStack>
-                </WrapItem>
-              ))}
+              {series.map((s) => {
+                const dim = focusedId !== null && focusedId !== s.id;
+                return (
+                  <WrapItem key={s.id}>
+                    <HStack
+                      gap={2}
+                      role="button"
+                      tabIndex={0}
+                      cursor="pointer"
+                      opacity={dim ? 0.4 : 1}
+                      transition="opacity 120ms ease-out"
+                      aria-label={`Focus ${s.name} in chart`}
+                      onMouseEnter={() => setHoveredId(s.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      onFocus={() => setHoveredId(s.id)}
+                      onBlur={() => setHoveredId(null)}
+                    >
+                      <Box
+                        w="10px"
+                        h="10px"
+                        borderRadius="2px"
+                        bg={s.color}
+                        flexShrink={0}
+                      />
+                      <Text fontSize="xs" color="fg.muted">
+                        {s.name}
+                      </Text>
+                    </HStack>
+                  </WrapItem>
+                );
+              })}
             </Wrap>
           )}
         </HStack>
@@ -297,10 +311,10 @@ export function OverlayChart() {
             color="fg.muted"
           >
             <ChartColumn size={28} strokeWidth={1.5} aria-hidden />
-            <Text fontSize="sm">No valid rows yet — add a roll above.</Text>
+            <Text fontSize="sm">No valid rows yet. Add a roll above.</Text>
           </Stack>
-        ) : effectiveView === "target" && target.value !== null ? (
-          <TargetHitView bars={hitBars} target={target} />
+        ) : effectiveView === "target" && target.values.length > 0 ? (
+          <TargetHitView rows={hitRows} target={target} />
         ) : (
           <Box w="100%" h={{ base: "260px", md: "320px" }}>
             <ResponsiveContainer
@@ -311,8 +325,6 @@ export function OverlayChart() {
               <ComposedChart
                 data={data}
                 margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
-                barGap={0}
-                barCategoryGap="10%"
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -374,35 +386,50 @@ export function OverlayChart() {
                   }}
                 />
                 {effectiveView === "pmf"
-                  ? series.map((s) => (
-                      <Bar
-                        key={s.id}
-                        dataKey={s.id}
-                        name={s.name}
-                        fill={s.color}
-                        fillOpacity={0.7}
-                        radius={[2, 2, 0, 0]}
-                        isAnimationActive={false}
-                      />
-                    ))
-                  : series.map((s) => (
-                      <Line
-                        key={s.id}
-                        dataKey={s.id}
-                        name={s.name}
-                        type="monotone"
-                        stroke={s.color}
-                        strokeWidth={2.5}
-                        dot={{
-                          r: 3,
-                          fill: s.color,
-                          stroke: "var(--chakra-colors-bg-panel)",
-                          strokeWidth: 1.5,
-                        }}
-                        activeDot={{ r: 5, strokeWidth: 0 }}
-                        isAnimationActive={false}
-                      />
-                    ))}
+                  ? series.map((s) => {
+                      const focused = focusedId === s.id;
+                      const opacity =
+                        focusedId === null ? 0.9 : focused ? 1 : 0.2;
+                      return (
+                        <Line
+                          key={s.id}
+                          dataKey={s.id}
+                          name={s.name}
+                          type="step"
+                          stroke={s.color}
+                          strokeWidth={focused ? 2.25 : 1.75}
+                          strokeOpacity={opacity}
+                          dot={false}
+                          activeDot={{ r: 4, strokeWidth: 0 }}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })
+                  : series.map((s) => {
+                      const focused = focusedId === s.id;
+                      const opacity =
+                        focusedId === null ? 0.9 : focused ? 1 : 0.2;
+                      return (
+                        <Line
+                          key={s.id}
+                          dataKey={s.id}
+                          name={s.name}
+                          type="monotone"
+                          stroke={s.color}
+                          strokeWidth={focused ? 3 : 2.5}
+                          strokeOpacity={opacity}
+                          dot={{
+                            r: 3,
+                            fill: s.color,
+                            stroke: "var(--chakra-colors-bg-panel)",
+                            strokeWidth: 1.5,
+                            opacity,
+                          }}
+                          activeDot={{ r: 5, strokeWidth: 0 }}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
               </ComposedChart>
             </ResponsiveContainer>
           </Box>
@@ -413,8 +440,15 @@ export function OverlayChart() {
 }
 
 interface TargetHitViewProps {
-  bars: HitBar[];
+  rows: HitRow[];
   target: TargetState;
+}
+
+interface TargetChartDatum {
+  id: string;
+  name: string;
+  color: string;
+  [hitKey: string]: number | string;
 }
 
 function formatPctLabel(
@@ -424,25 +458,84 @@ function formatPctLabel(
   return formatPercent(value);
 }
 
-function TargetHitView({ bars, target }: TargetHitViewProps) {
-  if (target.value === null) return null;
+function targetOpacity(targetIndex: number, totalTargets: number): number {
+  if (totalTargets <= 1) return 0.85;
+  const min = 0.35;
+  const max = 0.9;
+  const step = (max - min) / (totalTargets - 1);
+  return max - step * targetIndex;
+}
+
+function TargetHitView({ rows, target }: TargetHitViewProps) {
+  if (target.values.length === 0) return null;
+  const symbol = RULING_SYMBOL[target.ruling];
+  const targetCount = target.values.length;
+
+  const data: TargetChartDatum[] = rows.map((r) => {
+    const datum: TargetChartDatum = {
+      id: r.id,
+      name: r.name,
+      color: r.color,
+    };
+    r.hits.forEach((h, ti) => {
+      datum[`hit_${ti}`] = h;
+    });
+    return datum;
+  });
+
+  const targetsLabel = target.values.join(", ");
+  const showLabels = rows.length * targetCount <= 24;
+
   return (
     <Stack gap={3}>
-      <Text
-        fontSize="xs"
-        color="fg.muted"
-        fontFamily="mono"
-        style={{ fontVariantNumeric: "tabular-nums" }}
-      >
-        Hit rate · Target {RULING_SYMBOL[target.ruling]} {target.value}
-      </Text>
+      <HStack gap={3} flexWrap="wrap">
+        <HStack
+          as="span"
+          gap={1}
+          fontSize="xs"
+          color="fg.muted"
+          fontFamily="mono"
+          style={{ fontVariantNumeric: "tabular-nums" }}
+        >
+          <Text as="span">Hit rate · Target</Text>
+          <RulingSymbol ruling={target.ruling} />
+          <Text as="span">{targetsLabel}</Text>
+        </HStack>
+        {targetCount > 1 && (
+          <HStack gap={2} fontSize="xs" color="fg.muted">
+            <Text as="span" fontFamily="mono">
+              Bars (left → right):
+            </Text>
+            {target.values.map((v, ti) => (
+              <HStack key={v} gap={1}>
+                <Box
+                  w="10px"
+                  h="10px"
+                  borderRadius="2px"
+                  bg="fg.muted"
+                  opacity={targetOpacity(ti, targetCount)}
+                />
+                <HStack
+                  as="span"
+                  gap={0}
+                  fontFamily="mono"
+                  style={{ fontVariantNumeric: "tabular-nums" }}
+                >
+                  <RulingSymbol ruling={target.ruling} />
+                  <Text as="span">{v}</Text>
+                </HStack>
+              </HStack>
+            ))}
+          </HStack>
+        )}
+      </HStack>
       <Box
         w="100%"
         h={{ base: "260px", md: "320px" }}
-        maxW={`${bars.length * 100 + 96}px`}
+        maxW={`${rows.length * (targetCount * 28 + 40) + 96}px`}
         mx="auto"
         role="img"
-        aria-label={`Hit rate per roll for target ${RULING_SYMBOL[target.ruling]} ${target.value}`}
+        aria-label={`Hit rate per roll for targets ${symbol} ${targetsLabel}`}
       >
         <ResponsiveContainer
           width="100%"
@@ -450,7 +543,7 @@ function TargetHitView({ bars, target }: TargetHitViewProps) {
           initialDimension={{ width: 1, height: 1 }}
         >
           <BarChart
-            data={bars}
+            data={data}
             margin={{ top: 24, right: 16, bottom: 8, left: 0 }}
             barCategoryGap="14%"
           >
@@ -490,9 +583,9 @@ function TargetHitView({ bars, target }: TargetHitViewProps) {
             />
             <RechartsTooltip
               cursor={{ fill: "var(--chakra-colors-bg-emphasized)" }}
-              formatter={(value) => [
+              formatter={(value, name) => [
                 formatTooltipValue(value as number),
-                "Hit",
+                name,
               ]}
               labelFormatter={(label) => String(label)}
               contentStyle={{
@@ -509,29 +602,34 @@ function TargetHitView({ bars, target }: TargetHitViewProps) {
                 fontWeight: 600,
               }}
             />
-            <Bar
-              dataKey="hit"
-              name="Hit"
-              fillOpacity={0.85}
-              radius={[2, 2, 0, 0]}
-              maxBarSize={72}
-              isAnimationActive={false}
-            >
-              {bars.map((b) => (
-                <Cell key={b.id} fill={b.color} />
-              ))}
-              <LabelList
-                dataKey="hit"
-                position="top"
-                formatter={formatPctLabel}
-                style={{
-                  fill: "var(--chakra-colors-fg)",
-                  fontSize: 11,
-                  fontFamily: "ui-monospace, monospace",
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              />
-            </Bar>
+            {target.values.map((v, ti) => (
+              <Bar
+                key={v}
+                dataKey={`hit_${ti}`}
+                name={`${symbol}${v}`}
+                fillOpacity={targetOpacity(ti, targetCount)}
+                radius={[2, 2, 0, 0]}
+                maxBarSize={56}
+                isAnimationActive={false}
+              >
+                {data.map((d) => (
+                  <Cell key={d.id} fill={d.color} />
+                ))}
+                {showLabels && (
+                  <LabelList
+                    dataKey={`hit_${ti}`}
+                    position="top"
+                    formatter={formatPctLabel}
+                    style={{
+                      fill: "var(--chakra-colors-fg)",
+                      fontSize: 10,
+                      fontFamily: "ui-monospace, monospace",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  />
+                )}
+              </Bar>
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </Box>

@@ -39,7 +39,10 @@ function seed(chartView: string = 'pmf', targetValue: number | null = null) {
     ui: {
       expandedId: null,
       chartView,
-      target: { value: targetValue, ruling: 'gte' },
+      target: {
+        values: targetValue === null ? [] : [targetValue],
+        ruling: 'gte',
+      },
     },
   };
   window.localStorage.setItem(

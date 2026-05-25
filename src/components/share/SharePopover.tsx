@@ -14,7 +14,7 @@ import {
   encodeRollsToJson,
 } from '../../share/encode';
 import { Tooltip } from '../ui/tooltip';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
 import { toaster } from './toaster-store';
 
 async function writeToClipboard(text: string): Promise<boolean> {
@@ -118,7 +118,7 @@ export function SharePopover() {
       lazyMount
       unmountOnExit
     >
-      <Tooltip content={TIPS.share} disabled={open || disabled}>
+      <Tooltip content={tipForId('share')} disabled={open || disabled}>
         <Popover.Trigger asChild>
           <Button
             variant="ghost"

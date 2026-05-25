@@ -2,7 +2,7 @@ import { Text, chakra } from '@chakra-ui/react';
 import { Fragment, type ReactNode } from 'react';
 import type { DicePart, Expression } from '../../types';
 import { HelpTerm } from '../ui/help-term';
-import { tipForKeep } from '../ui/tips';
+import { tipForKeep } from '../../docs/dynamicTips';
 
 function formatFaceList(values: number[]): string {
   return [...values].sort((a, b) => a - b).join(',');
