@@ -1,14 +1,15 @@
-import type {
-  ChartView,
-  DicePart,
-  Expression,
-  ExplodeRule,
-  KeepRule,
-  PersistedState,
-  RerollRule,
-  RollMode,
-  TargetRuling,
-  TargetState,
+import {
+  MAX_TARGETS,
+  type ChartView,
+  type DicePart,
+  type Expression,
+  type ExplodeRule,
+  type KeepRule,
+  type PersistedState,
+  type RerollRule,
+  type RollMode,
+  type TargetRuling,
+  type TargetState,
 } from '../types';
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
@@ -110,20 +111,30 @@ export function validateExpression(v: unknown): Expression | null {
 }
 
 function validateTarget(v: unknown): TargetState {
-  if (!isRecord(v)) return { value: null, ruling: 'gte' };
-  const value =
-    v.value === null
-      ? null
-      : isInt(v.value)
-        ? v.value
-        : null;
+  if (!isRecord(v)) return { values: [], ruling: 'gte' };
   const ruling = isOneOf(v.ruling, TARGET_RULINGS) ? v.ruling : 'gte';
-  return { value, ruling };
+
+  let values: number[] = [];
+  if (Array.isArray(v.values)) {
+    const seen = new Set<number>();
+    for (const raw of v.values) {
+      if (!isInt(raw)) continue;
+      if (seen.has(raw)) continue;
+      seen.add(raw);
+      values.push(raw);
+      if (values.length >= MAX_TARGETS) break;
+    }
+    values.sort((a, b) => a - b);
+  } else if (isInt(v.value)) {
+    values = [v.value];
+  }
+
+  return { values, ruling };
 }
 
 function validateUi(v: unknown): PersistedState['ui'] {
   if (!isRecord(v)) {
-    return { expandedId: null, chartView: 'pmf', target: { value: null, ruling: 'gte' } };
+    return { expandedId: null, chartView: 'pmf', target: { values: [], ruling: 'gte' } };
   }
   const expandedId =
     v.expandedId === null

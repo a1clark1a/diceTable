@@ -21,6 +21,11 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+function countSubPaths(d: string | null | undefined): number {
+  if (!d) return 0;
+  return (d.match(/M /g) ?? []).length;
+}
+
 describe('Sparkline', () => {
   it('renders nothing for an empty distribution', () => {
     const { container } = render(
@@ -31,15 +36,25 @@ describe('Sparkline', () => {
     expect(container.querySelector('svg')).toBeNull();
   });
 
-  it('renders one visible bar per integer in the support range', () => {
+  it('renders a stepped area path in PMF view', () => {
     const { container } = render(
       <Plain>
-        <Sparkline dist={uniformDistribution(6)} color="#000" />
+        <Sparkline dist={uniformDistribution(6)} color="#000" view="pmf" />
       </Plain>,
     );
-    expect(
-      container.querySelectorAll('rect:not([fill="transparent"])'),
-    ).toHaveLength(6);
+    const areaPaths = container.querySelectorAll('path[fill-opacity]');
+    expect(areaPaths).toHaveLength(1);
+    expect(areaPaths[0]?.getAttribute('fill-opacity')).toBe('0.22');
+  });
+
+  it('renders a separate stroked top path in PMF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(6)} color="#000" view="pmf" />
+      </Plain>,
+    );
+    const strokePaths = container.querySelectorAll('path[stroke="#000"]');
+    expect(strokePaths.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders one hit zone per integer for hover', () => {
@@ -53,22 +68,31 @@ describe('Sparkline', () => {
     ).toHaveLength(6);
   });
 
-  it('does not fade any bars in PMF view', () => {
+  it('renders a stepped line path with no fill in CDF view', () => {
     const { container } = render(
       <Plain>
-        <Sparkline dist={uniformDistribution(6)} color="#000" view="pmf" />
+        <Sparkline dist={uniformDistribution(6)} color="#000" view="cdf" />
       </Plain>,
     );
-    const rects = container.querySelectorAll(
-      'rect:not([fill="transparent"])',
-    );
-    rects.forEach((rect) => {
-      expect(rect.getAttribute('fill-opacity')).toBe('0.75');
-    });
+    expect(container.querySelectorAll('path[fill-opacity]')).toHaveLength(0);
+    const strokePath = container.querySelector('path[fill="none"]');
+    expect(strokePath).not.toBeNull();
+    expect(strokePath?.getAttribute('stroke')).toBe('#000');
   });
 
-  it('fades bars below the target in target view with ruling gte', () => {
-    const target: TargetState = { value: 4, ruling: 'gte' };
+  it('renders a stepped line path with no fill in CCDF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(6)} color="#000" view="ccdf" />
+      </Plain>,
+    );
+    expect(container.querySelectorAll('path[fill-opacity]')).toHaveLength(0);
+    const strokePath = container.querySelector('path[fill="none"]');
+    expect(strokePath).not.toBeNull();
+  });
+
+  it('renders a faded background and a brighter match foreground in target view', () => {
+    const target: TargetState = { values: [4], ruling: 'gte' };
     const { container } = render(
       <Plain>
         <Sparkline
@@ -80,13 +104,14 @@ describe('Sparkline', () => {
       </Plain>,
     );
     const opacities = Array.from(
-      container.querySelectorAll('rect:not([fill="transparent"])'),
-    ).map((r) => r.getAttribute('fill-opacity'));
-    expect(opacities).toEqual(['0.18', '0.18', '0.18', '0.75', '0.75', '0.75']);
+      container.querySelectorAll('path[fill-opacity]'),
+    ).map((p) => p.getAttribute('fill-opacity'));
+    expect(opacities).toContain('0.18');
+    expect(opacities).toContain('0.55');
   });
 
-  it('does not fade any bars in target view when no target value is set', () => {
-    const target: TargetState = { value: null, ruling: 'gte' };
+  it('falls back to a plain PMF area when target view has no values', () => {
+    const target: TargetState = { values: [], ruling: 'gte' };
     const { container } = render(
       <Plain>
         <Sparkline
@@ -97,11 +122,57 @@ describe('Sparkline', () => {
         />
       </Plain>,
     );
-    Array.from(
-      container.querySelectorAll('rect:not([fill="transparent"])'),
-    ).forEach((r) => {
-      expect(r.getAttribute('fill-opacity')).toBe('0.75');
-    });
+    expect(container.querySelector('path[fill-opacity="0.55"]')).toBeNull();
+    const opacities = Array.from(
+      container.querySelectorAll('path[fill-opacity]'),
+    ).map((p) => p.getAttribute('fill-opacity'));
+    expect(opacities).toEqual(['0.22']);
+  });
+
+  it('uses the lowest gte target as the threshold when multiple values are set', () => {
+    const target: TargetState = { values: [3, 5], ruling: 'gte' };
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          view="target"
+          target={target}
+        />
+      </Plain>,
+    );
+    const fg = container.querySelector('path[fill-opacity="0.55"]');
+    expect(countSubPaths(fg?.getAttribute('d'))).toBe(4);
+  });
+
+  it('only highlights listed values for an eq ruling with multiple targets', () => {
+    const target: TargetState = { values: [2, 5], ruling: 'eq' };
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          view="target"
+          target={target}
+        />
+      </Plain>,
+    );
+    const fg = container.querySelector('path[fill-opacity="0.55"]');
+    expect(countSubPaths(fg?.getAttribute('d'))).toBe(2);
+  });
+
+  it('renders a baseline line at the bottom of the chart', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          height={24}
+        />
+      </Plain>,
+    );
+    const baseline = container.querySelector('line[y1="23.5"][y2="23.5"]');
+    expect(baseline).not.toBeNull();
   });
 
   it('shows PMF tooltip text "value: percent" for each bar', () => {
@@ -160,7 +231,10 @@ describe('ShapeHeaderLabel', () => {
       ui: {
         expandedId: null,
         chartView,
-        target: { value: targetValue, ruling: 'gte' },
+        target: {
+          values: targetValue === null ? [] : [targetValue],
+          ruling: 'gte',
+        },
       },
     };
     window.localStorage.setItem(
