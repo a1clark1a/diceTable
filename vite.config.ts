@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 function readCommitSha(): string {
   try {
@@ -13,7 +14,54 @@ function readCommitSha(): string {
 }
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      devOptions: { enabled: false },
+      includeAssets: [
+        'favicon.svg',
+        'favicon.ico',
+        'apple-touch-icon.png',
+        'icon-192.png',
+        'icon-512.png',
+      ],
+      manifest: {
+        name: 'DiceTable',
+        short_name: 'DiceTable',
+        description:
+          'Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution.',
+        theme_color: '#fafafa',
+        background_color: '#fafafa',
+        display: 'minimal-ui',
+        start_url: '/',
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+          {
+            src: '/icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        navigateFallback: '/index.html',
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html',
+              networkTimeoutSeconds: 3,
+            },
+          },
+        ],
+      },
+    }),
+  ],
   define: {
     __COMMIT_SHA__: JSON.stringify(readCommitSha()),
   },
