@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
-import { InspectChart, InspectChartBody } from './InspectChart';
+import { InspectChart } from './InspectChart';
+import InspectChartBody from './InspectChartBody';
 import { uniformDistribution } from '../../engine/distribution';
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
@@ -84,6 +85,34 @@ describe('InspectChart trigger', () => {
       </AllProviders>,
     );
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('lazy-loads the chart body when the trigger is clicked', async () => {
+    seed();
+    render(
+      <AllProviders>
+        <InspectChart
+          exprName="Greatsword"
+          dist={uniformDistribution(6)}
+          color="#000"
+        >
+          <span>sparkline-trigger</span>
+        </InspectChart>
+      </AllProviders>,
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /inspect chart for greatsword/i }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      await within(dialog).findByText(/most likely results/i),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('status', { name: /loading chart/i }),
+    ).toBeNull();
   });
 });
 
