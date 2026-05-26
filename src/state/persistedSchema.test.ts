@@ -219,4 +219,18 @@ describe('validatePersistedState', () => {
     });
     expect(result!.ui.target.values).toEqual([13, 19]);
   });
+
+  it('truncates expressions beyond the row cap (100)', () => {
+    const seed = validPayload.expressions[0]!;
+    const many = Array.from({ length: 150 }, (_, i) => ({
+      ...seed,
+      id: `expr-${i}`,
+      parts: [{ ...seed.parts[0]!, id: `part-${i}` }],
+    }));
+    const result = validatePersistedState({ ...validPayload, expressions: many });
+    expect(result).not.toBeNull();
+    expect(result!.expressions).toHaveLength(100);
+    expect(result!.expressions[0]!.id).toBe('expr-0');
+    expect(result!.expressions[99]!.id).toBe('expr-99');
+  });
 });

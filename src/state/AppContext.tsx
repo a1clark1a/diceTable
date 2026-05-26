@@ -12,6 +12,7 @@ import {
   type TargetPatch,
 } from './useApp';
 import {
+  MAX_EXPRESSIONS,
   MAX_TARGETS,
   type ChartView,
   type DicePart,
@@ -169,12 +170,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const addExpression = useCallback(() => {
-    const created = defaultExpression();
-    setState((prev) => ({
-      ...prev,
-      expressions: [...prev.expressions, created],
-      ui: { ...prev.ui, expandedId: created.id },
-    }));
+    setState((prev) => {
+      if (prev.expressions.length >= MAX_EXPRESSIONS) {
+        toaster.create({
+          type: 'info',
+          title: `Up to ${MAX_EXPRESSIONS} rolls`,
+          description: 'Delete a row to add another.',
+        });
+        return prev;
+      }
+      const created = defaultExpression();
+      return {
+        ...prev,
+        expressions: [...prev.expressions, created],
+        ui: { ...prev.ui, expandedId: created.id },
+      };
+    });
   }, [setState]);
 
   const duplicateExpression = useCallback(
@@ -182,6 +193,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setState((prev) => {
         const source = prev.expressions.find((e) => e.id === id);
         if (!source) return prev;
+        if (prev.expressions.length >= MAX_EXPRESSIONS) {
+          toaster.create({
+            type: 'info',
+            title: `Up to ${MAX_EXPRESSIONS} rolls`,
+            description: 'Delete a row to add another.',
+          });
+          return prev;
+        }
         const copy: Expression = {
           ...source,
           id: newId('expr'),
@@ -271,7 +290,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const replaceExpressions = useCallback(
     (incoming: Expression[]) => {
-      const fresh = incoming.map(reIdExpression);
+      const capped = incoming.slice(0, MAX_EXPRESSIONS);
+      const fresh = capped.map(reIdExpression);
+      if (incoming.length > MAX_EXPRESSIONS) {
+        toaster.create({
+          type: 'info',
+          title: `Kept the first ${MAX_EXPRESSIONS} rolls`,
+          description: `The import had ${incoming.length}. Up to ${MAX_EXPRESSIONS} fit in one table.`,
+        });
+      }
       setState((prev) => ({
         ...prev,
         expressions: fresh,
@@ -284,8 +311,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addExpressions = useCallback(
     (incoming: Expression[]) => {
       setState((prev) => {
-        const renamed = renameCollisions(prev.expressions, incoming);
+        const room = MAX_EXPRESSIONS - prev.expressions.length;
+        if (room <= 0) {
+          toaster.create({
+            type: 'info',
+            title: `Up to ${MAX_EXPRESSIONS} rolls`,
+            description: 'Delete some rows or replace the table to import more.',
+          });
+          return prev;
+        }
+        const accepted = incoming.slice(0, room);
+        const renamed = renameCollisions(prev.expressions, accepted);
         const fresh = renamed.map(reIdExpression);
+        if (incoming.length > room) {
+          toaster.create({
+            type: 'info',
+            title: `Added ${accepted.length} of ${incoming.length} rolls`,
+            description: `Table is now full at ${MAX_EXPRESSIONS}.`,
+          });
+        }
         return {
           ...prev,
           expressions: [...prev.expressions, ...fresh],

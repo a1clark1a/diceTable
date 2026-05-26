@@ -7,16 +7,16 @@ import { useShareLinkAutoload } from '../share/useShareLinkAutoload';
 export function AppShell() {
   useShareLinkAutoload();
   return (
-    <Flex direction="column" minH="100dvh" bg="bg">
+    <Flex direction="column" h="100dvh" bg="bg">
       <Navbar />
-      <Box
-        as="main"
-        flex="1"
-        overflowY="auto"
-        px={{ base: 3, md: 6 }}
-        py={{ base: 3, md: 6 }}
-      >
-        <Box maxW="1200px" mx="auto" w="100%">
+      <Box as="main" flex="1" minH={0} overflowY="auto">
+        <Box
+          maxW="1200px"
+          mx="auto"
+          w="100%"
+          px={{ base: 3, md: 6 }}
+          py={{ base: 3, md: 6 }}
+        >
           <Outlet />
         </Box>
       </Box>
