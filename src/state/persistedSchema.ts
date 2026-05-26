@@ -1,4 +1,5 @@
 import {
+  MAX_EXPRESSIONS,
   MAX_TARGETS,
   type ChartView,
   type DicePart,
@@ -157,6 +158,7 @@ export function validatePersistedState(raw: unknown): PersistedState | null {
     const expr = validateExpression(rawExpr);
     if (expr === null) return null;
     expressions.push(expr);
+    if (expressions.length >= MAX_EXPRESSIONS) break;
   }
 
   return {
