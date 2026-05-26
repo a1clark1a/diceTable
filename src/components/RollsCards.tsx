@@ -14,7 +14,8 @@ import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
 import { hitProbability } from '../engine/stats';
-import type { ChartView, Expression, TargetState } from '../types';
+import { MAX_EXPRESSIONS, type ChartView, type Expression, type TargetState } from '../types';
+import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
@@ -65,6 +66,7 @@ export function RollsCards() {
 
   const showHit = target.values.length > 0;
   const view = effectiveChartView(chartView, target);
+  const atCap = expressions.length >= MAX_EXPRESSIONS;
 
   return (
     <Stack gap={3}>
@@ -110,16 +112,22 @@ export function RollsCards() {
               updateExpression={updateExpression}
             />
           ))}
-          <Button
-            size="sm"
-            variant="outline"
-            borderStyle="dashed"
-            width="100%"
-            onClick={addExpression}
+          <Tooltip
+            content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+            disabled={!atCap}
           >
-            <Plus size={14} />
-            Add roll
-          </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              borderStyle="dashed"
+              width="100%"
+              onClick={addExpression}
+              disabled={atCap}
+            >
+              <Plus size={14} />
+              Add roll
+            </Button>
+          </Tooltip>
         </Stack>
       )}
     </Stack>
