@@ -1,4 +1,6 @@
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -10,6 +12,16 @@ function readCommitSha(): string {
       .trim();
   } catch {
     return 'dev';
+  }
+}
+
+function readAppVersion(): string {
+  try {
+    const pkgUrl = new URL('./package.json', import.meta.url);
+    const pkg = JSON.parse(readFileSync(fileURLToPath(pkgUrl), 'utf8')) as { version?: string };
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
   }
 }
 
@@ -64,6 +76,7 @@ export default defineConfig({
   ],
   define: {
     __COMMIT_SHA__: JSON.stringify(readCommitSha()),
+    __APP_VERSION__: JSON.stringify(readAppVersion()),
   },
   test: {
     environment: 'jsdom',
