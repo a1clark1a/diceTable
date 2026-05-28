@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Box, Spinner } from '@chakra-ui/react';
 import { Route, Routes } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AppShell } from './components/layout/AppShell';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Provider } from './components/ui/provider';
@@ -22,6 +24,8 @@ function DocsFallback() {
 export default function App() {
   return (
     <Provider>
+      <Analytics />
+      <SpeedInsights />
       <ErrorBoundary storageKey="dicetable.v2">
         <AppProvider>
           <RollHistoryProvider>
