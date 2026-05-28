@@ -27,9 +27,21 @@ export function AppShell() {
         borderTopWidth="1px"
         borderColor="border.subtle"
       >
-        <Text fontSize="xs" color="fg.subtle" textAlign="right">
-          build {__COMMIT_SHA__}
-        </Text>
+        <Flex
+          justify="space-between"
+          align="center"
+          gap={3}
+          fontSize="xs"
+        >
+          <Text color="fg.muted">Made by DevZan</Text>
+          <Text
+            color="fg.subtle"
+            fontFamily="mono"
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            v{__APP_VERSION__} · {__COMMIT_SHA__}
+          </Text>
+        </Flex>
       </Box>
       <Toaster />
     </Flex>
