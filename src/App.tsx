@@ -10,6 +10,7 @@ import { AppProvider } from './state/AppContext';
 import { RollHistoryProvider } from './state/RollHistoryContext';
 import TablePage from './pages/TablePage';
 import NotFoundPage from './pages/NotFoundPage';
+import PrivacyPage from './pages/PrivacyPage';
 
 const DocsPage = lazy(() => import('./pages/DocsPage'));
 
@@ -40,6 +41,7 @@ export default function App() {
                     </Suspense>
                   }
                 />
+                <Route path="privacy" element={<PrivacyPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>
