@@ -44,7 +44,7 @@ export function OverlayChart({ ref }: OverlayChartProps) {
   }, [overLimit, expressions, dists]);
 
   const hasValidSeries = legendEntries.length > 0;
-  const showLegend = hasValidSeries && effectiveView !== 'target';
+  const showLegend = hasValidSeries;
 
   const focusedId =
     hoveredId !== null && legendEntries.some((e) => e.id === hoveredId)

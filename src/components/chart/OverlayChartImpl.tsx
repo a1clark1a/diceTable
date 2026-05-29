@@ -171,7 +171,9 @@ export default function OverlayChartImpl({
       : null;
 
   if (effectiveView === 'target' && target.values.length > 0) {
-    return <TargetHitView rows={hitRows} target={target} />;
+    return (
+      <TargetHitView rows={hitRows} target={target} focusedId={focusedId} />
+    );
   }
 
   const yDomain: [number, number | 'auto'] =
@@ -301,6 +303,7 @@ export default function OverlayChartImpl({
 interface TargetHitViewProps {
   rows: HitRow[];
   target: TargetState;
+  focusedId: string | null;
 }
 
 interface TargetChartDatum {
@@ -325,7 +328,7 @@ function targetOpacity(targetIndex: number, totalTargets: number): number {
   return max - step * targetIndex;
 }
 
-function TargetHitView({ rows, target }: TargetHitViewProps) {
+function TargetHitView({ rows, target, focusedId }: TargetHitViewProps) {
   if (target.values.length === 0) return null;
   const symbol = RULING_SYMBOL[target.ruling];
   const targetCount = target.values.length;
@@ -420,10 +423,8 @@ function TargetHitView({ rows, target }: TargetHitViewProps) {
               axisLine={{
                 stroke: 'var(--chakra-colors-border-emphasized)',
               }}
-              tick={{
-                fontSize: 11,
-                fill: 'var(--chakra-colors-fg-muted)',
-              }}
+              tick={false}
+              height={4}
             />
             <YAxis
               tickFormatter={formatPctTick}
@@ -471,9 +472,16 @@ function TargetHitView({ rows, target }: TargetHitViewProps) {
                 maxBarSize={56}
                 isAnimationActive={false}
               >
-                {data.map((d) => (
-                  <Cell key={d.id} fill={d.color} />
-                ))}
+                {data.map((d) => {
+                  const dim = focusedId !== null && focusedId !== d.id;
+                  return (
+                    <Cell
+                      key={d.id}
+                      fill={d.color}
+                      fillOpacity={dim ? 0.25 : 1}
+                    />
+                  );
+                })}
                 {showLabels && (
                   <LabelList
                     dataKey={`hit_${ti}`}
