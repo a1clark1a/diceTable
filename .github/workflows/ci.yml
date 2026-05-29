@@ -23,7 +23,18 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
-      - run: npm run test
+      # Vitest 4 has been observed to exit 0 when all suites fail to load
+      # (cold-cache "failed to find the current suite" path). Assert that
+      # at least one test file actually passed so the CI gate stays honest.
+      - name: Run tests
+        env:
+          NO_COLOR: '1'
+        run: |
+          npm run test 2>&1 | tee test-output.log
+          if ! grep -qE "Test Files +[0-9]+ passed" test-output.log; then
+            echo "::error::No passing test files in vitest output — possible silent failure"
+            exit 1
+          fi
       - run: npm run lint -- --max-warnings 0
 
   deploy-preview:
