@@ -87,6 +87,7 @@ expect('favicon.ico', 'favicon.ico');
 expect('apple-touch-icon.png', 'apple-touch-icon.png');
 expect('icon-192.png', 'icon-192.png');
 expect('icon-512.png', 'icon-512.png');
+expect('og-image.png', 'og-image.png');
 
 const assetFiles = readdirSync(resolve(distDir, 'assets'));
 for (const file of assetFiles) {

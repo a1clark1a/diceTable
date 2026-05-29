@@ -24,9 +24,31 @@ const pngTargets = [
 
 const icoSizes = [16, 32, 48];
 
+// Open Graph cards render at 1200×630. We center the square favicon on a
+// branded canvas so social previews show the logo at a generous size without
+// distorting the original artwork.
+const OG_WIDTH = 1200;
+const OG_HEIGHT = 630;
+const OG_ICON_SIZE = 500;
+
 async function rasterizePng(svgBuffer, size, background) {
   return sharp(svgBuffer, { density: 384 })
     .resize(size, size, { fit: 'contain', background })
+    .png()
+    .toBuffer();
+}
+
+async function rasterizeOgImage(svgBuffer) {
+  const icon = await rasterizePng(svgBuffer, OG_ICON_SIZE, TRANSPARENT);
+  return sharp({
+    create: {
+      width: OG_WIDTH,
+      height: OG_HEIGHT,
+      channels: 4,
+      background: APPLE_BG,
+    },
+  })
+    .composite([{ input: icon, gravity: 'center' }])
     .png()
     .toBuffer();
 }
@@ -56,6 +78,11 @@ async function main() {
   }
   await writeFile(icoPath, icoBuffer);
   console.log(`wrote favicon.ico (${icoSizes.join('/')}, ${icoBuffer.byteLength} B)`);
+
+  const ogBuffer = await rasterizeOgImage(svgBuffer);
+  const ogPath = resolve(publicDir, 'og-image.png');
+  await writeFile(ogPath, ogBuffer);
+  console.log(`wrote og-image.png (${OG_WIDTH}x${OG_HEIGHT}, ${ogBuffer.byteLength} B)`);
 }
 
 main().catch((err) => {
