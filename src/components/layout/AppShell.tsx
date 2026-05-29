@@ -1,5 +1,5 @@
-import { Box, Flex, Text } from '@chakra-ui/react';
-import { Outlet } from 'react-router-dom';
+import { Box, Flex, HStack, Text } from '@chakra-ui/react';
+import { NavLink, Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Toaster } from '../share/Toaster';
 import { useShareLinkAutoload } from '../share/useShareLinkAutoload';
@@ -33,7 +33,26 @@ export function AppShell() {
           gap={3}
           fontSize="xs"
         >
-          <Text color="fg.muted">Made by DevZan</Text>
+          <HStack gap={3}>
+            <Text color="fg.muted">Made by DevZan</Text>
+            <Text color="fg.subtle" aria-hidden>
+              ·
+            </Text>
+            <NavLink
+              to="/privacy"
+              style={{ textDecoration: 'none' }}
+            >
+              {({ isActive }) => (
+                <Text
+                  color={isActive ? 'fg' : 'fg.muted'}
+                  _hover={{ color: 'fg' }}
+                  transition="color 0.15s"
+                >
+                  Privacy
+                </Text>
+              )}
+            </NavLink>
+          </HStack>
           <Text
             color="fg.subtle"
             fontFamily="mono"

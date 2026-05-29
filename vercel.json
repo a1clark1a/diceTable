@@ -27,6 +27,19 @@
           "value": "same-origin"
         }
       ]
+    },
+    {
+      "source": "/(.*)",
+      "missing": [
+        { "type": "host", "value": "dice-table.app" },
+        { "type": "host", "value": "www.dice-table.app" }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }
