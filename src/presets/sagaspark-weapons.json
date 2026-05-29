@@ -1,0 +1,474 @@
+{
+  "format": "dicetable-rolls",
+  "exportVersion": 1,
+  "rolls": [
+    {
+      "id": "expr-fda143c0-9789-4c1c-ada9-99663ced9e6b",
+      "name": "Long Sword (1H)",
+      "parts": [
+        {
+          "id": "part-414696a2-98b4-462e-aad5-af9b1d9bddae",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-c514166e-448c-4077-93e9-0df422d8eff9",
+      "name": "Long Sword (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-61fd33b7-c8a6-467a-95ba-eabde3ad4499",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-45cb1567-f5e6-44d4-a682-5d847f1f26a4",
+      "name": "Short Sword (1H)",
+      "parts": [
+        {
+          "id": "part-2a135f62-cada-4004-a4cb-1034505de7c1",
+          "count": 1,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-ef55a590-b769-443a-a2a5-845efff62bde",
+      "name": "Short Sword (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-932426e6-c773-4433-82e1-291022407ff0",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-1165e1d6-0371-47e1-97b3-38fc676528ee",
+      "name": "Mace (1H)",
+      "parts": [
+        {
+          "id": "part-2d5ef353-c1e0-4153-9704-1a3895178d2b",
+          "count": 1,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-bbd67086-010d-4570-aa47-77dfeec61acc",
+      "name": "Mace (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-1df456ac-ed4b-4b31-b95b-790e65595f50",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-53e1b669-2466-4d16-b3c3-071e9e6aede2",
+      "name": "Hand Axe (1H)",
+      "parts": [
+        {
+          "id": "part-e774fdff-859d-4eeb-9ff9-a1491daedf3b",
+          "count": 1,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-293e5ae7-ba07-40ca-b229-c5a3dc546a88",
+      "name": "Hand Axe (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-2b2466d9-835a-4560-8399-c1289f36a7a4",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-b5dd758a-1fcd-45e9-80a7-e55d806d59f8",
+      "name": "Battle Axe (1H)",
+      "parts": [
+        {
+          "id": "part-37315f09-7c8d-49de-8bf7-1c88427c8228",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-d450af5c-e98c-44ab-969b-10abba6e8f4e",
+      "name": "Battle Axe (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-edb2b109-5852-456c-9d2e-0cae5c6f0efa",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-7d2af363-2548-450f-aa2e-55f6c5de9168",
+      "name": "Spear (1H)",
+      "parts": [
+        {
+          "id": "part-0c6f6c08-8150-42d7-a5f1-7fc1eac7151d",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-ae931030-6937-43fc-b56c-0745a62ace08",
+      "name": "Spear (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-7f15f522-613b-4ecc-9a80-a6f002761bae",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-048599c1-8af6-4ef7-a8f1-2f7594cdcb67",
+      "name": "Quarterstaff (1H)",
+      "parts": [
+        {
+          "id": "part-9aba12b5-0160-427b-b665-e32dbdf4daaf",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-f7dfb765-30c4-45db-852c-69dfa90d4c3c",
+      "name": "Quarterstaff (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-888aec4a-fee8-4da7-88cd-c455ebe58552",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-b3eeefbf-55d1-4405-b72c-64a9bb86c3a2",
+      "name": "Twin Blade (1H)",
+      "parts": [
+        {
+          "id": "part-26c16971-1362-48a5-8400-f5a3267c9c2e",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-af1ea85f-6811-45f6-bd03-cead84041db6",
+      "name": "Twin Blade (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-23fd9310-e1ae-4bc0-b844-9f9bec23c939",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-3c6bfe3b-8773-4001-913e-ffd893b8b0d3",
+      "name": "Flail (1H)",
+      "parts": [
+        {
+          "id": "part-25b5909a-b56b-42c0-b6fc-eb6c718a345f",
+          "count": 1,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-81b235b4-833c-4bf1-a81e-0cc8a1c605fd",
+      "name": "Dagger (Single)",
+      "parts": [
+        {
+          "id": "part-a2ed51ff-4a2f-4192-a409-84808b20cb8e",
+          "count": 1,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-77d7f3de-a471-4e25-84a2-d5a379dcad01",
+      "name": "Dagger (Dual Light)",
+      "parts": [
+        {
+          "id": "part-cf3533f6-cbd8-41d0-9de7-0155cc91ce81",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-7edaeeab-70f6-49a3-aaa2-c9a6eebd84e8",
+      "name": "Claws (Single)",
+      "parts": [
+        {
+          "id": "part-d2d70899-9280-48cf-836c-9e232ad70c94",
+          "count": 1,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-f0950001-3795-491e-b874-4e964ae28ebb",
+      "name": "Claws (Dual Light)",
+      "parts": [
+        {
+          "id": "part-f4d5922c-cc00-464b-8550-0e2d79ef0c47",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-c3dffabc-70d1-4985-9767-22c5957ba7e1",
+      "name": "Katars (Single)",
+      "parts": [
+        {
+          "id": "part-0fd97b58-e26f-4e9e-9cb4-3276650b77ed",
+          "count": 1,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-b7e4851d-cda6-4d10-a02c-c6ec1b929303",
+      "name": "Katars (Dual Light)",
+      "parts": [
+        {
+          "id": "part-c044118a-90c7-417d-b92b-2631cc079a93",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-278c5dfd-8d21-4ac6-b1a4-89aa38099249",
+      "name": "Chakram (Single)",
+      "parts": [
+        {
+          "id": "part-177ce22f-206f-4f18-9a09-4cb59b85426c",
+          "count": 1,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-2c624ac4-8a7d-4524-beef-6e6e46a4f887",
+      "name": "Chakram (Dual Light)",
+      "parts": [
+        {
+          "id": "part-e101e1f6-84bb-41fb-97d5-3c9f71acce41",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-da0852e7-694e-4c2b-a8fd-1a344a5d7341",
+      "name": "Great Sword (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-2fb4abff-7f53-4cdd-a4e7-163990f94ff1",
+          "count": 2,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-ee13d39a-6bca-4826-b946-234db747be87",
+      "name": "Great Axe (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-7874e74a-7e20-4134-be9c-eab827f80c6a",
+          "count": 2,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-28b0a85b-c6fb-4443-9d69-1194ae284ec2",
+      "name": "Great Hammer (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-1115c99d-0566-4fc0-a1e1-0eb0ddd7fb97",
+          "count": 2,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-6e6c3d50-6c10-474a-902f-c712f6261e61",
+      "name": "Great Chakram (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-16c91e66-229c-4bb8-b751-d85d5aca2974",
+          "count": 2,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-1f7f6747-79bb-4b16-bb0c-7a3e0bbaf88d",
+      "name": "Scythe (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-2693890d-c0c5-49c5-98a6-3b7eb9d39ef4",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-89d98efa-62b7-4095-ae1d-b25b62e0b4f3",
+      "name": "Poleblade (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-3448d3e5-e0ca-49c1-9c6e-96187e6d5c64",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-33847a6f-8587-49af-8df0-758931a31b8e",
+      "name": "Shortbow",
+      "parts": [
+        {
+          "id": "part-269679dd-78d2-4c3c-8ecf-e7aedaa43a0d",
+          "count": 1,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-83a80481-6822-4a29-908c-e37f335789e9",
+      "name": "Longbow (2H)",
+      "parts": [
+        {
+          "id": "part-92b9639f-0c19-40be-b2ad-a820f09b800f",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-73104551-4d71-4c31-826b-198509b91ac9",
+      "name": "Crossbow Light (1H Finesse)",
+      "parts": [
+        {
+          "id": "part-f37cb9f9-3acd-45cf-8a7b-ac847dee8461",
+          "count": 1,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-6db440a2-0586-4c5a-ba2e-84afaff254d1",
+      "name": "Crossbow Light (2H Versatile)",
+      "parts": [
+        {
+          "id": "part-be36ed01-176a-4910-a3fc-993590c66282",
+          "count": 2,
+          "sides": 4
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-50623752-8296-4ec4-b7a3-211947990d52",
+      "name": "Heavy Crossbow (Heavy 2H)",
+      "parts": [
+        {
+          "id": "part-7ec53069-96f1-4582-806d-e21768c65be3",
+          "count": 2,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 1,
+      "rollMode": "normal"
+    }
+  ]
+}

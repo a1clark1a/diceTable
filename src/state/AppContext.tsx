@@ -1,8 +1,9 @@
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { validatePersistedState } from './persistedSchema';
 import { defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
+import { toaster } from '../components/share/toaster-store';
 import {
   AppContext,
   type AppContextValue,
@@ -10,12 +11,14 @@ import {
   type PartPatch,
   type TargetPatch,
 } from './useApp';
-import type {
-  ChartView,
-  DicePart,
-  Expression,
-  PersistedState,
-  TargetState,
+import {
+  MAX_EXPRESSIONS,
+  MAX_TARGETS,
+  type ChartView,
+  type DicePart,
+  type Expression,
+  type PersistedState,
+  type TargetState,
 } from '../types';
 
 const STORAGE_KEY = 'dicetable.v2';
@@ -42,7 +45,7 @@ const initialState: PersistedState = {
   ui: {
     expandedId: null,
     chartView: 'pmf',
-    target: { value: null, ruling: 'gte' },
+    target: { values: [], ruling: 'gte' },
   },
 };
 
@@ -83,11 +86,39 @@ function applyPartPatch(part: DicePart, patch: PartPatch): DicePart {
   return next;
 }
 
+function isQuotaError(err: unknown): boolean {
+  if (!(err instanceof DOMException)) return false;
+  // Spec name, legacy code (22), and Firefox-specific name.
+  return (
+    err.name === 'QuotaExceededError' ||
+    err.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+    err.code === 22
+  );
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
+  const quotaToastFired = useRef(false);
+
+  const onWriteError = useCallback((err: unknown) => {
+    if (!isQuotaError(err) || quotaToastFired.current) return;
+    quotaToastFired.current = true;
+    toaster.create({
+      type: 'error',
+      title: 'Browser storage is full',
+      description:
+        'Edits will stop saving until you free up space. Export your table from the Share menu to back it up.',
+      duration: 10000,
+    });
+  }, []);
+
   const [state, setState] = useLocalStorage<PersistedState>(
     STORAGE_KEY,
     initialState,
-    { version: STATE_VERSION, validate: validatePersistedState },
+    {
+      version: STATE_VERSION,
+      validate: validatePersistedState,
+      onWriteError,
+    },
   );
 
   const updateExpressionInList = useCallback(
@@ -118,7 +149,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (patch: TargetPatch) => {
       setState((prev) => {
         const next: TargetState = { ...prev.ui.target };
-        if ('value' in patch) next.value = patch.value ?? null;
+        if (patch.values !== undefined) {
+          const seen = new Set<number>();
+          const cleaned: number[] = [];
+          for (const v of patch.values) {
+            if (!Number.isInteger(v)) continue;
+            if (seen.has(v)) continue;
+            seen.add(v);
+            cleaned.push(v);
+            if (cleaned.length >= MAX_TARGETS) break;
+          }
+          cleaned.sort((a, b) => a - b);
+          next.values = cleaned;
+        }
         if (patch.ruling !== undefined) next.ruling = patch.ruling;
         return { ...prev, ui: { ...prev.ui, target: next } };
       });
@@ -127,12 +170,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const addExpression = useCallback(() => {
-    const created = defaultExpression();
-    setState((prev) => ({
-      ...prev,
-      expressions: [...prev.expressions, created],
-      ui: { ...prev.ui, expandedId: created.id },
-    }));
+    setState((prev) => {
+      if (prev.expressions.length >= MAX_EXPRESSIONS) {
+        toaster.create({
+          type: 'info',
+          title: `Up to ${MAX_EXPRESSIONS} rolls`,
+          description: 'Delete a row to add another.',
+        });
+        return prev;
+      }
+      const created = defaultExpression();
+      return {
+        ...prev,
+        expressions: [...prev.expressions, created],
+        ui: { ...prev.ui, expandedId: created.id },
+      };
+    });
   }, [setState]);
 
   const duplicateExpression = useCallback(
@@ -140,6 +193,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setState((prev) => {
         const source = prev.expressions.find((e) => e.id === id);
         if (!source) return prev;
+        if (prev.expressions.length >= MAX_EXPRESSIONS) {
+          toaster.create({
+            type: 'info',
+            title: `Up to ${MAX_EXPRESSIONS} rolls`,
+            description: 'Delete a row to add another.',
+          });
+          return prev;
+        }
         const copy: Expression = {
           ...source,
           id: newId('expr'),
@@ -229,7 +290,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const replaceExpressions = useCallback(
     (incoming: Expression[]) => {
-      const fresh = incoming.map(reIdExpression);
+      const capped = incoming.slice(0, MAX_EXPRESSIONS);
+      const fresh = capped.map(reIdExpression);
+      if (incoming.length > MAX_EXPRESSIONS) {
+        toaster.create({
+          type: 'info',
+          title: `Kept the first ${MAX_EXPRESSIONS} rolls`,
+          description: `The import had ${incoming.length}. Up to ${MAX_EXPRESSIONS} fit in one table.`,
+        });
+      }
       setState((prev) => ({
         ...prev,
         expressions: fresh,
@@ -242,8 +311,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addExpressions = useCallback(
     (incoming: Expression[]) => {
       setState((prev) => {
-        const renamed = renameCollisions(prev.expressions, incoming);
+        const room = MAX_EXPRESSIONS - prev.expressions.length;
+        if (room <= 0) {
+          toaster.create({
+            type: 'info',
+            title: `Up to ${MAX_EXPRESSIONS} rolls`,
+            description: 'Delete some rows or replace the table to import more.',
+          });
+          return prev;
+        }
+        const accepted = incoming.slice(0, room);
+        const renamed = renameCollisions(prev.expressions, accepted);
         const fresh = renamed.map(reIdExpression);
+        if (incoming.length > room) {
+          toaster.create({
+            type: 'info',
+            title: `Added ${accepted.length} of ${incoming.length} rolls`,
+            description: `Table is now full at ${MAX_EXPRESSIONS}.`,
+          });
+        }
         return {
           ...prev,
           expressions: [...prev.expressions, ...fresh],
