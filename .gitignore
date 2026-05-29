@@ -11,6 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
+.vercel/
+
+# Local-only dev artifacts
+mock.html
+mock-docs.html
+PLAN.md
+vite.config.profile.ts
+.mcp.json
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +30,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
+
+# environment variables
+.env
+
+
+.vercel
+.env*.local

@@ -1,31 +1,33 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Text } from '@chakra-ui/react';
 import type { ChartView, Distribution, TargetState } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
 import { useApp } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
+import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
+import { buildMonotonePath } from './monotonePath';
+import { effectiveChartView } from './effectiveView';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
-  pmf: { text: 'PMF', tip: TIPS.pmf },
-  cdf: { text: 'CDF', tip: TIPS.cdf },
-  ccdf: { text: 'CCDF', tip: TIPS.ccdf },
-  target: { text: 'Target', tip: TIPS.targetView },
+  pmf: { text: 'PMF', tip: tipForId('pmf') },
+  cdf: { text: 'CDF', tip: tipForId('cdf') },
+  ccdf: { text: 'CCDF', tip: tipForId('ccdf') },
+  target: { text: 'Target', tip: tipForId('targetView') },
 };
 
-function useEffectiveChartView(): ChartView {
-  const { chartView, target } = useApp();
-  return chartView === 'target' && target.value === null ? 'pmf' : chartView;
-}
-
 export function ShapeHeaderLabel() {
-  const view = useEffectiveChartView();
+  const { chartView, target } = useApp();
+  const view = effectiveChartView(chartView, target);
   const { text, tip } = VIEW_LABELS[view];
   return <HelpTerm tip={tip}>{text}</HelpTerm>;
 }
 
-export function ShapeCardLabel() {
-  const view = useEffectiveChartView();
+interface ShapeCardLabelProps {
+  view: ChartView;
+}
+
+export function ShapeCardLabel({ view }: ShapeCardLabelProps) {
   return (
     <Text
       as="span"
@@ -53,21 +55,33 @@ interface SparklineProps {
   ariaLabel?: string;
 }
 
-interface SparklineBar {
+interface HitZone {
   x: number;
-  y: number;
   w: number;
-  h: number;
-  hitX: number;
-  hitW: number;
   tip: string;
-  faded: boolean;
 }
 
 interface SparklineGeometry {
-  bars: SparklineBar[];
+  topPoints: Point[];
+  hitZones: HitZone[];
+  modeIndex: number;
+  matchMask: boolean[];
+  stepWidth: number;
+  baselineY: number;
+  effectiveView: ChartView;
   empty: boolean;
 }
+
+const EMPTY_GEOM: SparklineGeometry = {
+  topPoints: [],
+  hitZones: [],
+  modeIndex: -1,
+  matchMask: [],
+  stepWidth: 0,
+  baselineY: 0,
+  effectiveView: 'pmf',
+  empty: true,
+};
 
 function formatPct(p: number): string {
   if (p <= 1e-9) return '0%';
@@ -77,18 +91,30 @@ function formatPct(p: number): string {
 }
 
 function targetMatches(x: number, target: TargetState): boolean {
-  if (target.value === null) return true;
+  if (target.values.length === 0) return true;
   switch (target.ruling) {
-    case 'gte':
-      return x >= target.value;
-    case 'gt':
-      return x > target.value;
-    case 'lte':
-      return x <= target.value;
-    case 'lt':
-      return x < target.value;
+    case 'gte': {
+      let lo = Infinity;
+      for (const v of target.values) if (v < lo) lo = v;
+      return x >= lo;
+    }
+    case 'gt': {
+      let lo = Infinity;
+      for (const v of target.values) if (v < lo) lo = v;
+      return x > lo;
+    }
+    case 'lte': {
+      let hi = -Infinity;
+      for (const v of target.values) if (v > hi) hi = v;
+      return x <= hi;
+    }
+    case 'lt': {
+      let hi = -Infinity;
+      for (const v of target.values) if (v > hi) hi = v;
+      return x < hi;
+    }
     case 'eq':
-      return x === target.value;
+      return target.values.includes(x);
   }
 }
 
@@ -99,71 +125,116 @@ function buildGeometry(
   width: number,
   height: number,
 ): SparklineGeometry {
-  if (dist.size === 0) return { bars: [], empty: true };
+  if (dist.size === 0) return EMPTY_GEOM;
   const keys = sortedKeys(dist);
   const min = keys[0]!;
   const max = keys[keys.length - 1]!;
   const span = max - min + 1;
 
-  const effectiveView: ChartView =
-    view === 'target' && (!target || target.value === null) ? 'pmf' : view;
+  const resolvedView: ChartView =
+    view === 'target' && (!target || target.values.length === 0) ? 'pmf' : view;
+
+  const baselineY = height - 0.5;
+  const usableHeight = baselineY;
+  const stepWidth = width / span;
 
   const heightAt = new Array<number>(span);
   const tipAt = new Array<string>(span);
 
-  if (effectiveView === 'pmf' || effectiveView === 'target') {
+  if (resolvedView === 'pmf' || resolvedView === 'target') {
     let maxP = 0;
     for (const p of dist.values()) {
       if (p > maxP) maxP = p;
     }
-    if (maxP === 0) return { bars: [], empty: true };
+    if (maxP === 0) return EMPTY_GEOM;
     for (let i = 0; i < span; i++) {
       const xValue = min + i;
       const p = dist.get(xValue) ?? 0;
-      heightAt[i] = (p / maxP) * height;
+      heightAt[i] = (p / maxP) * usableHeight;
       tipAt[i] = `${xValue}: ${formatPct(p)}`;
     }
-  } else if (effectiveView === 'cdf') {
+  } else if (resolvedView === 'cdf') {
     let cum = 0;
     for (let i = 0; i < span; i++) {
       const xValue = min + i;
       cum += dist.get(xValue) ?? 0;
-      heightAt[i] = cum * height;
+      heightAt[i] = cum * usableHeight;
       tipAt[i] = `≤ ${xValue}: ${formatPct(cum)}`;
     }
   } else {
     let cum = 1;
     for (let i = 0; i < span; i++) {
       const xValue = min + i;
-      heightAt[i] = cum * height;
+      heightAt[i] = cum * usableHeight;
       tipAt[i] = `≥ ${xValue}: ${formatPct(cum)}`;
       cum -= dist.get(xValue) ?? 0;
     }
   }
 
-  const barWidth = width / span;
-  const innerWidth = Math.max(barWidth - 0.75, 1);
-  const bars = new Array<SparklineBar>(span);
+  const topPoints: Point[] = new Array(span);
+  const hitZones: HitZone[] = new Array(span);
   for (let i = 0; i < span; i++) {
-    const xValue = min + i;
-    const h = heightAt[i]!;
-    const faded =
-      effectiveView === 'target' && target ? !targetMatches(xValue, target) : false;
-    bars[i] = {
-      x: i * barWidth,
-      y: height - h,
-      w: innerWidth,
-      h,
-      hitX: i * barWidth,
-      hitW: barWidth,
-      tip: tipAt[i]!,
-      faded,
-    };
+    const x = i * stepWidth;
+    const y = baselineY - heightAt[i]!;
+    topPoints[i] = { x, y };
+    hitZones[i] = { x, w: stepWidth, tip: tipAt[i]! };
   }
-  return { bars, empty: false };
+
+  let modeIndex = -1;
+  if (resolvedView === 'pmf' || resolvedView === 'target') {
+    let maxP = 0;
+    let modeCount = 0;
+    let modeAt = -1;
+    for (let i = 0; i < span; i++) {
+      const xValue = min + i;
+      const p = dist.get(xValue) ?? 0;
+      if (p > maxP) {
+        maxP = p;
+        modeCount = 1;
+        modeAt = i;
+      } else if (p === maxP) {
+        modeCount++;
+      }
+    }
+    if (modeCount === 1) modeIndex = modeAt;
+  }
+
+  const matchMask = new Array<boolean>(span).fill(false);
+  if (resolvedView === 'target' && target && target.values.length > 0) {
+    for (let i = 0; i < span; i++) {
+      matchMask[i] = targetMatches(min + i, target);
+    }
+  }
+
+  return {
+    topPoints,
+    hitZones,
+    modeIndex,
+    matchMask,
+    stepWidth,
+    baselineY,
+    effectiveView: resolvedView,
+    empty: false,
+  };
 }
 
-export function Sparkline({
+function buildMatchAreaPath(
+  topPoints: Point[],
+  matchMask: boolean[],
+  baselineY: number,
+  stepWidth: number,
+): string {
+  let d = '';
+  for (let i = 0; i < topPoints.length; i++) {
+    if (!matchMask[i]) continue;
+    const p = topPoints[i]!;
+    if (d.length > 0) d += ' ';
+    d += `M ${p.x} ${baselineY} L ${p.x} ${p.y} L ${p.x + stepWidth} ${p.y} L ${p.x + stepWidth} ${baselineY} Z`;
+  }
+  return d;
+}
+
+export const Sparkline = memo(function Sparkline({
   dist,
   color,
   view = 'pmf',
@@ -173,12 +244,48 @@ export function Sparkline({
   fill = false,
   ariaLabel,
 }: SparklineProps) {
-  const { bars, empty } = useMemo(
+  const geom = useMemo(
     () => buildGeometry(dist, view, target, width, height),
     [dist, view, target, width, height],
   );
 
-  if (empty) return null;
+  if (geom.empty) return null;
+
+  const {
+    topPoints,
+    hitZones,
+    modeIndex,
+    matchMask,
+    stepWidth,
+    baselineY,
+    effectiveView,
+  } = geom;
+  const stepOpts = { stepWidth };
+  const isFilledView = effectiveView === 'pmf' || effectiveView === 'target';
+  const isLineView = effectiveView === 'cdf' || effectiveView === 'ccdf';
+  const hasMatchOverlay =
+    effectiveView === 'target' && matchMask.some((m) => m);
+
+  const areaD = isFilledView ? buildStepAreaPath(topPoints, baselineY, stepOpts) : '';
+  const pmfStrokeD = effectiveView === 'pmf' ? buildStepPath(topPoints, stepOpts) : '';
+  const curveD = isLineView
+    ? buildMonotonePath(
+        topPoints.length > 1
+          ? topPoints.map((p, i) => ({
+              x: (i / (topPoints.length - 1)) * width,
+              y: p.y,
+            }))
+          : topPoints,
+      )
+    : '';
+  const matchD = hasMatchOverlay
+    ? buildMatchAreaPath(topPoints, matchMask, baselineY, stepWidth)
+    : '';
+
+  const showModeTick = isFilledView && modeIndex >= 0;
+  const modePoint = showModeTick ? topPoints[modeIndex] : undefined;
+  const modeCx = modePoint ? modePoint.x + stepWidth / 2 : 0;
+  const modeTopY = modePoint ? modePoint.y : 0;
 
   return (
     <svg
@@ -190,24 +297,62 @@ export function Sparkline({
       aria-label={ariaLabel ?? 'Distribution shape'}
       style={{ display: 'block' }}
     >
-      {bars.map((b, i) => (
-        <rect
-          key={`bar-${i}`}
-          x={b.x}
-          y={b.y}
-          width={b.w}
-          height={b.h}
+      <line
+        x1={0}
+        x2={width}
+        y1={baselineY}
+        y2={baselineY}
+        stroke="var(--chakra-colors-border-subtle)"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+      />
+      {isFilledView && (
+        <path
+          d={areaD}
           fill={color}
-          fillOpacity={b.faded ? 0.18 : 0.75}
-          rx={0.5}
+          fillOpacity={effectiveView === 'target' ? 0.18 : 0.22}
         />
-      ))}
-      {bars.map((b, i) => (
+      )}
+      {hasMatchOverlay && (
+        <path d={matchD} fill={color} fillOpacity={0.55} />
+      )}
+      {effectiveView === 'pmf' && (
+        <path
+          d={pmfStrokeD}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {isLineView && (
+        <path
+          d={curveD}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {modePoint && (
+        <line
+          x1={modeCx}
+          x2={modeCx}
+          y1={baselineY}
+          y2={modeTopY}
+          stroke={color}
+          strokeWidth={1.25}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {hitZones.map((b, i) => (
         <rect
           key={`hit-${i}`}
-          x={b.hitX}
+          x={b.x}
           y={0}
-          width={b.hitW}
+          width={b.w}
           height={height}
           fill="transparent"
           style={{ pointerEvents: 'all' }}
@@ -217,33 +362,36 @@ export function Sparkline({
       ))}
     </svg>
   );
-}
+});
 
 interface RowSparklineProps {
   dist: Distribution;
   color: string;
   exprName: string;
+  view: ChartView;
+  target: TargetState;
   height?: number;
   fill?: boolean;
 }
 
-export function RowSparkline({
+export const RowSparkline = memo(function RowSparkline({
   dist,
   color,
   exprName,
+  view,
+  target,
   height,
   fill,
 }: RowSparklineProps) {
-  const { chartView, target } = useApp();
   return (
     <Sparkline
       dist={dist}
       color={color}
-      view={chartView}
+      view={view}
       target={target}
       {...(height !== undefined && { height })}
       {...(fill !== undefined && { fill })}
       ariaLabel={`Distribution shape for ${exprName}`}
     />
   );
-}
+});

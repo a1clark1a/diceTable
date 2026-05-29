@@ -23,7 +23,7 @@ const validPayload: PersistedState = {
   ui: {
     expandedId: 'expr-1',
     chartView: 'cdf',
-    target: { value: 15, ruling: 'gte' },
+    target: { values: [15], ruling: 'gte' },
   },
 };
 
@@ -131,7 +131,7 @@ describe('validatePersistedState', () => {
     expect(result!.ui).toEqual({
       expandedId: null,
       chartView: 'pmf',
-      target: { value: null, ruling: 'gte' },
+      target: { values: [], ruling: 'gte' },
     });
   });
 
@@ -145,16 +145,92 @@ describe('validatePersistedState', () => {
     expect(result!.ui).toEqual({
       expandedId: 'expr-1',
       chartView: 'pmf',
-      target: { value: null, ruling: 'gte' },
+      target: { values: [], ruling: 'gte' },
     });
   });
 
-  it('rejects when target ruling is unknown but ui object present', () => {
+  it('falls back to default ruling when target ruling is unknown', () => {
     const result = validatePersistedState({
       ...validPayload,
-      ui: { ...validPayload.ui, target: { value: 10, ruling: 'meh' } },
+      ui: { ...validPayload.ui, target: { values: [10], ruling: 'meh' } },
     });
     expect(result).not.toBeNull();
-    expect(result!.ui.target).toEqual({ value: 10, ruling: 'gte' });
+    expect(result!.ui.target).toEqual({ values: [10], ruling: 'gte' });
+  });
+
+  it('migrates a legacy single-value target to a one-item values array', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, target: { value: 10, ruling: 'gte' } },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.ui.target).toEqual({ values: [10], ruling: 'gte' });
+  });
+
+  it('migrates a legacy null target to an empty values array', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, target: { value: null, ruling: 'gte' } },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.ui.target).toEqual({ values: [], ruling: 'gte' });
+  });
+
+  it('sorts target values ascending', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: {
+        ...validPayload.ui,
+        target: { values: [22, 13, 16], ruling: 'gte' },
+      },
+    });
+    expect(result!.ui.target.values).toEqual([13, 16, 22]);
+  });
+
+  it('dedupes repeated target values', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: {
+        ...validPayload.ui,
+        target: { values: [13, 16, 13, 16, 19], ruling: 'gte' },
+      },
+    });
+    expect(result!.ui.target.values).toEqual([13, 16, 19]);
+  });
+
+  it('caps target values at five', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: {
+        ...validPayload.ui,
+        target: { values: [10, 11, 12, 13, 14, 15, 16], ruling: 'gte' },
+      },
+    });
+    expect(result!.ui.target.values).toHaveLength(5);
+  });
+
+  it('skips non-integer entries inside target values', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: {
+        ...validPayload.ui,
+        target: { values: [13, 1.5, '16', null, 19], ruling: 'gte' },
+      },
+    });
+    expect(result!.ui.target.values).toEqual([13, 19]);
+  });
+
+  it('truncates expressions beyond the row cap (100)', () => {
+    const seed = validPayload.expressions[0]!;
+    const many = Array.from({ length: 150 }, (_, i) => ({
+      ...seed,
+      id: `expr-${i}`,
+      parts: [{ ...seed.parts[0]!, id: `part-${i}` }],
+    }));
+    const result = validatePersistedState({ ...validPayload, expressions: many });
+    expect(result).not.toBeNull();
+    expect(result!.expressions).toHaveLength(100);
+    expect(result!.expressions[0]!.id).toBe('expr-0');
+    expect(result!.expressions[99]!.id).toBe('expr-99');
   });
 });

@@ -79,16 +79,25 @@ interface Expression {
 Persisted shape (`localStorage` key `dicetable.v2`):
 
 ```ts
+type ChartView = "pmf" | "cdf" | "ccdf" | "target";
+type TargetRuling = "gte" | "gt" | "lte" | "lt" | "eq";
+
+interface TargetState {
+  values: number[]; // up to MAX_TARGETS (5)
+  ruling: TargetRuling;
+}
+
 interface PersistedState {
   version: 2;
   expressions: Expression[];
   ui: {
     expandedId: string | null;
-    chartView: "pmf" | "cdf" | "ccdf";
-    target: {
-      value: number | null;
-      ruling: "gte" | "gt" | "lte" | "lt" | "eq";
-    };
+    chartView: ChartView;
+    target: TargetState;
   };
 }
 ```
+
+The envelope is schema-validated on load via `validatePersistedState`
+(`src/state/persistedSchema.ts`); malformed entries fall back to the initial
+state instead of throwing.

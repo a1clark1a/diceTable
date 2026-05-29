@@ -12,53 +12,24 @@ import {
 import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
-import { useDistributions } from '../state/useDistributions';
-import {
-  hitProbability,
-  max as distMax,
-  mean as distMean,
-  min as distMin,
-  mode as distMode,
-  stddev as distStddev,
-} from '../engine/stats';
-import type { Distribution, Expression } from '../types';
+import { getRowData } from '../state/useDistributions';
+import { hitProbability } from '../engine/stats';
+import { MAX_EXPRESSIONS, type ChartView, type Expression, type TargetState } from '../types';
+import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
 import { RowSparkline, ShapeCardLabel } from './chart/Sparkline';
+import { effectiveChartView } from './chart/effectiveView';
 import { EM_DASH, formatNumber, formatPercent } from './chart/format';
 import { HelpTerm } from './ui/help-term';
-import { TIPS } from './ui/tips';
+import { tipForId } from '../docs/glossary';
+import { RulingSymbol } from './targetRuling';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
-
-interface CardStats {
-  dist: Distribution;
-  hasDist: boolean;
-  mean: number;
-  min: number;
-  max: number;
-  mode: number[];
-  stddev: number;
-}
-
-function computeCardStats(dist: Distribution): CardStats {
-  const hasDist = dist.size > 0;
-  return {
-    dist,
-    hasDist,
-    mean: hasDist ? distMean(dist) : 0,
-    min: hasDist ? distMin(dist) : 0,
-    max: hasDist ? distMax(dist) : 0,
-    mode: hasDist ? distMode(dist) : [],
-    stddev: hasDist ? distStddev(dist) : 0,
-  };
-}
-
-const EMPTY_DIST: Distribution = new Map();
 
 function parseMod(raw: string): number {
   const trimmed = raw.trim();
@@ -84,6 +55,7 @@ export function RollsCards() {
   const {
     expressions,
     expandedId,
+    chartView,
     target,
     setExpandedId,
     deleteExpression,
@@ -92,26 +64,15 @@ export function RollsCards() {
     addExpression,
   } = useApp();
 
-  const { dists, tooComplex } = useDistributions();
-
-  const cards = useMemo(
-    () =>
-      expressions.map((expr, idx) => ({
-        expr,
-        color: rowColor(idx),
-        stats: computeCardStats(dists.get(expr.id) ?? EMPTY_DIST),
-        tooComplex: tooComplex.has(expr.id),
-      })),
-    [expressions, dists, tooComplex],
-  );
-
-  const showHit = target.value !== null;
+  const showHit = target.values.length > 0;
+  const view = effectiveChartView(chartView, target);
+  const atCap = expressions.length >= MAX_EXPRESSIONS;
 
   return (
     <Stack gap={3}>
       <TargetToolbar />
 
-      {cards.length === 0 ? (
+      {expressions.length === 0 ? (
         <Box
           p={6}
           borderWidth="1px"
@@ -136,38 +97,37 @@ export function RollsCards() {
         </Box>
       ) : (
         <Stack gap={2}>
-          {cards.map(({ expr, color, stats, tooComplex: cardTooComplex }) => {
-            const expanded = expandedId === expr.id;
-            const hit = showHit && stats.hasDist
-              ? hitProbability(stats.dist, target.value!, target.ruling)
-              : null;
-            return (
-              <RollCard
-                key={expr.id}
-                expr={expr}
-                color={color}
-                stats={stats}
-                hit={hit}
-                expanded={expanded}
-                showHit={showHit}
-                tooComplex={cardTooComplex}
-                setExpandedId={setExpandedId}
-                deleteExpression={deleteExpression}
-                renameExpression={renameExpression}
-                updateExpression={updateExpression}
-              />
-            );
-          })}
-          <Button
-            size="sm"
-            variant="outline"
-            borderStyle="dashed"
-            width="100%"
-            onClick={addExpression}
+          {expressions.map((expr, idx) => (
+            <RollCard
+              key={expr.id}
+              expr={expr}
+              idx={idx}
+              expanded={expandedId === expr.id}
+              showHit={showHit}
+              view={view}
+              target={target}
+              setExpandedId={setExpandedId}
+              deleteExpression={deleteExpression}
+              renameExpression={renameExpression}
+              updateExpression={updateExpression}
+            />
+          ))}
+          <Tooltip
+            content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+            disabled={!atCap}
           >
-            <Plus size={14} />
-            Add roll
-          </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              borderStyle="dashed"
+              width="100%"
+              onClick={addExpression}
+              disabled={atCap}
+            >
+              <Plus size={14} />
+              Add roll
+            </Button>
+          </Tooltip>
         </Stack>
       )}
     </Stack>
@@ -176,12 +136,11 @@ export function RollsCards() {
 
 interface RollCardProps {
   expr: Expression;
-  color: string;
-  stats: CardStats;
-  hit: number | null;
+  idx: number;
   expanded: boolean;
   showHit: boolean;
-  tooComplex: boolean;
+  view: ChartView;
+  target: TargetState;
   setExpandedId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
@@ -190,17 +149,25 @@ interface RollCardProps {
 
 const RollCard = memo(function RollCard({
   expr,
-  color,
-  stats,
-  hit,
+  idx,
   expanded,
   showHit,
-  tooComplex,
+  view,
+  target,
   setExpandedId,
   deleteExpression,
   renameExpression,
   updateExpression,
 }: RollCardProps) {
+  const { stats, tooComplex } = getRowData(expr);
+  const color = rowColor(idx);
+  const hits = useMemo(
+    () =>
+      showHit && stats.hasDist
+        ? target.values.map((v) => hitProbability(stats.dist, v, target.ruling))
+        : null,
+    [showHit, stats, target],
+  );
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
@@ -281,7 +248,7 @@ const RollCard = memo(function RollCard({
             )}
           </Text>
           <HStack gap={1} align="center">
-            <HelpTerm tip={TIPS.mod}>
+            <HelpTerm tip={tipForId('mod')}>
               <Text as="span" fontSize="xs" color="fg.muted">
                 Mod
               </Text>
@@ -305,7 +272,7 @@ const RollCard = memo(function RollCard({
         {stats.hasDist && !tooComplex && (
           <Box mt={3} bg="bg.subtle" borderRadius="md" px={3} py={2}>
             <HStack gap={3} align="center">
-              <ShapeCardLabel />
+              <ShapeCardLabel view={view} />
               <Box flex="1">
                 <InspectChart
                   exprName={expr.name}
@@ -316,6 +283,8 @@ const RollCard = memo(function RollCard({
                     dist={stats.dist}
                     color={color}
                     exprName={expr.name}
+                    view={view}
+                    target={target}
                     height={36}
                     fill
                   />
@@ -332,7 +301,7 @@ const RollCard = memo(function RollCard({
         >
           <StatPill
             label="Mean ± σ"
-            tip={TIPS.meanSigma}
+            tip={tipForId('meanSigma')}
             value={
               stats.hasDist ? (
                 <>
@@ -364,15 +333,38 @@ const RollCard = memo(function RollCard({
           />
           <StatPill
             label="Range"
-            tip={TIPS.range}
+            tip={tipForId('range')}
             value={stats.hasDist ? `${stats.min}–${stats.max}` : EM_DASH}
           />
           {showHit && (
             <StatPill
               label="Hit %"
-              tip={TIPS.hit}
-              value={hit === null ? EM_DASH : formatPercent(hit)}
-              valueColor={hit === null ? undefined : hitColor(hit)}
+              accessory={<RulingSymbol ruling={target.ruling} color="fg.muted" />}
+              tip={tipForId('hit')}
+              value={
+                hits === null ? (
+                  EM_DASH
+                ) : (
+                  <Stack gap={0.5} align="center">
+                    {hits.map((p, i) => (
+                      <HStack key={target.values[i]} gap={2} justify="center">
+                        {target.values.length > 1 && (
+                          <Text as="span" color="fg.muted" fontSize="2xs">
+                            {target.values[i]}
+                          </Text>
+                        )}
+                        <Text
+                          as="span"
+                          color={hitColor(p)}
+                          fontWeight={p >= 0.66 ? 'semibold' : undefined}
+                        >
+                          {formatPercent(p)}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </Stack>
+                )
+              }
             />
           )}
         </Grid>
@@ -421,32 +413,45 @@ interface StatPillProps {
   label: string;
   value: ReactNode;
   tip: string;
-  valueColor?: string | undefined;
+  accessory?: ReactNode;
 }
 
-function StatPill({ label, value, valueColor, tip }: StatPillProps) {
+function StatPill({ label, value, tip, accessory }: StatPillProps) {
   return (
     <Box bg="bg.subtle" borderRadius="md" px={2} py={1.5} textAlign="center">
-      <HelpTerm tip={tip}>
-        <Text
-          as="span"
-          fontSize="2xs"
-          fontWeight="semibold"
-          color="fg.muted"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          {label}
-        </Text>
-      </HelpTerm>
-      <Text
+      <HStack as="span" gap={1} justify="center">
+        <HelpTerm tip={tip}>
+          <Text
+            as="span"
+            fontSize="2xs"
+            fontWeight="semibold"
+            color="fg.muted"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            {label}
+          </Text>
+        </HelpTerm>
+        {accessory !== undefined && (
+          <Box
+            as="span"
+            fontSize="2xs"
+            fontWeight="semibold"
+            color="fg.muted"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            {accessory}
+          </Box>
+        )}
+      </HStack>
+      <Box
         fontFamily="mono"
         fontSize="sm"
-        color={valueColor}
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {value}
-      </Text>
+      </Box>
     </Box>
   );
 }

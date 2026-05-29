@@ -9,7 +9,7 @@ import {
 import type { ReactNode } from 'react';
 import type { Distribution } from '../../types';
 import { DistributionTable } from './DistributionTable';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
 import { formatNumber } from '../chart/format';
 
 interface StatTriggerProps {
@@ -113,7 +113,7 @@ export function InspectMean({
     <Popover.Root positioning={{ placement: 'top' }} lazyMount unmountOnExit>
       <StatTrigger
         ariaLabel={`Inspect mean for ${exprName}`}
-        title={TIPS.inspectMean}
+        title={tipForId('inspectMean')}
       >
         {children}
       </StatTrigger>
@@ -127,7 +127,7 @@ export function InspectMean({
               <Stack gap={2}>
                 <PanelHeader
                   label="Mean"
-                  hint={TIPS.inspectMean}
+                  hint={tipForId('inspectMean')}
                   value={`µ ≈ ${formatNumber(mean, 3)}`}
                 />
                 <DistributionTable
@@ -169,7 +169,7 @@ export function InspectMode({
     <Popover.Root positioning={{ placement: 'top' }} lazyMount unmountOnExit>
       <StatTrigger
         ariaLabel={`Inspect mode for ${exprName}`}
-        title={TIPS.inspectMode}
+        title={tipForId('inspectMode')}
       >
         {children}
       </StatTrigger>
@@ -183,7 +183,7 @@ export function InspectMode({
               <Stack gap={2}>
                 <PanelHeader
                   label="Mode"
-                  hint={TIPS.inspectMode}
+                  hint={tipForId('inspectMode')}
                   value={valueLabel}
                 />
                 <DistributionTable
@@ -228,7 +228,7 @@ export function InspectSigma({
     <Popover.Root positioning={{ placement: 'top' }} lazyMount unmountOnExit>
       <StatTrigger
         ariaLabel={`Inspect spread for ${exprName}`}
-        title={TIPS.inspectSigma}
+        title={tipForId('inspectSigma')}
       >
         {children}
       </StatTrigger>
@@ -242,7 +242,7 @@ export function InspectSigma({
               <Stack gap={2}>
                 <PanelHeader
                   label="Spread (σ)"
-                  hint={TIPS.inspectSigma}
+                  hint={tipForId('inspectSigma')}
                   value={`σ ≈ ${formatNumber(stddev, 3)}`}
                 />
                 <Box

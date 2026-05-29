@@ -9,7 +9,7 @@ import {
 import type { ReactNode } from 'react';
 import type { Distribution } from '../../types';
 import { DistributionTable } from './DistributionTable';
-import { TIPS } from '../ui/tips';
+import { tipForId } from '../../docs/glossary';
 
 interface InspectDistributionProps {
   exprName: string;
@@ -59,7 +59,7 @@ export function InspectDistribution({
             borderRadius: 'sm',
           }}
           aria-label={`Inspect distribution for ${exprName}`}
-          title={TIPS.inspectDistribution}
+          title={tipForId('inspectDistribution')}
         >
           {children}
         </chakra.button>

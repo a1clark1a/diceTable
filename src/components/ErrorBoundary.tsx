@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Box, Button, Heading, HStack, Stack, Text } from '@chakra-ui/react';
+import { reportError } from '../telemetry';
 
 interface Props {
   storageKey?: string;
@@ -19,6 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('ErrorBoundary caught:', error, info.componentStack);
+    reportError(error, info.componentStack ?? undefined);
   }
 
   private handleReset = (): void => {

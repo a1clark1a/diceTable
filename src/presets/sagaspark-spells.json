@@ -1,0 +1,84 @@
+{
+  "format": "dicetable-rolls",
+  "exportVersion": 1,
+  "rolls": [
+    {
+      "id": "expr-4d2d5850-ef9d-4d16-bf1c-dce74c0f3d1f",
+      "name": "Cantrip",
+      "parts": [
+        {
+          "id": "part-c871a892-83f6-4198-bc9a-c54e3e6421fa",
+          "count": 1,
+          "sides": 6
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-5546d084-6731-4492-9437-a924591140d9",
+      "name": "Tier 1",
+      "parts": [
+        {
+          "id": "part-b5ac6ae3-e913-418f-a5f8-6b06131360ce",
+          "count": 1,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-68a83a37-e469-418e-8de1-59c3e5c8a5cd",
+      "name": "Tier 2",
+      "parts": [
+        {
+          "id": "part-8f6aab81-5872-4507-94b5-e065e2c7708e",
+          "count": 2,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-a2b01df0-5661-4e65-acbc-46eff43308b9",
+      "name": "Tier 3",
+      "parts": [
+        {
+          "id": "part-e3498ae0-bf66-4ec2-ae6f-fff5763a70ef",
+          "count": 3,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-c09e98ba-9b53-456e-a190-858eed1651da",
+      "name": "Tier 4 (Legendary)",
+      "parts": [
+        {
+          "id": "part-ff15940d-7374-4e99-ae63-a669eacc82bc",
+          "count": 4,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    },
+    {
+      "id": "expr-67ce15fa-4f46-4974-8c97-3dd8f2602201",
+      "name": "Tier 5 (Legendary)",
+      "parts": [
+        {
+          "id": "part-5c4573a4-ddf2-42fb-82d4-5bf938ab3829",
+          "count": 5,
+          "sides": 8
+        }
+      ],
+      "flatModifier": 0,
+      "rollMode": "normal"
+    }
+  ]
+}

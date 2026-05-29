@@ -38,8 +38,11 @@ export type ChartView = 'pmf' | 'cdf' | 'ccdf' | 'target';
 
 export type TargetRuling = 'gte' | 'gt' | 'lte' | 'lt' | 'eq';
 
+export const MAX_TARGETS = 5;
+export const MAX_EXPRESSIONS = 100;
+
 export interface TargetState {
-  value: number | null;
+  values: number[];
   ruling: TargetRuling;
 }
 
