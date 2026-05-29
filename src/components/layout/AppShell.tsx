@@ -39,7 +39,8 @@ export function AppShell() {
             fontFamily="mono"
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
-            v{__APP_VERSION__} · {__COMMIT_SHA__}
+            v{__APP_VERSION__}
+            {import.meta.env.PROD ? '' : ` · ${__COMMIT_SHA__}`}
           </Text>
         </Flex>
       </Box>
