@@ -27,6 +27,8 @@ jobs:
       # (cold-cache "failed to find the current suite" path). Assert that
       # at least one test file actually passed so the CI gate stays honest.
       - name: Run tests
+        env:
+          NO_COLOR: '1'
         run: |
           npm run test 2>&1 | tee test-output.log
           if ! grep -qE "Test Files +[0-9]+ passed" test-output.log; then
