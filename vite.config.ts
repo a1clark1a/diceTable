@@ -30,7 +30,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      devOptions: { enabled: false },
+      // Serve the generated manifest (and a dev service worker) at /manifest.webmanifest
+      // during `vite dev`. Without this the dev server has no PWA route, so index.html's
+      // <link rel="manifest"> falls through to the SPA fallback and the browser's manifest
+      // parser chokes on the returned HTML ("Manifest: Line 1, column 1, Syntax error").
+      // suppressWarnings: the prod `workbox.globPatterns` below find nothing to precache in
+      // the dev output dir, which otherwise logs a "glob doesn't match any files" warning.
+      devOptions: { enabled: true, type: 'module', suppressWarnings: true },
       includeAssets: [
         'favicon.svg',
         'favicon.ico',
