@@ -46,23 +46,16 @@ function renderWith(part: DicePart, onChange = vi.fn()) {
 }
 
 describe('DicePartRow FacePicker', () => {
-  it('gives each face checkbox a unique input id and matching label for=', () => {
+  it('renders one toggle button per face with the selected face pressed', () => {
     renderRow();
     const group = screen.getByRole('group', { name: 'Reroll faces' });
-    const inputs = group.querySelectorAll<HTMLInputElement>(
-      'input[type="checkbox"]',
+    const buttons = group.querySelectorAll<HTMLButtonElement>('button');
+    expect(buttons.length).toBe(6);
+    const pressed = Array.from(buttons).filter(
+      (b) => b.getAttribute('aria-pressed') === 'true',
     );
-    expect(inputs.length).toBe(6);
-    const inputIds = Array.from(inputs).map((i) => i.id);
-    expect(new Set(inputIds).size).toBe(6);
-
-    const labels = group.querySelectorAll<HTMLLabelElement>(
-      '[data-scope="checkbox"][data-part="root"]',
-    );
-    expect(labels.length).toBe(6);
-    labels.forEach((label, i) => {
-      expect(label.getAttribute('for')).toBe(inputIds[i]);
-    });
+    expect(pressed.length).toBe(1);
+    expect(pressed[0]!.getAttribute('aria-label')).toBe('Face 1');
   });
 });
 
@@ -78,7 +71,7 @@ describe('DicePartRow KeepRuleEditor', () => {
 
   it('renders the committed keep.n in the buffered input', () => {
     renderWith(partWithKeep(2));
-    const input = screen.getByLabelText('n') as HTMLInputElement;
+    const input = screen.getByLabelText('How many (n)') as HTMLInputElement;
     expect(input.value).toBe('2');
   });
 
@@ -123,7 +116,7 @@ describe('DicePartRow KeepRuleEditor', () => {
         />
       </Provider>,
     );
-    expect(screen.queryByLabelText('n')).toBeNull();
+    expect(screen.queryByLabelText('How many (n)')).toBeNull();
     rerender(
       <Provider>
         <DicePartRow
@@ -134,7 +127,7 @@ describe('DicePartRow KeepRuleEditor', () => {
         />
       </Provider>,
     );
-    expect((screen.getByLabelText('n') as HTMLInputElement).value).toBe('5');
+    expect((screen.getByLabelText('How many (n)') as HTMLInputElement).value).toBe('5');
   });
 });
 
@@ -167,10 +160,8 @@ describe('DicePartRow ExplodeRuleEditor', () => {
   it('renders the explode face picker against the committed sides', () => {
     renderWith(partWithExplode(10));
     const group = screen.getByRole('group', { name: 'Explode faces' });
-    const checkboxes = group.querySelectorAll<HTMLInputElement>(
-      'input[type="checkbox"]',
-    );
-    expect(checkboxes.length).toBe(6);
-    expect(checkboxes[5]!.checked).toBe(true);
+    const buttons = group.querySelectorAll<HTMLButtonElement>('button');
+    expect(buttons.length).toBe(6);
+    expect(buttons[5]!.getAttribute('aria-pressed')).toBe('true');
   });
 });

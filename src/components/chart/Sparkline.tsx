@@ -72,6 +72,10 @@ interface SparklineGeometry {
   empty: boolean;
 }
 
+// Tallest PMF bar reaches this fraction of the box height; the rest is headroom
+// so a uniform distribution reads as a low line with light fill, not a slab.
+const PMF_FILL_SCALE = 0.84;
+
 const EMPTY_GEOM: SparklineGeometry = {
   topPoints: [],
   hitZones: [],
@@ -147,10 +151,14 @@ function buildGeometry(
       if (p > maxP) maxP = p;
     }
     if (maxP === 0) return EMPTY_GEOM;
+    // PMF heights are normalized to the row's own max, so a flat (uniform)
+    // distribution would otherwise fill the whole box. Leaving headroom keeps
+    // the top stroke off the ceiling so it reads as a low line, not a slab.
+    const filledHeight = usableHeight * PMF_FILL_SCALE;
     for (let i = 0; i < span; i++) {
       const xValue = min + i;
       const p = dist.get(xValue) ?? 0;
-      heightAt[i] = (p / maxP) * usableHeight;
+      heightAt[i] = (p / maxP) * filledHeight;
       tipAt[i] = `${xValue}: ${formatPct(p)}`;
     }
   } else if (resolvedView === 'cdf') {
@@ -307,11 +315,7 @@ export const Sparkline = memo(function Sparkline({
         vectorEffect="non-scaling-stroke"
       />
       {isFilledView && (
-        <path
-          d={areaD}
-          fill={color}
-          fillOpacity={effectiveView === 'target' ? 0.18 : 0.22}
-        />
+        <path d={areaD} fill={color} fillOpacity={0.16} />
       )}
       {hasMatchOverlay && (
         <path d={matchD} fill={color} fillOpacity={0.55} />

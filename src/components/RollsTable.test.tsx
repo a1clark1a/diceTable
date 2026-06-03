@@ -132,6 +132,14 @@ describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', ()
     fireEvent.click(addRoll);
     fireEvent.click(addRoll);
 
+    // addExpression auto-expands each new row, so the last-added sibling mounts
+    // its editor. This test's premise is a Mod commit with NO editor mounted
+    // (the structurally identical commit Phase 1 said already bails). Collapse
+    // the auto-expanded row to restore that premise: an expanded editor is a
+    // useApp consumer and re-renders on every commit, and its formula-header
+    // ExpressionDiceText would otherwise be counted by this row-render proxy.
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse row' }));
+
     resetCounts();
 
     // The Mod field never mounts the editor; it is the structurally identical

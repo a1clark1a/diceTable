@@ -44,7 +44,7 @@ describe('Sparkline', () => {
     );
     const areaPaths = container.querySelectorAll('path[fill-opacity]');
     expect(areaPaths).toHaveLength(1);
-    expect(areaPaths[0]?.getAttribute('fill-opacity')).toBe('0.22');
+    expect(areaPaths[0]?.getAttribute('fill-opacity')).toBe('0.16');
   });
 
   it('renders a separate stroked top path in PMF view', () => {
@@ -106,7 +106,7 @@ describe('Sparkline', () => {
     const opacities = Array.from(
       container.querySelectorAll('path[fill-opacity]'),
     ).map((p) => p.getAttribute('fill-opacity'));
-    expect(opacities).toContain('0.18');
+    expect(opacities).toContain('0.16');
     expect(opacities).toContain('0.55');
   });
 
@@ -126,7 +126,7 @@ describe('Sparkline', () => {
     const opacities = Array.from(
       container.querySelectorAll('path[fill-opacity]'),
     ).map((p) => p.getAttribute('fill-opacity'));
-    expect(opacities).toEqual(['0.22']);
+    expect(opacities).toEqual(['0.16']);
   });
 
   it('uses the lowest gte target as the threshold when multiple values are set', () => {
