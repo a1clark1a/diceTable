@@ -49,10 +49,23 @@ const initialState: PersistedState = {
   },
 };
 
-function defaultExpression(): Expression {
+const DEFAULT_ROLL_NAME = 'New roll';
+
+// Keep added rows distinct ("New roll", "New roll 2", …) so table rows and the
+// chart legend don't collapse into identical labels. Picks the lowest free
+// suffix rather than a running counter, so deleting and re-adding reuses gaps.
+function nextDefaultName(existing: Expression[]): string {
+  const taken = new Set(existing.map((e) => e.name));
+  if (!taken.has(DEFAULT_ROLL_NAME)) return DEFAULT_ROLL_NAME;
+  let n = 2;
+  while (taken.has(`${DEFAULT_ROLL_NAME} ${n}`)) n++;
+  return `${DEFAULT_ROLL_NAME} ${n}`;
+}
+
+function defaultExpression(name: string = DEFAULT_ROLL_NAME): Expression {
   return {
     id: newId('expr'),
-    name: 'New roll',
+    name,
     parts: [defaultPart()],
     flatModifier: 0,
     rollMode: 'normal',
@@ -179,7 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         return prev;
       }
-      const created = defaultExpression();
+      const created = defaultExpression(nextDefaultName(prev.expressions));
       return {
         ...prev,
         expressions: [...prev.expressions, created],

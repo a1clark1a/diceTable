@@ -269,6 +269,8 @@ const uiTips: Record<string, string> = {
   rollModeNormal: 'Roll once.',
   rollModeAdvantage: 'Roll twice and take the higher result.',
   rollModeDisadvantage: 'Roll twice and take the lower result.',
+  explodeDepthCap:
+    'How many extra times a single die can keep exploding. A lower cap keeps the chart simple; a higher one captures rare runaway rolls.',
   inspectDistribution:
     'See the chance of every result. Useful for double-checking the stats above.',
   inspectMean:
