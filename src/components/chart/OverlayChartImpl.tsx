@@ -10,6 +10,7 @@ import {
   Line,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
+  type TooltipContentProps,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -140,9 +141,109 @@ function formatPctTick(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
-function formatTooltipValue(value: number | string): string {
+function formatTooltipValue(value: number | string | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return `${(value * 100).toFixed(2)}%`;
+}
+
+// Series get a stroke dash by index so overlapping lines stay distinguishable
+// without relying on hue alone (color-blind users) — and two coincident series
+// no longer fully occlude each other. Index 0 (the primary row) stays solid.
+const SERIES_DASH: string[] = [
+  '0', // solid — the primary row
+  '7 4',
+  '2 4',
+  '9 4 2 4',
+  '5 5',
+  '1 4',
+  '12 5',
+  '4 4',
+];
+
+function seriesDash(index: number): string {
+  const safe = ((index % SERIES_DASH.length) + SERIES_DASH.length) % SERIES_DASH.length;
+  return SERIES_DASH[safe] ?? '0';
+}
+
+const NICE_STEPS = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.15, 0.2, 0.25];
+
+interface PmfYAxis {
+  domainMax: number;
+  ticks: number[];
+}
+
+// PMF probabilities have no fixed ceiling, so let the axis end on a round
+// fraction with evenly spaced ticks instead of recharts' auto values
+// (which produced awkward 0 / 5 / 9 / 14 / 18 %).
+function buildPmfYAxis(data: ChartDatum[]): PmfYAxis {
+  let max = 0;
+  for (const d of data) {
+    for (const key in d) {
+      if (key === 'x') continue;
+      const v = d[key];
+      if (typeof v === 'number' && v > max) max = v;
+    }
+  }
+  if (max <= 0) return { domainMax: 0.1, ticks: [0, 0.05, 0.1] };
+  const rawStep = max / 4;
+  const step = NICE_STEPS.find((s) => s >= rawStep) ?? 0.25;
+  const domainMax = Math.ceil(max / step - 1e-9) * step;
+  const ticks: number[] = [];
+  for (let t = 0; t <= domainMax + 1e-9; t += step) {
+    ticks.push(Number(t.toFixed(4)));
+  }
+  return { domainMax, ticks };
+}
+
+// Custom tooltip: each row carries its series-color swatch (matching the table
+// and legend swatches by color), so identically named rows stay distinguishable.
+function ChartTooltip({ active, payload, label }: TooltipContentProps) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <Box
+      bg="bg.inverted"
+      color="fg.inverted"
+      borderRadius="sm"
+      px="10px"
+      py="6px"
+      fontSize="11px"
+      boxShadow="sm"
+    >
+      <Text fontWeight={600} mb={1}>
+        Result: {label}
+      </Text>
+      <Stack gap={1}>
+        {payload.map((entry, i) => {
+          const value =
+            typeof entry.value === 'number' ? entry.value : undefined;
+          return (
+            <HStack
+              key={`${String(entry.dataKey)}-${i}`}
+              gap={4}
+              justify="space-between"
+            >
+              <HStack gap={1.5} minW={0}>
+                <Box
+                  w="8px"
+                  h="8px"
+                  borderRadius="2px"
+                  bg={entry.color}
+                  flexShrink={0}
+                />
+                <Text truncate>{entry.name}</Text>
+              </HStack>
+              <Text
+                fontFamily="mono"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {formatTooltipValue(value)}
+              </Text>
+            </HStack>
+          );
+        })}
+      </Stack>
+    </Box>
+  );
 }
 
 export default function OverlayChartImpl({
@@ -164,6 +265,10 @@ export default function OverlayChartImpl({
     () => (effectiveView === 'target' ? buildHitRows(series, target) : []),
     [series, target, effectiveView],
   );
+  const pmfYAxis = useMemo(
+    () => (effectiveView === 'pmf' ? buildPmfYAxis(data) : null),
+    [data, effectiveView],
+  );
 
   const focusedId =
     hoveredId !== null && series.some((s) => s.id === hoveredId)
@@ -176,8 +281,12 @@ export default function OverlayChartImpl({
     );
   }
 
-  const yDomain: [number, number | 'auto'] =
-    effectiveView === 'pmf' ? [0, 'auto'] : [0, 1];
+  const yDomain: [number, number] =
+    effectiveView === 'pmf' ? [0, pmfYAxis?.domainMax ?? 0.1] : [0, 1];
+  const yTicks =
+    effectiveView === 'pmf'
+      ? (pmfYAxis?.ticks ?? [0, 0.05, 0.1])
+      : [0, 0.25, 0.5, 0.75, 1];
 
   return (
     <Box w="100%" h={{ base: '260px', md: '320px' }}>
@@ -192,7 +301,7 @@ export default function OverlayChartImpl({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="var(--chakra-colors-border-subtle)"
+            stroke="var(--chakra-colors-border-muted)"
             vertical={false}
           />
           <XAxis
@@ -206,7 +315,7 @@ export default function OverlayChartImpl({
             }}
             tick={{
               fontSize: 11,
-              fill: 'var(--chakra-colors-fg-muted)',
+              fill: 'var(--chakra-colors-fg)',
               fontFamily: 'ui-monospace, monospace',
             }}
             allowDecimals={false}
@@ -219,38 +328,19 @@ export default function OverlayChartImpl({
             }}
             tick={{
               fontSize: 11,
-              fill: 'var(--chakra-colors-fg-muted)',
+              fill: 'var(--chakra-colors-fg)',
               fontFamily: 'ui-monospace, monospace',
             }}
             domain={yDomain}
-            {...(effectiveView !== 'pmf' && {
-              ticks: [0, 0.25, 0.5, 0.75, 1],
-            })}
+            ticks={yTicks}
             width={48}
           />
           <RechartsTooltip
             cursor={{ fill: 'var(--chakra-colors-bg-emphasized)' }}
-            formatter={(value, name) => [
-              formatTooltipValue(value as number),
-              name,
-            ]}
-            labelFormatter={(label) => `Result: ${label}`}
-            contentStyle={{
-              backgroundColor: 'var(--chakra-colors-bg-inverted)',
-              border: 'none',
-              borderRadius: 4,
-              fontSize: 11,
-              color: 'var(--chakra-colors-fg-inverted)',
-              padding: '6px 10px',
-            }}
-            itemStyle={{ color: 'var(--chakra-colors-fg-inverted)' }}
-            labelStyle={{
-              color: 'var(--chakra-colors-fg-inverted)',
-              fontWeight: 600,
-            }}
+            content={ChartTooltip}
           />
           {effectiveView === 'pmf'
-            ? series.map((s) => {
+            ? series.map((s, i) => {
                 const focused = focusedId === s.id;
                 const opacity =
                   focusedId === null ? 0.9 : focused ? 1 : 0.2;
@@ -263,13 +353,14 @@ export default function OverlayChartImpl({
                     stroke={s.color}
                     strokeWidth={focused ? 2.25 : 1.75}
                     strokeOpacity={opacity}
+                    strokeDasharray={seriesDash(i)}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 0 }}
                     isAnimationActive={false}
                   />
                 );
               })
-            : series.map((s) => {
+            : series.map((s, i) => {
                 const focused = focusedId === s.id;
                 const opacity =
                   focusedId === null ? 0.9 : focused ? 1 : 0.2;
@@ -282,6 +373,7 @@ export default function OverlayChartImpl({
                     stroke={s.color}
                     strokeWidth={focused ? 3 : 2.5}
                     strokeOpacity={opacity}
+                    strokeDasharray={seriesDash(i)}
                     dot={{
                       r: 3,
                       fill: s.color,
