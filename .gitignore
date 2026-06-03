@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dev-dist
 dist-ssr
 *.local
 .vercel/
@@ -19,6 +20,11 @@ mock-docs.html
 PLAN.md
 vite.config.profile.ts
 .mcp.json
+
+# Playwright MCP artifacts (console logs + page snapshots)
+.playwright-mcp/
+# Screenshots dropped in the repo root (real assets live in public/)
+/*.png
 
 # Editor directories and files
 .vscode/*

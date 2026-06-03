@@ -1,3 +1,5 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
+
 const MAX_BODY_BYTES = 10240;
 
 const FIELD_LIMITS = {
@@ -49,41 +51,65 @@ function isErrorReport(value: unknown): value is ErrorReport {
   return true;
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method !== 'POST') {
-    return new Response(null, { status: 405 });
+function readBody(req: IncomingMessage, limit: number): Promise<string | null> {
+  return new Promise((resolve) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > limit) {
+        resolve(null);
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', () => resolve(null));
+  });
+}
+
+export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (req.method !== 'POST') {
+    res.statusCode = 405;
+    res.end();
+    return;
   }
 
-  const contentType = request.headers.get('content-type');
-  if (contentType === null || !contentType.toLowerCase().includes('application/json')) {
-    return new Response(null, { status: 415 });
+  const contentType = req.headers['content-type'];
+  if (typeof contentType !== 'string' || !contentType.toLowerCase().includes('application/json')) {
+    res.statusCode = 415;
+    res.end();
+    return;
   }
 
-  const contentLength = request.headers.get('content-length');
-  if (contentLength !== null && Number(contentLength) > MAX_BODY_BYTES) {
-    return new Response(null, { status: 413 });
+  const contentLength = req.headers['content-length'];
+  if (typeof contentLength === 'string' && Number(contentLength) > MAX_BODY_BYTES) {
+    res.statusCode = 413;
+    res.end();
+    return;
   }
 
-  let raw: string;
-  try {
-    raw = await request.text();
-  } catch {
-    return new Response(null, { status: 400 });
-  }
-
-  if (raw.length > MAX_BODY_BYTES) {
-    return new Response(null, { status: 413 });
+  const raw = await readBody(req, MAX_BODY_BYTES);
+  if (raw === null) {
+    res.statusCode = 413;
+    res.end();
+    return;
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return new Response(null, { status: 400 });
+    res.statusCode = 400;
+    res.end();
+    return;
   }
 
   if (!isErrorReport(parsed)) {
-    return new Response(null, { status: 400 });
+    res.statusCode = 400;
+    res.end();
+    return;
   }
 
   const line = {
@@ -97,5 +123,6 @@ export default async function handler(request: Request): Promise<Response> {
 
   console.error('[telemetry/error]', JSON.stringify(line));
 
-  return new Response(null, { status: 204 });
+  res.statusCode = 204;
+  res.end();
 }
