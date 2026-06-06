@@ -18,6 +18,7 @@ If your change is larger than a typo or small bugfix and you have NOT opened an 
 - [ ] New feature (non-breaking)
 - [ ] Breaking change (would affect existing users' data or APIs)
 - [ ] Refactor (no behavioral change)
+- [ ] Dependencies (Dependabot or manual dep bump)
 - [ ] Docs / chore (no code change)
 
 ## Scope check
