@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the idea. Before filing, please read the **What it is / What it isn't** section in [CONTRIBUTING.md](https://github.com/a1clark1a/diceTable/blob/main/CONTRIBUTING.md#project-scope). DiceTable has a deliberately tight scope; ideas that push toward a DSL, rule packs, multiple tables, or a sidebar UI are unlikely to be accepted.
+        Thanks for the idea. Before filing, please read the **Project scope** section in [CONTRIBUTING.md](https://github.com/a1clark1a/diceTable/blob/main/CONTRIBUTING.md#project-scope). DiceTable has a deliberately tight scope; ideas that push toward a DSL, rule packs, multiple tables, or a sidebar UI are unlikely to be accepted.
 
         If you've read that and still think it fits, please describe the idea below.
 
