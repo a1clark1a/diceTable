@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a bug, crash, or wrong probability result.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Before submitting, please search [existing issues](https://github.com/a1clark1a/diceTable/issues?q=is%3Aissue) to make sure this hasn't been reported already.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        Steps to reproduce:
+        1. ...
+        2. ...
+
+        Expected: ...
+        Actual: ...
+    validations:
+      required: true
+
+  - type: input
+    id: expression
+    attributes:
+      label: Dice expression(s) involved
+      description: If the bug involves a specific roll, paste the expression(s) here. e.g. `4d6kh3 + 2 (advantage)`.
+      placeholder: "4d6kh3 + 2"
+
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - Hosted version (dice-table.app)
+        - Local dev (npm run dev)
+        - Production build (npm run build && npm run preview)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and OS
+      description: e.g. Chrome 132 on Windows 11, Safari 18 on iOS 18.
+      placeholder: "Chrome 132 on Windows 11"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: viewport
+    attributes:
+      label: Viewport
+      options:
+        - Mobile (≤ 720 px)
+        - Tablet (~720–1024 px)
+        - Desktop (> 1024 px)
+        - Not relevant
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or screen recording (optional)
+      description: Drag and drop images here. For UI bugs these help a lot.
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors (optional)
+      description: Open DevTools → Console and paste anything red.
+      render: shell
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmations
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I have read the [Code of Conduct](https://github.com/a1clark1a/diceTable/blob/main/CODE_OF_CONDUCT.md).
+          required: true

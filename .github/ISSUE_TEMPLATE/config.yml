@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/a1clark1a/diceTable/discussions
+    about: Have a question, want to share how you're using DiceTable, or want to discuss an idea before opening a feature request? Start a discussion instead of an issue.
+  - name: Security vulnerability
+    url: https://github.com/a1clark1a/diceTable/security/advisories/new
+    about: Report security vulnerabilities privately through GitHub's Security advisories. Do NOT file a public issue for security bugs.
