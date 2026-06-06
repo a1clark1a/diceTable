@@ -24,11 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Feature request template's intro now correctly references the "Project scope" section of CONTRIBUTING.md (previously called out a "What it is / What it isn't" section that no longer exists).
+  <<<<<<< HEAD
 - README Privacy and SECURITY.md now accurately describe the anonymous crash-report endpoint (`api/errors.ts`); both previously stated there was no server-side component or application telemetry.
 
 ### Removed
 
-- Developer Certificate of Origin (DCO) sign-off requirement. Contributions remain MIT-licensed by the inbound=outbound rule, so an explicit `Signed-off-by:` trailer is no longer required. CONTRIBUTING.md, PR template, and README updated accordingly.
+- # Developer Certificate of Origin (DCO) sign-off requirement. Contributions remain MIT-licensed by the inbound=outbound rule, so an explicit `Signed-off-by:` trailer is no longer required. CONTRIBUTING.md, PR template, and README updated accordingly.
+  > > > > > > > 116e7f8 (Develop (#26))
 
 ## [1.1.0] - 2026-06-03
 
