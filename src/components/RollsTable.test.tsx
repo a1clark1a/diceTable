@@ -4,13 +4,12 @@ import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import type { DicePart } from '../types';
 import type { PartPatch } from '../state/useApp';
 
-// This test pins the Phase 2 gate / Phase 3 trigger from
-// .claude/plans/dice-commit-cascade.plan.md: a Count commit inside the one
-// expanded row must NOT re-render any sibling RollTableRow. memo(RollTableRow)
-// is module-internal, so the faithful instrument is ExpressionDiceText, which
+// Render-isolation invariant: a Count commit inside the one expanded row
+// must NOT re-render any sibling RollTableRow. memo(RollTableRow) is
+// module-internal, so the faithful instrument is ExpressionDiceText, which
 // every collapsed row renders unconditionally with its own `expr`. If a
-// sibling row's memo bails, its ExpressionDiceText is never re-invoked and its
-// counter stays flat; if the bail fails for a reason the static Phase 1 trace
+// sibling row's memo bails, its ExpressionDiceText is never re-invoked and
+// its counter stays flat; if the bail fails for a reason a static trace
 // could not see (Chakra Table context, etc.), this test catches it.
 const { rowRenderCounts } = vi.hoisted(() => ({
   rowRenderCounts: {} as Record<string, number>,
