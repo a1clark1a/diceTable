@@ -8,7 +8,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Open source project scaffolding: `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` (with DCO), `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
+- Open source project scaffolding: `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md` (with DCO sign-off), `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
+- GitHub community templates: issue templates (bug report, feature request), pull request template with verification checklist.
+- `.github/dependabot.yml`: monthly grouped npm and GitHub Actions updates, targeting the `develop` branch, with `@types/node` major bumps ignored until `engines.node` is upgraded.
+
+### Changed
+
+- Pull request template now includes a "Dependencies" type-of-change option for Dependabot and manual dependency bumps.
+
+### Fixed
+
+- Feature request template's intro now correctly references the "Project scope" section of CONTRIBUTING.md (previously called out a "What it is / What it isn't" section that no longer exists).
 
 ## [1.1.0] - 2026-06-03
 
