@@ -34,6 +34,15 @@ DiceTable has a deliberately tight scope. The short version:
 
 If a change pushes toward multiple tables, a DSL, rule packs, a sidebar, or per-row "type" fields, it is almost certainly out of scope. Open an issue and let's talk before you spend time on it.
 
+## Feature requests
+
+Feature ideas are welcome, and opening an issue to propose one is encouraged. Two things keep the app from bloating over time:
+
+- **Lean by default.** A feature has to earn its place. The question is "does this help the core job of building and comparing dice rolls," not "is this a neat idea." Some genuinely good ideas get declined just to keep the surface small.
+- **Demand is the strongest signal.** The features most likely to ship are the ones several people ask for. If a request already exists, add a 👍 reaction instead of filing a duplicate. That reaction count is what I watch when deciding what is worth building.
+
+Speculative or "what if" ideas are a great fit for [Discussions](https://github.com/a1clark1a/diceTable/discussions). Once an idea shows clear interest there, it can graduate to a tracked issue.
+
 ## Developer Certificate of Origin (DCO)
 
 This project uses the [Developer Certificate of Origin](https://developercertificate.org) instead of a CLA. The DCO is a lightweight statement that the code you're contributing is yours to contribute, or that you have the right to contribute it under the project's license.
@@ -61,15 +70,15 @@ npm run dev         # vite dev server
 npm run build       # tsc -b && vite build (catches type errors)
 npm run test        # vitest run
 npm run lint        # eslint
+npm run verify      # lint + test + build in one go (matches CI)
 ```
 
-Before opening a PR:
+CI runs lint, the test suite, and the type-check (build) on every PR, so those gates are enforced for you. Running them locally is about faster feedback, not clearing a hurdle. Before opening a PR:
 
-1. `npm run lint` is clean.
-2. `npm run test` is green.
-3. `npm run build` succeeds (this is the type-check).
-4. If you touched UI, you've at least eyeballed it at 360 px width and in dark mode.
-5. Commits are signed off (`git commit -s`).
+1. `npm run verify` is green.
+2. If you touched UI, eyeball it at 360 px width and in dark mode.
+3. Add or update tests for behavioral changes.
+4. Commits are signed off (`git commit -s`).
 
 ## Pull request guidelines
 
@@ -87,6 +96,8 @@ The codebase already encodes its conventions. Read a neighboring file before wri
 - Chakra primitives over raw `<div>`.
 - Semantic theme tokens (`bg.subtle`, `fg.muted`) over hex.
 - No `any`. Use `unknown` + type guards or discriminated unions.
+
+For deeper context on specific subsystems, see [`docs/architecture/`](docs/architecture/): the [engine](docs/architecture/engine.md), [local-storage persistence](docs/architecture/local-storage.md), and [security headers](docs/architecture/security-headers.md).
 
 ## Reporting bugs
 

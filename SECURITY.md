@@ -23,13 +23,14 @@ You should receive an acknowledgement within **7 days**. If the issue is confirm
 
 ## Scope
 
-DiceTable is a client-side React application that stores data in the browser's `localStorage`. There is no server-side component, no user accounts, and no remote data exchange beyond the static assets served by the host.
+DiceTable is primarily a client-side React application that stores data in the browser's `localStorage`, with no user accounts. The one server-side component is a single serverless function, `api/errors.ts`, which accepts anonymous crash reports (error message, stack trace, page path, coarse browser name); it persists nothing and writes to logs only. There is no other remote data exchange beyond the static assets served by the host.
 
 In-scope concerns include:
 
 - XSS or injection via persisted state or URL parameters.
 - Prototype pollution or supply-chain issues in dependencies.
 - Logic errors in the probability engine that could be triggered by crafted input to crash or hang the app.
+- Issues in the crash-report endpoint (`api/errors.ts`): unauthenticated input handling, log injection, or resource exhaustion.
 
 Out of scope:
 

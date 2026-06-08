@@ -26,6 +26,7 @@ A focused dice probability tool for tabletop and strategy gaming. Build a single
 ```bash
 git clone https://github.com/a1clark1a/diceTable.git
 cd diceTable
+nvm use              # Node 24 (see .nvmrc); or install Node 24 another way
 npm install
 npm run dev          # http://localhost:5173
 ```
@@ -38,6 +39,7 @@ npm run build        # tsc -b && vite build (also catches type errors)
 npm run test         # vitest run
 npm run test:watch   # vitest in watch mode
 npm run lint         # eslint
+npm run verify       # lint + test + build in one go (matches CI)
 npm run preview      # serve the production build locally
 ```
 
@@ -78,6 +80,8 @@ src/
     ui/                   # tooltip, help-term, color-mode (Chakra plumbing)
   types.ts                # all shared types
 ```
+
+Deeper notes on specific subsystems live in [`docs/architecture/`](docs/architecture/): the [engine](docs/architecture/engine.md), [local-storage persistence](docs/architecture/local-storage.md), and [security headers](docs/architecture/security-headers.md).
 
 ## Data model
 
@@ -130,16 +134,22 @@ The envelope is schema-validated on load via `validatePersistedState` (`src/stat
 
 ## Privacy
 
-DiceTable runs entirely in your browser. All data is stored in `localStorage` on your device. There is no server, no account, and no telemetry collected by the application itself. The hosted version at [dice-table.app](https://dice-table.app/) uses Vercel Analytics for aggregate page-view metrics; nothing about your rolls or settings is sent.
+DiceTable stores all your data (your rolls and settings) in your browser's `localStorage`, on your device. That data is never sent anywhere, and there is no account or login.
+
+The hosted version at [dice-table.app](https://dice-table.app/) sends two kinds of anonymous operational data, neither of which includes your rolls or settings:
+
+- **Vercel Analytics**: aggregate page-view metrics.
+- **Crash reports**: when the app hits an unexpected error, it sends the error message, stack trace, the page path (with share-link data stripped), and a coarse browser name, capped per session, to help fix bugs.
 
 ## Contributing
 
-Contributions are welcome but scope is tight. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a non-trivial PR — it documents what is in and out of scope.
+Contributions are genuinely welcome, and small in-scope improvements are the easiest way in. The quickest place to start is a [good first issue](https://github.com/a1clark1a/diceTable/contribute).
 
-Quick rules of thumb:
+The scope is deliberately lean, so a quick read of [CONTRIBUTING.md](CONTRIBUTING.md) before a non-trivial PR saves us both time. The short version:
 
 - Typos, small bugfixes, and obvious cleanups: just send the PR.
-- New features, refactors that touch the engine or state layer, new dependencies: open an issue first.
+- New features, refactors that touch the engine or state layer, new dependencies: open an issue first so we can talk through scope.
+- Feature ideas are welcome. The app stays lean on purpose, so the requests most likely to land are the ones several people ask for. If a similar request already exists, add a 👍 instead of opening a duplicate: that demand is the signal I watch.
 - All commits must be signed off (`git commit -s`) per the [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin-dco).
 
 ## Code of Conduct
