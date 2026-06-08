@@ -1,0 +1,56 @@
+name: Documentation or small fix
+description: Report a docs error, a typo, a broken link, or a small wording improvement.
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Found something in the docs, glossary, or README that's wrong, unclear, or just a typo? This is the right place. No repro steps or screenshots needed.
+
+        Before submitting, please search [existing issues](https://github.com/a1clark1a/diceTable/issues?q=is%3Aissue) so we don't track the same fix twice.
+
+  - type: textarea
+    id: whats-wrong
+    attributes:
+      label: What's wrong or could be improved?
+      description: Describe the error, typo, or unclear wording.
+      placeholder: "The Glossary entry for X says ..., but it should say ..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      options:
+        - Docs page (Quickstart / Glossary / The Math)
+        - README
+        - CONTRIBUTING / community files
+        - Code comments
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: where
+    attributes:
+      label: Where exactly?
+      description: A page section, glossary term, file path, or URL so we can find it fast.
+      placeholder: "Glossary > Advantage, or README badges section"
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested wording (optional)
+      description: If you already know how it should read, drop the fixed text here. For a typo, this is often all that's needed.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmations
+      options:
+        - label: I have searched existing issues and this is not a duplicate.
+          required: true
+        - label: I have read the [Code of Conduct](https://github.com/a1clark1a/diceTable/blob/main/CODE_OF_CONDUCT.md).
+          required: true

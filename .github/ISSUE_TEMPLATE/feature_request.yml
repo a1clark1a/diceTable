@@ -6,9 +6,11 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the idea. Before filing, please read the **Project scope** section in [CONTRIBUTING.md](https://github.com/a1clark1a/diceTable/blob/main/CONTRIBUTING.md#project-scope). DiceTable has a deliberately tight scope; ideas that push toward a DSL, rule packs, multiple tables, or a sidebar UI are unlikely to be accepted.
+        Thanks for the idea, feature requests are welcome.
 
-        If you've read that and still think it fits, please describe the idea below.
+        DiceTable stays lean on purpose, so the features most likely to land are the ones several people ask for. If a similar request already exists, please add a 👍 to it instead of filing a new one. That demand is the main signal used to prioritize.
+
+        Describe your idea below and lead with the problem it solves.
 
   - type: textarea
     id: problem

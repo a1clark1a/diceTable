@@ -34,24 +34,14 @@ DiceTable has a deliberately tight scope. The short version:
 
 If a change pushes toward multiple tables, a DSL, rule packs, a sidebar, or per-row "type" fields, it is almost certainly out of scope. Open an issue and let's talk before you spend time on it.
 
-## Developer Certificate of Origin (DCO)
+## Feature requests
 
-This project uses the [Developer Certificate of Origin](https://developercertificate.org) instead of a CLA. The DCO is a lightweight statement that the code you're contributing is yours to contribute, or that you have the right to contribute it under the project's license.
+Feature ideas are welcome, and opening an issue to propose one is encouraged. Two things keep the app from bloating over time:
 
-To sign off on a commit, add the `-s` flag:
+- **Lean by default.** A feature has to earn its place. The question is "does this help the core job of building and comparing dice rolls," not "is this a neat idea." Some genuinely good ideas get declined just to keep the surface small.
+- **Demand is the strongest signal.** The features most likely to ship are the ones several people ask for. If a request already exists, add a 👍 reaction instead of filing a duplicate. That reaction count is what I watch when deciding what is worth building.
 
-```bash
-git commit -s -m "Fix off-by-one in keep-highest logic"
-```
-
-This appends a `Signed-off-by: Your Name <your-email>` line to the commit message. By doing so you certify the full text of the DCO (reproduced below). PRs without sign-offs may be asked to amend their commits before being merged.
-
-Set your git identity once:
-
-```bash
-git config user.name "Your Name"
-git config user.email "your-email@example.com"
-```
+Speculative or "what if" ideas are a great fit for [Discussions](https://github.com/a1clark1a/diceTable/discussions). Once an idea shows clear interest there, it can graduate to a tracked issue.
 
 ## Development workflow
 
@@ -61,15 +51,14 @@ npm run dev         # vite dev server
 npm run build       # tsc -b && vite build (catches type errors)
 npm run test        # vitest run
 npm run lint        # eslint
+npm run verify      # lint + test + build in one go (matches CI)
 ```
 
-Before opening a PR:
+CI runs lint, the test suite, and the type-check (build) on every PR, so those gates are enforced for you. Running them locally is about faster feedback, not clearing a hurdle. Before opening a PR:
 
-1. `npm run lint` is clean.
-2. `npm run test` is green.
-3. `npm run build` succeeds (this is the type-check).
-4. If you touched UI, you've at least eyeballed it at 360 px width and in dark mode.
-5. Commits are signed off (`git commit -s`).
+1. `npm run verify` is green.
+2. If you touched UI, eyeball it at 360 px width and in dark mode.
+3. Add or update tests for behavioral changes.
 
 ## Pull request guidelines
 
@@ -87,6 +76,8 @@ The codebase already encodes its conventions. Read a neighboring file before wri
 - Chakra primitives over raw `<div>`.
 - Semantic theme tokens (`bg.subtle`, `fg.muted`) over hex.
 - No `any`. Use `unknown` + type guards or discriminated unions.
+
+For deeper context on specific subsystems, see [`docs/architecture/`](docs/architecture/): the [engine](docs/architecture/engine.md), [local-storage persistence](docs/architecture/local-storage.md), and [security headers](docs/architecture/security-headers.md).
 
 ## Reporting bugs
 
@@ -106,49 +97,4 @@ Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDU
 
 ## License
 
-By submitting a contribution, you agree that your contribution is licensed under the [MIT License](LICENSE), the same license that covers the rest of the project.
-
----
-
-## Developer Certificate of Origin 1.1
-
-```
-Developer Certificate of Origin
-Version 1.1
-
-Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
-1 Letterman Drive
-Suite D4700
-San Francisco, CA, 94129
-
-Everyone is permitted to copy and distribute verbatim copies of this
-license document, but changing it is not allowed.
-
-
-Developer's Certificate of Origin 1.1
-
-By making a contribution to this project, I certify that:
-
-(a) The contribution was created in whole or in part by me and I
-    have the right to submit it under the open source license
-    indicated in the file; or
-
-(b) The contribution is based upon previous work that, to the best
-    of my knowledge, is covered under an appropriate open source
-    license and I have the right under that license to submit that
-    work with modifications, whether created in whole or in part
-    by me, under the same open source license (unless I am
-    permitted to submit under a different license), as indicated
-    in the file; or
-
-(c) The contribution was provided directly to me by some other
-    person who certified (a), (b) or (c) and I have not modified
-    it.
-
-(d) I understand and agree that this project and the contribution
-    are public and the contribution is a record of the project,
-    (including all personal information I submit with it, including
-    my sign-off) is a record maintained indefinitely and may be
-    used, redistributed in accordance with this project or the
-    open source license(s) involved.
-```
+By submitting a contribution, you agree that your contribution is licensed under the [MIT License](LICENSE), the same license that covers the rest of the project. No separate Contributor License Agreement is required.
