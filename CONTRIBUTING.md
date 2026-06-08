@@ -43,25 +43,6 @@ Feature ideas are welcome, and opening an issue to propose one is encouraged. Tw
 
 Speculative or "what if" ideas are a great fit for [Discussions](https://github.com/a1clark1a/diceTable/discussions). Once an idea shows clear interest there, it can graduate to a tracked issue.
 
-## Developer Certificate of Origin (DCO)
-
-This project uses the [Developer Certificate of Origin](https://developercertificate.org) instead of a CLA. The DCO is a lightweight statement that the code you're contributing is yours to contribute, or that you have the right to contribute it under the project's license.
-
-To sign off on a commit, add the `-s` flag:
-
-```bash
-git commit -s -m "Fix off-by-one in keep-highest logic"
-```
-
-This appends a `Signed-off-by: Your Name <your-email>` line to the commit message. By doing so you certify the full text of the DCO (reproduced below). PRs without sign-offs may be asked to amend their commits before being merged.
-
-Set your git identity once:
-
-```bash
-git config user.name "Your Name"
-git config user.email "your-email@example.com"
-```
-
 ## Development workflow
 
 ```bash
@@ -78,7 +59,6 @@ CI runs lint, the test suite, and the type-check (build) on every PR, so those g
 1. `npm run verify` is green.
 2. If you touched UI, eyeball it at 360 px width and in dark mode.
 3. Add or update tests for behavioral changes.
-4. Commits are signed off (`git commit -s`).
 
 ## Pull request guidelines
 
@@ -117,49 +97,4 @@ Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDU
 
 ## License
 
-By submitting a contribution, you agree that your contribution is licensed under the [MIT License](LICENSE), the same license that covers the rest of the project.
-
----
-
-## Developer Certificate of Origin 1.1
-
-```
-Developer Certificate of Origin
-Version 1.1
-
-Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
-1 Letterman Drive
-Suite D4700
-San Francisco, CA, 94129
-
-Everyone is permitted to copy and distribute verbatim copies of this
-license document, but changing it is not allowed.
-
-
-Developer's Certificate of Origin 1.1
-
-By making a contribution to this project, I certify that:
-
-(a) The contribution was created in whole or in part by me and I
-    have the right to submit it under the open source license
-    indicated in the file; or
-
-(b) The contribution is based upon previous work that, to the best
-    of my knowledge, is covered under an appropriate open source
-    license and I have the right under that license to submit that
-    work with modifications, whether created in whole or in part
-    by me, under the same open source license (unless I am
-    permitted to submit under a different license), as indicated
-    in the file; or
-
-(c) The contribution was provided directly to me by some other
-    person who certified (a), (b) or (c) and I have not modified
-    it.
-
-(d) I understand and agree that this project and the contribution
-    are public and the contribution is a record of the project,
-    (including all personal information I submit with it, including
-    my sign-off) is a record maintained indefinitely and may be
-    used, redistributed in accordance with this project or the
-    open source license(s) involved.
-```
+By submitting a contribution, you agree that your contribution is licensed under the [MIT License](LICENSE), the same license that covers the rest of the project. No separate Contributor License Agreement is required.

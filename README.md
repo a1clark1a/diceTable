@@ -150,7 +150,6 @@ The scope is deliberately lean, so a quick read of [CONTRIBUTING.md](CONTRIBUTIN
 - Typos, small bugfixes, and obvious cleanups: just send the PR.
 - New features, refactors that touch the engine or state layer, new dependencies: open an issue first so we can talk through scope.
 - Feature ideas are welcome. The app stays lean on purpose, so the requests most likely to land are the ones several people ask for. If a similar request already exists, add a 👍 instead of opening a duplicate: that demand is the signal I watch.
-- All commits must be signed off (`git commit -s`) per the [Developer Certificate of Origin](CONTRIBUTING.md#developer-certificate-of-origin-dco).
 
 ## Code of Conduct
 
