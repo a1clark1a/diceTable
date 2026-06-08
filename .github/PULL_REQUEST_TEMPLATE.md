@@ -1,44 +1,19 @@
 <!--
-Thanks for the contribution. Please fill out the sections below so the review can move quickly.
+Thanks for contributing! Keep this PR to one logical change.
 
-If your change is larger than a typo or small bugfix and you have NOT opened an issue first, please consider closing this PR and opening an issue to discuss scope before writing more code. See CONTRIBUTING.md for details.
+Anything beyond a typo or small bugfix should start as an issue first, so we can agree on scope before you write code. See CONTRIBUTING.md.
 -->
 
 ## Summary
 
-<!-- One or two sentences describing what this PR changes and why. -->
+<!-- One or two sentences: what changes and why. Link the issue with "Closes #123" if there is one. -->
 
-## Related issue
+## Checklist
 
-<!-- Link the issue this PR closes, e.g. "Closes #42". Delete this section if not applicable. -->
-
-## Type of change
-
-- [ ] Bug fix (non-breaking)
-- [ ] New feature (non-breaking)
-- [ ] Breaking change (would affect existing users' data or APIs)
-- [ ] Refactor (no behavioral change)
-- [ ] Dependencies (Dependabot or manual dep bump)
-- [ ] Docs / chore (no code change)
-
-## Scope check
-
-- [ ] I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and confirmed this change fits the project scope.
-- [ ] If this touches the engine, state, or persistence layer, I opened an issue first and got feedback.
-- [ ] If this introduces new dependencies, I opened an issue first.
-
-## Verification
-
-- [ ] `npm run lint` passes locally.
-- [ ] `npm run test` passes locally.
-- [ ] `npm run build` succeeds locally (type-check).
-- [ ] If UI changed, I checked it at 360 px and in dark mode.
+- [ ] This fits the project scope. For engine / state / persistence changes, new dependencies, or new features, I opened an issue first (see [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md)).
 - [ ] Added or updated tests for behavioral changes.
+- [ ] If UI changed, I checked it at 360 px and in dark mode.
+- [ ] Updated `[Unreleased]` in CHANGELOG.md, or this change isn't user-visible.
+- [ ] Commits are signed off (`git commit -s`).
 
-## Changelog
-
-- [ ] I added a line under `[Unreleased]` in [CHANGELOG.md](../blob/main/CHANGELOG.md), or this change is not user-visible.
-
-## Sign-off
-
-- [ ] All my commits include `Signed-off-by:` per the [DCO](../blob/main/CONTRIBUTING.md#developer-certificate-of-origin-dco) (`git commit -s`).
+<!-- CI runs lint, the test suite, and the type-check (build) on every PR, so you don't need to attest to those here. -->
