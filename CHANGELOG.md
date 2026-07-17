@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `.editorconfig`: shared editor defaults (UTF-8, LF, final newline, 2-space indent; Markdown exempt from trailing-whitespace trimming).
 - `npm run verify` script: runs lint, tests, and the type-check (build) in one command, matching CI.
 - Architecture docs for the probability engine and security headers (`docs/architecture/`), linked from the README and CONTRIBUTING.
+- Crawlable, indexable homepage: a static `<h1>` and lead sentence shown above the roll table and baked into `index.html`, plus `WebApplication` structured data (JSON-LD), so search engines and non-JavaScript crawlers can read the homepage.
+- Per-route SEO metadata via a `RouteHead` component: each route sets its own `<title>`, description, canonical URL, robots directive, and Open Graph / Twitter tags (the not-found page is `noindex`).
+- `HowTo` structured data (JSON-LD) on the Docs quickstart, describing the getting-started steps for search engines and language models.
+- `public/llms.txt`: a plain-language summary of what DiceTable is and computes (exact distributions via full convolution, dice notation, roll modes, stats, targets and hit rates) for large language model crawlers.
 
 ### Changed
 
@@ -24,13 +28,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Feature request template's intro now correctly references the "Project scope" section of CONTRIBUTING.md (previously called out a "What it is / What it isn't" section that no longer exists).
-  <<<<<<< HEAD
 - README Privacy and SECURITY.md now accurately describe the anonymous crash-report endpoint (`api/errors.ts`); both previously stated there was no server-side component or application telemetry.
 
 ### Removed
 
-- # Developer Certificate of Origin (DCO) sign-off requirement. Contributions remain MIT-licensed by the inbound=outbound rule, so an explicit `Signed-off-by:` trailer is no longer required. CONTRIBUTING.md, PR template, and README updated accordingly.
-  > > > > > > > 116e7f8 (Develop (#26))
+- Developer Certificate of Origin (DCO) sign-off requirement. Contributions remain MIT-licensed by the inbound=outbound rule, so an explicit `Signed-off-by:` trailer is no longer required. CONTRIBUTING.md, PR template, and README updated accordingly.
 
 ## [1.1.0] - 2026-06-03
 

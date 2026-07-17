@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Maps docs sections to source files whose changes likely invalidate them. Consumed by the /check-docs-drift skill. Paths are forward-slash, relative to repo root, matching `git diff --name-only` output.",
+  "description": "Maps docs sections and GEO/SEO artifacts (llms.txt, structured-data JSON-LD, per-route metadata) to source files whose changes likely invalidate them. Consumed by the /check-docs-drift skill. Paths are forward-slash, relative to repo root, matching `git diff --name-only` output.",
   "sections": [
     {
       "id": "math.uniform",
@@ -45,7 +45,8 @@
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/state/AppContext.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -54,7 +55,8 @@
       "deps": [
         "src/components/editor/ExpressionRender.tsx",
         "src/components/editor/DicePartRow.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -65,7 +67,8 @@
         "src/components/chart/Sparkline.tsx",
         "src/components/chart/palette.ts",
         "src/components/inspect/InspectChart.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -75,7 +78,8 @@
         "src/components/RollExpand.tsx",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -84,7 +88,8 @@
       "deps": [
         "src/components/RollExpand.tsx",
         "src/components/editor/DicePartRow.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -95,7 +100,8 @@
         "src/components/RollsCards.tsx",
         "src/components/chart/OverlayChart.tsx",
         "src/components/chart/palette.ts",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -107,7 +113,8 @@
         "src/components/chart/OverlayChart.tsx",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -118,7 +125,8 @@
         "src/state/useRollHistory.ts",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
@@ -127,7 +135,8 @@
       "deps": [
         "src/components/share/SharePopover.tsx",
         "src/components/share/ImportDialog.tsx",
-        "src/components/docs/Quickstart.tsx"
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
       ]
     },
 
@@ -170,6 +179,45 @@
         "src/components/inspect/InspectDistribution.tsx",
         "src/components/RollExpand.tsx",
         "src/docs/glossary.ts"
+      ]
+    },
+
+    {
+      "id": "seo.llms-txt",
+      "label": "GEO/SEO · llms.txt (LLM-facing app summary)",
+      "deps": [
+        "public/llms.txt",
+        "src/engine/parts.ts",
+        "src/engine/expression.ts",
+        "src/engine/stats.ts",
+        "src/engine/distribution.ts",
+        "src/components/chart/OverlayChart.tsx",
+        "src/components/TargetToolbar.tsx"
+      ]
+    },
+    {
+      "id": "seo.webapp-jsonld",
+      "label": "GEO/SEO · WebApplication JSON-LD (homepage)",
+      "deps": ["index.html"]
+    },
+    {
+      "id": "seo.howto-jsonld",
+      "label": "GEO/SEO · HowTo JSON-LD (docs quickstart)",
+      "deps": [
+        "src/components/docs/quickstart-data.tsx",
+        "src/components/seo/structuredData.ts",
+        "src/components/seo/JsonLd.tsx"
+      ]
+    },
+    {
+      "id": "seo.route-metadata",
+      "label": "GEO/SEO · Per-route titles and descriptions (RouteHead)",
+      "deps": [
+        "src/components/seo/RouteHead.tsx",
+        "src/pages/TablePage.tsx",
+        "src/pages/DocsPage.tsx",
+        "src/pages/PrivacyPage.tsx",
+        "src/pages/NotFoundPage.tsx"
       ]
     }
   ]

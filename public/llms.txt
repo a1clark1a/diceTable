@@ -1,0 +1,56 @@
+# DiceTable
+
+> DiceTable is a free browser tool for comparing tabletop dice rolls by their exact probability. Build a table of named rolls, read the full distribution and summary stats for each, and overlay them on one chart to compare and balance them.
+
+DiceTable is for tabletop and strategy gamers who want to understand and balance dice rolls without learning a scripting language or any statistics. It works with any system, because a roll is just a dice expression. Everything happens in a graphical table: there is no notation to memorize first and no math background required.
+
+## What it computes
+
+All probabilities are exact. DiceTable enumerates each die's distribution and combines them by full convolution, so every number is the true probability of that outcome. It does not use normal or uniform approximations, and it does not sample or simulate to produce its stats.
+
+For each roll it reports:
+
+- Mean (the long-run average result).
+- Standard deviation and variance (how spread out or consistent the results are).
+- Mode (the most likely result, or results when several tie).
+- Range (the smallest and largest possible results).
+- Hit probability (how often the roll meets a target you set).
+
+## Dice notation it understands
+
+DiceTable reads standard tabletop dice notation, edited inline in the table:
+
+- Count and die, such as 3d8 (roll three eight-sided dice and add them).
+- Flat modifier, such as +2 or -1, added to the total.
+- Keep highest or lowest, such as 4d6kh3 (roll four six-sided dice, keep the highest 3) or klN.
+- Reroll specific faces, once or always, such as r1 or r<3.
+- Explode a chosen face, such as !6 (on that face, roll again and add), with a depth cap that keeps results readable.
+
+## Roll modes
+
+A roll mode applies to the whole expression:
+
+- Normal (roll once).
+- Advantage (roll twice and take the higher result).
+- Disadvantage (roll twice and take the lower result).
+
+## Comparing and balancing rolls
+
+Every row appears in one overlay chart with its own color. The chart has four views:
+
+- PMF: how likely each exact result is.
+- CDF: the chance of rolling at most a given number.
+- CCDF: the chance of rolling at least a given number, useful for "beat the DC" checks.
+- Target: per-row hit-rate bars once you set one or more target numbers.
+
+You can set up to five targets (for example armor classes or save DCs) and choose how a roll is compared to them: at least, greater than, at most, less than, or exactly. A Hit % column then shows how often each row meets each target. A built-in roller can also simulate any row, using the same exact odds the chart shows.
+
+## Privacy
+
+DiceTable runs entirely in your browser. Your rolls and settings are stored on your own device, and the site collects only anonymous analytics. There are no accounts.
+
+## Links
+
+- [DiceTable](https://dice-table.app/): the app itself.
+- [Docs](https://dice-table.app/docs): a quickstart walkthrough, a glossary of every term, and a page explaining the math (convolution, PMF, CDF, CCDF, and the stat formulas).
+- [Privacy](https://dice-table.app/privacy): what the site does and does not collect.
