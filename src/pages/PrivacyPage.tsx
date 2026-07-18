@@ -1,8 +1,14 @@
 import { Box, Heading, Link, List, Stack, Text } from '@chakra-ui/react';
+import { RouteHead } from '../components/seo/RouteHead';
 
 export default function PrivacyPage() {
   return (
     <Stack gap={6} maxW="640px" mx="auto" py={{ base: 4, md: 8 }}>
+      <RouteHead
+        title="Privacy · DiceTable"
+        description="How DiceTable handles your data. Rolls stay on your device, analytics are anonymous, and there are no accounts or trackers."
+        path="/privacy"
+      />
       <Stack gap={2}>
         <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
           Privacy

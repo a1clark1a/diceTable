@@ -43,6 +43,25 @@ Feature ideas are welcome, and opening an issue to propose one is encouraged. Tw
 
 Speculative or "what if" ideas are a great fit for [Discussions](https://github.com/a1clark1a/diceTable/discussions). Once an idea shows clear interest there, it can graduate to a tracked issue.
 
+## Branching
+
+DiceTable uses a two-branch model: `feature → develop (staging) → main (production)`.
+
+- **`develop`** is the integration branch. It deploys to staging, and it's where contributions land. Base your work on `develop`, and target your pull request at `develop`.
+- **`main`** is the production branch and the repository default. It's protected, and the maintainer promotes `develop` to `main`. Contributors don't open PRs against `main`.
+
+Because `main` is the default branch, a fresh clone leaves you on `main` and GitHub pre-selects `main` as the PR base. So there are two things to remember: branch off `develop`, and switch the PR base back to `develop` before you open it.
+
+```bash
+git clone https://github.com/a1clark1a/diceTable.git
+cd diceTable
+git checkout develop        # move off the default (main)
+git pull origin develop     # make sure it's current
+git checkout -b my-change   # branch off develop
+```
+
+When you open the pull request, change the base branch from `main` to `develop` in GitHub's base dropdown. A PR opened against `main` will be asked to retarget.
+
 ## Development workflow
 
 ```bash

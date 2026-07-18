@@ -8,38 +8,58 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Default title for non-JS crawlers and the pre-mount paint. RouteHead
+         renders a per-route <title> at runtime; React 19 hoists it ahead of this
+         one, so document.title and Googlebot both see the route-correct title. -->
     <title>DiceTable — Dice probability comparison for tabletop gaming</title>
-    <meta
-      name="description"
-      content="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
-    />
     <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
-    <meta name="robots" content="index,follow" />
-    <link rel="canonical" href="https://dice-table.app/" />
 
+    <!-- Global OG/Twitter card art and type. Per-route og/twitter title, description,
+         and url are emitted by RouteHead so each route owns exactly one of each. -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="DiceTable — Dice probability comparison" />
-    <meta
-      property="og:description"
-      content="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
-    />
-    <meta property="og:url" content="https://dice-table.app/" />
     <meta property="og:image" content="https://dice-table.app/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="DiceTable logo on a light background" />
-
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="DiceTable — Dice probability comparison" />
-    <meta
-      name="twitter:description"
-      content="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
-    />
     <meta name="twitter:image" content="https://dice-table.app/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "DiceTable",
+        "url": "https://dice-table.app/",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "description": "Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "DevZan"
+        }
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Pre-mount hero: the only homepage content non-JS crawlers see. React
+         clears #root and renders TablePage on mount, which mirrors this copy.
+         Keep the two strings in sync with TablePage to avoid a content flash. -->
+    <div id="root">
+      <main>
+        <h1>Compare dice rolls side by side</h1>
+        <p>
+          Build a table of named rolls, set a target number, and see the exact
+          probability for every result on one chart.
+        </p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
