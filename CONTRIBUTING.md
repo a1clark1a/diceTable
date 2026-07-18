@@ -47,20 +47,20 @@ Speculative or "what if" ideas are a great fit for [Discussions](https://github.
 
 DiceTable uses a two-branch model: `feature → develop (staging) → main (production)`.
 
-- **`develop`** is the integration branch. It deploys to staging, and it's where contributions land. Base your work on `develop`, and target your pull request at `develop`.
-- **`main`** is the production branch and the repository default. It's protected, and the maintainer promotes `develop` to `main`. Contributors don't open PRs against `main`.
-
-Because `main` is the default branch, a fresh clone leaves you on `main` and GitHub pre-selects `main` as the PR base. So there are two things to remember: branch off `develop`, and switch the PR base back to `develop` before you open it.
+- **`develop`** is the integration branch and the repository default. It deploys to staging, and it's where contributions land. A fresh clone starts on `develop`, and GitHub pre-selects it as the PR base.
+- **`main`** is the production branch. It's protected, and the maintainer promotes `develop` to `main` with a release PR. After each release, `main` is merged back into `develop` automatically. Contributors don't open PRs against `main`.
 
 ```bash
 git clone https://github.com/a1clark1a/diceTable.git
-cd diceTable
-git checkout develop        # move off the default (main)
-git pull origin develop     # make sure it's current
-git checkout -b my-change   # branch off develop
+cd diceTable                 # a fresh clone starts on develop
+git checkout -b myChange     # branch off develop
 ```
 
-When you open the pull request, change the base branch from `main` to `develop` in GitHub's base dropdown. A PR opened against `main` will be asked to retarget.
+Branch names are short camelCase describing the change (`rollLabels`, `workflowUpdate`). Type prefixes like `chore:` or `feat:` go on commit messages and PR titles, not branch names.
+
+When you open the pull request, the base branch defaults to `develop`. Leave it there. A PR opened against `main` will be asked to retarget.
+
+For a visual walkthrough of the full flow, see [docs/architecture/branching.md](docs/architecture/branching.md).
 
 ## Development workflow
 
@@ -78,6 +78,17 @@ CI runs lint, the test suite, and the type-check (build) on every PR, so those g
 1. `npm run verify` is green.
 2. If you touched UI, eyeball it at 360 px width and in dark mode.
 3. Add or update tests for behavioral changes.
+
+## AI-assisted contributions
+
+Using an AI coding assistant here is welcome. The repository ships guidance so any harness behaves like a good contributor: [AGENTS.md](AGENTS.md) holds the ground rules, and [.agents/skills/](.agents/skills/) contains task playbooks (filing issues, proposing features, making changes, opening PRs). Most current tools read `AGENTS.md` automatically; if yours doesn't, point it there before starting.
+
+Two expectations come with it:
+
+- **You own what you submit.** Review every line before pushing, and be able to explain the diff in your own words. "The AI wrote it" is not an answer a review can work with.
+- **On `good first issue` tasks, write the code yourself.** Those issues exist so new contributors learn the codebase. AI is genuinely useful there for explaining code, reviewing your diff, drafting the PR description, and summarizing review threads. Generating the whole patch skips the part that was the point.
+
+Keep AI-assisted changes small and focused. Assistants tend to over-produce; the scope rules above and the size guardrails in `AGENTS.md` are the antidote.
 
 ## Pull request guidelines
 
