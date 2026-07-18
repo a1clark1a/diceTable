@@ -10,7 +10,7 @@ Anything beyond a typo or small bugfix should start as an issue first, so we can
 
 ## Checklist
 
-- [ ] The base branch is `develop`, not `main`. GitHub defaults new PRs to `main`, so switch the base if needed (see [Branching](../blob/main/CONTRIBUTING.md#branching)).
+- [ ] The base branch is `develop`, not `main`. `develop` is the default, so this is usually already right (see [Branching](../blob/main/CONTRIBUTING.md#branching)).
 - [ ] This fits the project scope. For engine / state / persistence changes, new dependencies, or new features, I opened an issue first (see [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md)).
 - [ ] Added or updated tests for behavioral changes.
 - [ ] If UI changed, I checked it at 360 px and in dark mode.
