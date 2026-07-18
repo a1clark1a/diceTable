@@ -23,6 +23,18 @@ vite.config.profile.ts
 
 # Playwright MCP artifacts (console logs + page snapshots)
 .playwright-mcp/
+
+# design-sync is local-only tooling, never committed
+.design-sync/
+.ds-sync/
+ds-bundle/
+ds-bundle-work/
+
+# Personal AI harness config stays local; public agent guidance lives in
+# AGENTS.md and .agents/skills/
+.claude/
+CLAUDE.md
+
 # Screenshots dropped in the repo root (real assets live in public/)
 /*.png
 
