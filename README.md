@@ -147,6 +147,7 @@ Contributions are genuinely welcome, and small in-scope improvements are the eas
 
 The scope is deliberately lean, so a quick read of [CONTRIBUTING.md](CONTRIBUTING.md) before a non-trivial PR saves us both time. The short version:
 
+- **Base and target `develop`, not `main`.** The branch model is `feature → develop (staging) → main (production)`. `main` is the default branch but is production only and maintainer-promoted, so check out `develop` before you branch, and switch the PR base from `main` to `develop` when you open it. See [Branching](CONTRIBUTING.md#branching).
 - Typos, small bugfixes, and obvious cleanups: just send the PR.
 - New features, refactors that touch the engine or state layer, new dependencies: open an issue first so we can talk through scope.
 - Feature ideas are welcome. The app stays lean on purpose, so the requests most likely to land are the ones several people ask for. If a similar request already exists, add a 👍 instead of opening a duplicate: that demand is the signal I watch.
