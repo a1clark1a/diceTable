@@ -4,10 +4,20 @@ import { useSearchParams } from 'react-router-dom';
 import { DocsTabs } from '../components/docs/DocsTabs';
 import { isDocsTab, type DocsTab } from '../components/docs/docs-tab';
 import { Quickstart } from '../components/docs/Quickstart';
+import { quickstartSteps } from '../components/docs/quickstart-data';
 import { Glossary } from '../components/docs/Glossary';
 import { TheMath } from '../components/docs/TheMath';
+import { RouteHead } from '../components/seo/RouteHead';
+import { JsonLd } from '../components/seo/JsonLd';
+import { buildHowToLd } from '../components/seo/structuredData';
 
 const DEFAULT_TAB: DocsTab = 'quickstart';
+
+const QUICKSTART_HOWTO_LD = buildHowToLd(
+  'How to use DiceTable',
+  'Build dice rolls, compare their probability on one chart, and set targets to read hit rates.',
+  quickstartSteps,
+);
 
 export default function DocsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,6 +40,11 @@ export default function DocsPage() {
 
   return (
     <Stack gap={6} maxW="920px" mx="auto">
+      <RouteHead
+        title="DiceTable Docs: dice notation, glossary, and the math"
+        description="How to use DiceTable, what every term means, and the math behind every number."
+        path="/docs"
+      />
       <Stack gap={1}>
         <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
           Docs
@@ -43,7 +58,12 @@ export default function DocsPage() {
       <DocsTabs value={activeTab} onChange={handleChange} />
 
       <Stack gap={6} role="tabpanel" aria-label={activeTab}>
-        {activeTab === 'quickstart' && <Quickstart />}
+        {activeTab === 'quickstart' && (
+          <>
+            <JsonLd data={QUICKSTART_HOWTO_LD} />
+            <Quickstart />
+          </>
+        )}
         {activeTab === 'glossary' && <Glossary />}
         {activeTab === 'math' && <TheMath />}
       </Stack>

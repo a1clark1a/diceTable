@@ -1,9 +1,16 @@
 import { Button, Heading, Stack, Text } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { RouteHead } from '../components/seo/RouteHead';
 
 export default function NotFoundPage() {
   return (
     <Stack gap={4} maxW="520px" mx="auto" py={{ base: 8, md: 16 }} textAlign="center">
+      <RouteHead
+        title="Page not found · DiceTable"
+        description="That URL does not match any page in DiceTable."
+        path="/404"
+        noindex
+      />
       <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
         Page not found
       </Heading>
