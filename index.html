@@ -13,7 +13,85 @@
          one, so document.title and Googlebot both see the route-correct title. -->
     <title>DiceTable — Dice probability comparison for tabletop gaming</title>
     <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+
+    <!-- Applies the saved color mode before first paint so the pre-mount frame
+         matches the app instead of flashing white. Mirrors next-themes exactly
+         ("theme" storage key, class strategy, system fallback); the provider
+         takes over the class on mount. -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (
+            theme === 'dark' ||
+            (theme !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          ) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {
+          /* storage blocked: stay light */
+        }
+      })();
+    </script>
+
+    <!-- Pre-mount styles only. Chakra isn't loaded yet, so these hardcode the
+         theme's resolved values (bg / fg / fg.muted, Inter stack, container
+         metrics) as hex; this file is the one place besides palette.ts where
+         hex is allowed. `.preboot` exists only in the static markup below and
+         disappears when React replaces #root, so nothing here can leak into
+         the mounted app. -->
+    <style>
+      body {
+        margin: 0;
+      }
+      html {
+        background-color: #ffffff;
+      }
+      html.dark {
+        background-color: #09090b;
+        color-scheme: dark;
+      }
+      .preboot {
+        box-sizing: border-box;
+        max-width: 1200px;
+        margin: 0 auto;
+        /* navbar height + page padding, so the copy lands where TablePage renders it */
+        padding: 69px 12px 12px;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          Helvetica, Arial, sans-serif;
+        color: #09090b;
+      }
+      html.dark .preboot {
+        color: #fafafa;
+      }
+      .preboot h1 {
+        margin: 0;
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+      }
+      .preboot p {
+        margin: 4px 0 0;
+        font-size: 1rem;
+        line-height: 1.5rem;
+        color: #52525b;
+      }
+      html.dark .preboot p {
+        color: #a1a1aa;
+      }
+      @media (min-width: 48em) {
+        .preboot {
+          padding: 81px 24px 24px;
+        }
+        .preboot h1 {
+          font-size: 1.25rem;
+          line-height: 1.875rem;
+        }
+      }
+    </style>
 
     <!-- Global OG/Twitter card art and type. Per-route og/twitter title, description,
          and url are emitted by RouteHead so each route owns exactly one of each. -->
@@ -48,11 +126,13 @@
     </script>
   </head>
   <body>
-    <!-- Pre-mount hero: the only homepage content non-JS crawlers see. React
-         clears #root and renders TablePage on mount, which mirrors this copy.
-         Keep the two strings in sync with TablePage to avoid a content flash. -->
+    <!-- Pre-mount hero: the only homepage content non-JS crawlers see, styled
+         by the inline .preboot rules above so the pre-React paint matches the
+         app. React clears #root and renders TablePage on mount, which mirrors
+         this copy. Keep the two strings in sync with TablePage to avoid a
+         content flash. -->
     <div id="root">
-      <main>
+      <main class="preboot">
         <h1>Compare dice rolls side by side</h1>
         <p>
           Build a table of named rolls, set a target number, and see the exact

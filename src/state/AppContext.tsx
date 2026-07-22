@@ -19,6 +19,7 @@ import {
   type Expression,
   type PersistedState,
   type TargetState,
+  type WorkshopView,
 } from '../types';
 
 const STORAGE_KEY = 'dicetable.v2';
@@ -46,6 +47,7 @@ const initialState: PersistedState = {
     expandedId: null,
     chartView: 'pmf',
     target: { values: [], ruling: 'gte' },
+    view: 'table',
   },
 };
 
@@ -154,6 +156,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setChartView = useCallback(
     (view: ChartView) => {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, chartView: view } }));
+    },
+    [setState],
+  );
+
+  const setView = useCallback(
+    (view: WorkshopView) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, view } }));
     },
     [setState],
   );
@@ -359,8 +368,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       expandedId: state.ui.expandedId,
       chartView: state.ui.chartView,
       target: state.ui.target,
+      view: state.ui.view,
       setExpandedId,
       setChartView,
+      setView,
       setTarget,
       addExpression,
       duplicateExpression,
@@ -377,6 +388,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       setExpandedId,
       setChartView,
+      setView,
       setTarget,
       addExpression,
       duplicateExpression,

@@ -8,6 +8,7 @@ import type {
   RollMode,
   TargetRuling,
   TargetState,
+  WorkshopView,
 } from '../types';
 
 export type ExpressionPatch = {
@@ -34,8 +35,10 @@ export interface AppContextValue {
   expandedId: string | null;
   chartView: ChartView;
   target: TargetState;
+  view: WorkshopView;
   setExpandedId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
+  setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
   addExpression: () => void;
   duplicateExpression: (id: string) => void;
