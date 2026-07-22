@@ -18,6 +18,7 @@ import {
   type DicePart,
   type Expression,
   type PersistedState,
+  type RollMode,
   type TargetState,
   type WorkshopView,
 } from '../types';
@@ -280,6 +281,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [updateExpressionInList],
   );
 
+  const setAllRollModes = useCallback(
+    (mode: RollMode) => {
+      setState((prev) => {
+        if (prev.expressions.every((e) => e.rollMode === mode)) return prev;
+        return {
+          ...prev,
+          expressions: prev.expressions.map((e) =>
+            e.rollMode === mode ? e : { ...e, rollMode: mode },
+          ),
+        };
+      });
+    },
+    [setState],
+  );
+
   const addPart = useCallback(
     (exprId: string) => {
       updateExpressionInList(exprId, (e) => ({
@@ -378,6 +394,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteExpression,
       renameExpression,
       updateExpression,
+      setAllRollModes,
       addPart,
       removePart,
       updatePart,
@@ -395,6 +412,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteExpression,
       renameExpression,
       updateExpression,
+      setAllRollModes,
       addPart,
       removePart,
       updatePart,

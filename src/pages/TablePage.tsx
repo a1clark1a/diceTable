@@ -4,10 +4,8 @@ import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
 import { OverlayChart } from '../components/chart/OverlayChart';
 import { ViewBar } from '../components/ViewBar';
-import {
-  WorkshopViewSwitcher,
-  type WorkshopViewChip,
-} from '../components/WorkshopViewSwitcher';
+import { WorkshopHeader } from '../components/WorkshopHeader';
+import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
 import { useIsDesktop } from '../hooks/useBreakpoint';
 import { useApp } from '../state/useApp';
@@ -54,7 +52,11 @@ export default function TablePage() {
           probability for every result on one chart.
         </Text>
       </Stack>
-      <WorkshopViewSwitcher views={registry} active={active.id} onSelect={setView} />
+      <WorkshopHeader
+        views={registry}
+        activeView={active.id}
+        onSelectView={setView}
+      />
       {active.render()}
     </Stack>
   );

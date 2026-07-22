@@ -45,6 +45,7 @@ export interface AppContextValue {
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
+  setAllRollModes: (mode: RollMode) => void;
   addPart: (exprId: string) => void;
   removePart: (exprId: string, partId: string) => void;
   updatePart: (exprId: string, partId: string, patch: PartPatch) => void;

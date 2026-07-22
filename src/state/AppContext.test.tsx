@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ReactNode } from 'react';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
+import type { RollMode } from '../types';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AppProvider>{children}</AppProvider>
@@ -172,5 +173,91 @@ describe('AppContext expression cap', () => {
       result.current.replaceExpressions(makeExprs(150));
     });
     expect(result.current.expressions).toHaveLength(100);
+  });
+});
+
+function seedRollModes(modes: RollMode[]) {
+  const state = {
+    version: 2,
+    expressions: modes.map((mode, i) => ({
+      id: `e${i}`,
+      name: `Row ${i}`,
+      parts: [{ id: `p${i}`, count: 1, sides: 6 }],
+      flatModifier: 0,
+      rollMode: mode,
+    })),
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [] as number[], ruling: 'gte' as const },
+      view: 'table' as const,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+describe('AppContext setAllRollModes', () => {
+  it('rewrites every row to the given mode', () => {
+    seedRollModes(['normal', 'normal', 'normal']);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setAllRollModes('advantage');
+    });
+    expect(result.current.expressions.map((e) => e.rollMode)).toEqual([
+      'advantage',
+      'advantage',
+      'advantage',
+    ]);
+  });
+
+  it('collapses a hand-mixed table to a single mode', () => {
+    seedRollModes(['normal', 'advantage', 'disadvantage']);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setAllRollModes('disadvantage');
+    });
+    expect(
+      new Set(result.current.expressions.map((e) => e.rollMode)).size,
+    ).toBe(1);
+    expect(result.current.expressions[0]!.rollMode).toBe('disadvantage');
+  });
+
+  it('leaves expression and part ids untouched', () => {
+    seedRollModes(['normal', 'advantage']);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const beforeExprIds = result.current.expressions.map((e) => e.id);
+    const beforePartIds = result.current.expressions.map((e) => e.parts[0]!.id);
+    act(() => {
+      result.current.setAllRollModes('normal');
+    });
+    expect(result.current.expressions.map((e) => e.id)).toEqual(beforeExprIds);
+    expect(result.current.expressions.map((e) => e.parts[0]!.id)).toEqual(
+      beforePartIds,
+    );
+  });
+
+  it('preserves name, parts, and flat modifier when rewriting the mode', () => {
+    seedRollModes(['normal']);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setAllRollModes('advantage');
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.name).toBe('Row 0');
+    expect(row.flatModifier).toBe(0);
+    expect(row.parts).toEqual([{ id: 'p0', count: 1, sides: 6 }]);
+  });
+
+  it('is a no-op on an empty table', () => {
+    seedRollModes([]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    expect(result.current.expressions).toEqual([]);
+    act(() => {
+      result.current.setAllRollModes('advantage');
+    });
+    expect(result.current.expressions).toEqual([]);
   });
 });
