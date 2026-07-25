@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Workshop view switcher: a chip group above the table for switching between workshop views. This release registers only the existing "Table & chart" view; additional views (target hit, roll-off, head-to-head) register their chips as they land.
+- Global roll mode: a Normal / Advantage / Disadvantage control in the header that applies one roll mode to every roll at once, with a "mixed" state shown when rows currently differ.
+- "Add roll" button in the header, alongside the existing add row at the bottom of the table.
+
+## [1.2.0] - 2026-07-17
+
+### Added
+
 - Open source project scaffolding: `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1).
 - GitHub community templates: issue templates (bug report, feature request, documentation), pull request template with verification checklist.
 - `.github/dependabot.yml`: monthly grouped npm and GitHub Actions updates, targeting the `develop` branch, with `@types/node` major bumps ignored until `engines.node` is upgraded.
@@ -48,5 +56,6 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.2.0
 [1.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.1.0

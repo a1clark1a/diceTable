@@ -38,7 +38,7 @@ export function WorkshopViewSwitcher({
           <Button
             key={v.id}
             size="sm"
-            variant={isActive ? 'subtle' : 'ghost'}
+            variant={isActive ? 'solid' : 'ghost'}
             colorPalette={isActive ? 'blue' : 'gray'}
             onClick={() => onSelect(v.id)}
             aria-pressed={isActive}

@@ -96,7 +96,7 @@ export function WorkshopHeader({
           size="sm"
           variant="outline"
           onClick={addExpression}
-          minH="40px"
+          minH="48px"
         >
           <Plus size={16} />
           {isDesktop ? 'Add roll' : 'Add'}
