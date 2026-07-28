@@ -266,6 +266,8 @@ const uiTips: Record<string, string> = {
   roll: 'Open the roller. Pick how many times to roll, see recent results. History stays until you reload the page.',
   rollMode:
     'Applies to the whole roll. Advantage rolls twice and takes the higher; disadvantage rolls twice and takes the lower.',
+  globalRollMode:
+    'Applies one roll mode to every roll in the list: advantage rolls twice and keeps the higher result, disadvantage keeps the lower. Mixed means rows currently differ.',
   rollModeNormal: 'Roll once.',
   rollModeAdvantage: 'Roll twice and take the higher result.',
   rollModeDisadvantage: 'Roll twice and take the lower result.',

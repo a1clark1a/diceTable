@@ -36,6 +36,8 @@ export type Distribution = Map<number, number>;
 
 export type ChartView = 'pmf' | 'cdf' | 'ccdf' | 'target';
 
+export type WorkshopView = 'table' | 'target' | 'rolloff' | 'matrix';
+
 export type TargetRuling = 'gte' | 'gt' | 'lte' | 'lt' | 'eq';
 
 export const MAX_TARGETS = 5;
@@ -53,5 +55,6 @@ export interface PersistedState {
     expandedId: string | null;
     chartView: ChartView;
     target: TargetState;
+    view: WorkshopView;
   };
 }

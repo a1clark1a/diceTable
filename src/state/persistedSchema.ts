@@ -11,10 +11,12 @@ import {
   type RollMode,
   type TargetRuling,
   type TargetState,
+  type WorkshopView,
 } from '../types';
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
 const CHART_VIEWS: readonly ChartView[] = ['pmf', 'cdf', 'ccdf', 'target'];
+const WORKSHOP_VIEWS: readonly WorkshopView[] = ['table', 'target', 'rolloff', 'matrix'];
 const TARGET_RULINGS: readonly TargetRuling[] = ['gte', 'gt', 'lte', 'lt', 'eq'];
 const KEEP_TYPES: readonly KeepRule['type'][] = ['highest', 'lowest'];
 const REROLL_MODES: readonly RerollRule['mode'][] = ['once', 'always'];
@@ -135,7 +137,12 @@ function validateTarget(v: unknown): TargetState {
 
 function validateUi(v: unknown): PersistedState['ui'] {
   if (!isRecord(v)) {
-    return { expandedId: null, chartView: 'pmf', target: { values: [], ruling: 'gte' } };
+    return {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [], ruling: 'gte' },
+      view: 'table',
+    };
   }
   const expandedId =
     v.expandedId === null
@@ -145,7 +152,8 @@ function validateUi(v: unknown): PersistedState['ui'] {
         : null;
   const chartView = isOneOf(v.chartView, CHART_VIEWS) ? v.chartView : 'pmf';
   const target = validateTarget(v.target);
-  return { expandedId, chartView, target };
+  const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
+  return { expandedId, chartView, target, view };
 }
 
 export function validatePersistedState(raw: unknown): PersistedState | null {
