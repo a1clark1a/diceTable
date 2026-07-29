@@ -24,6 +24,7 @@ const validPayload: PersistedState = {
     expandedId: 'expr-1',
     chartView: 'cdf',
     target: { values: [15], ruling: 'gte' },
+    view: 'table',
   },
 };
 
@@ -132,6 +133,7 @@ describe('validatePersistedState', () => {
       expandedId: null,
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
+      view: 'table',
     });
   });
 
@@ -146,7 +148,39 @@ describe('validatePersistedState', () => {
       expandedId: 'expr-1',
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
+      view: 'table',
     });
+  });
+
+  it('falls back to the table view when view is unknown', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, view: 'wizard' },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.ui.view).toBe('table');
+  });
+
+  it('defaults view to table when it is absent', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: {
+        expandedId: null,
+        chartView: 'pmf',
+        target: { values: [], ruling: 'gte' },
+      },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.ui.view).toBe('table');
+  });
+
+  it('preserves a valid non-default view', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, view: 'rolloff' },
+    });
+    expect(result).not.toBeNull();
+    expect(result!.ui.view).toBe('rolloff');
   });
 
   it('falls back to default ruling when target ruling is unknown', () => {
