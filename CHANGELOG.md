@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-27
+
 ### Added
 
 - Workshop view switcher: a chip group above the table for switching between workshop views. This release registers only the existing "Table & chart" view; additional views (target hit, roll-off, head-to-head) register their chips as they land.
@@ -56,6 +58,7 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.3.0
 [1.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.2.0
 [1.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.1.0
