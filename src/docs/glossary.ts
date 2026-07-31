@@ -291,6 +291,10 @@ const uiTips: Record<string, string> = {
     'A die succeeds when it lands at or above (≥) or at or below (≤) the number. Click to flip.',
   poolTarget:
     'How many successes count as a hit for every pool row. Sum rows keep using the targets in the toolbar.',
+  totalsChart:
+    'Sum rolls compare here. The bottom axis shows each possible total.',
+  successesChart:
+    'Pool rolls compare here. The bottom axis counts successes, not totals.',
   poolAutoSuccess:
     'Added straight to the number of successes. It doesn’t change each die’s chance. A roll never goes below zero successes.',
   keepDisabledInPool:

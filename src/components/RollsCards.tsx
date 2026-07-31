@@ -189,6 +189,12 @@ const RollCard = memo(function RollCard({
     isPool && showHit && stats.hasDist
       ? hitProbability(stats.dist, poolTarget, 'gte')
       : null;
+  // In target view a pool row's shape highlights against the shared pool
+  // target; the numeric target list describes sums, not success counts.
+  const sparkTarget = useMemo<TargetState>(
+    () => (isPool ? { values: [poolTarget], ruling: 'gte' } : target),
+    [isPool, poolTarget, target],
+  );
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
@@ -328,7 +334,8 @@ const RollCard = memo(function RollCard({
                     color={color}
                     exprName={expr.name}
                     view={view}
-                    target={target}
+                    target={sparkTarget}
+                    mode={expr.mode}
                     height={36}
                     fill
                   />
