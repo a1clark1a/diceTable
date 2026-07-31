@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { validatePersistedState } from './persistedSchema';
+import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
 import { defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
 import { toaster } from '../components/share/toaster-store';
@@ -24,7 +24,12 @@ import {
 } from '../types';
 
 const STORAGE_KEY = 'dicetable.v2';
-const STATE_VERSION = 2;
+
+// Frozen. useLocalStorage gates reads on an exact envelope-version match and no
+// migrate is wired, so raising this discards every saved table. Schema changes
+// ride SCHEMA_VERSION inside the envelope instead, where the validator can accept
+// the older shape and normalise it.
+const ENVELOPE_VERSION = 2;
 
 const seedExpression: Expression = {
   id: 'seed-4d6kh3',
@@ -39,16 +44,18 @@ const seedExpression: Expression = {
   ],
   flatModifier: 2,
   rollMode: 'advantage',
+  mode: 'sum',
 };
 
 const initialState: PersistedState = {
-  version: STATE_VERSION,
+  version: SCHEMA_VERSION,
   expressions: [seedExpression],
   ui: {
     expandedId: null,
     chartView: 'pmf',
     target: { values: [], ruling: 'gte' },
     view: 'table',
+    poolTarget: 1,
   },
 };
 
@@ -72,6 +79,7 @@ function defaultExpression(name: string = DEFAULT_ROLL_NAME): Expression {
     parts: [defaultPart()],
     flatModifier: 0,
     rollMode: 'normal',
+    mode: 'sum',
   };
 }
 
@@ -131,7 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     STORAGE_KEY,
     initialState,
     {
-      version: STATE_VERSION,
+      version: ENVELOPE_VERSION,
       validate: validatePersistedState,
       onWriteError,
     },

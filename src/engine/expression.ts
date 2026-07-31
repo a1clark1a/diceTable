@@ -1,7 +1,13 @@
 import type { Distribution, Expression, RollMode } from '../types';
 import { expressionTooComplex } from './complexity';
-import { convolveMany, emptyDistribution, shift, sortedKeys } from './distribution';
-import { partDistribution } from './parts';
+import {
+  convolveMany,
+  emptyDistribution,
+  shift,
+  shiftClampedAtZero,
+  sortedKeys,
+} from './distribution';
+import { partDistribution, poolPartDistribution } from './parts';
 
 export function applyRollMode(dist: Distribution, mode: RollMode): Distribution {
   if (dist.size === 0) return emptyDistribution();
@@ -34,9 +40,37 @@ export function applyRollMode(dist: Distribution, mode: RollMode): Distribution 
   return result;
 }
 
+// Advantage means "roll the whole thing twice and keep the better one", which for
+// a pool would mean comparing two success counts. That is a distinct mechanic
+// nobody has asked for, and running applyRollMode over a count distribution would
+// answer it anyway, plausibly and wrongly. rollMode is preserved on the row for
+// the day it flips back to sum, and ignored here.
+function poolDistribution(expr: Expression): Distribution {
+  const threshold = expr.successThreshold;
+  if (threshold === undefined) return emptyDistribution();
+
+  const partDists: Distribution[] = [];
+  for (const part of expr.parts) {
+    const d = poolPartDistribution(part, threshold);
+    if (d.size === 0) return emptyDistribution();
+    partDists.push(d);
+  }
+
+  let dist = convolveMany(partDists);
+  if (dist.size === 0) return emptyDistribution();
+
+  if (Number.isFinite(expr.flatModifier) && expr.flatModifier !== 0) {
+    dist = shiftClampedAtZero(dist, expr.flatModifier);
+  }
+
+  return dist;
+}
+
 export function expressionDistribution(expr: Expression): Distribution {
   if (!Array.isArray(expr.parts) || expr.parts.length === 0) return emptyDistribution();
   if (expressionTooComplex(expr)) return emptyDistribution();
+
+  if (expr.mode === 'pool') return poolDistribution(expr);
 
   const partDists: Distribution[] = [];
   for (const part of expr.parts) {

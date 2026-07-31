@@ -82,6 +82,7 @@ interface SeededExpr {
   parts: { id: string; count: number; sides: number }[];
   flatModifier: number;
   rollMode: 'normal';
+  mode: 'sum';
 }
 
 function makeExprs(count: number): SeededExpr[] {
@@ -91,6 +92,7 @@ function makeExprs(count: number): SeededExpr[] {
     parts: [{ id: `p${i}`, count: 1, sides: 6 }],
     flatModifier: 0,
     rollMode: 'normal',
+    mode: 'sum',
   }));
 }
 

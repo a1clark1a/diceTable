@@ -9,6 +9,7 @@ function expr(name: string, id = `expr-${name}`): Expression {
     parts: [{ id: `part-${id}`, count: 1, sides: 20 }],
     flatModifier: 0,
     rollMode: 'normal',
+    mode: 'sum',
   };
 }
 

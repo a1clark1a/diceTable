@@ -43,6 +43,20 @@ export function shift(dist: Distribution, offset: number): Distribution {
   return result;
 }
 
+// Success counts have a floor: a penalty bigger than the successes rolled leaves
+// zero, not a negative count. Every key below the floor collapses onto 0, so the
+// mass has to accumulate rather than overwrite the way plain `shift` does.
+export function shiftClampedAtZero(dist: Distribution, offset: number): Distribution {
+  if (!Number.isFinite(offset)) return emptyDistribution();
+  if (offset === 0) return new Map(dist);
+  const result = new Map<number, number>();
+  for (const [k, p] of dist) {
+    const shifted = Math.max(0, k + offset);
+    result.set(shifted, (result.get(shifted) ?? 0) + p);
+  }
+  return result;
+}
+
 export function convolve(a: Distribution, b: Distribution): Distribution {
   if (a.size === 0 || b.size === 0) return emptyDistribution();
   const result = new Map<number, number>();
