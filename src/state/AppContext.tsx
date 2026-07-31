@@ -19,6 +19,7 @@ import {
   type Expression,
   type PersistedState,
   type RollMode,
+  type SuccessThreshold,
   type TargetState,
   type WorkshopView,
 } from '../types';
@@ -108,6 +109,25 @@ function applyPartPatch(part: DicePart, patch: PartPatch): DicePart {
     else delete next.explode;
   }
   return next;
+}
+
+// Keep and explode have no honest meaning when counting successes; stripping
+// them on the switch keeps notation and math in agreement (they are never
+// displayed-but-ignored). Reroll survives: pool odds are post-reroll.
+function stripPoolIncompatibleRules(part: DicePart): DicePart {
+  if (part.keep === undefined && part.explode === undefined) return part;
+  const next: DicePart = { ...part };
+  delete next.keep;
+  delete next.explode;
+  return next;
+}
+
+// "Better than half" on the row's first die: 4+ on a d6, 6+ on a d10, 11+ on a
+// d20. Lands near real dice-pool systems without being tuned to any one of them.
+function seedSuccessThreshold(parts: DicePart[]): SuccessThreshold {
+  const sides = parts[0]?.sides ?? 6;
+  const value = Math.min(Math.max(Math.ceil(sides / 2) + 1, 1), sides);
+  return { direction: 'gte', value };
 }
 
 function isQuotaError(err: unknown): boolean {
@@ -283,6 +303,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (patch.name !== undefined) next.name = patch.name;
         if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
+        if (patch.mode !== undefined && patch.mode !== e.mode) {
+          next.mode = patch.mode;
+          if (patch.mode === 'pool') {
+            next.parts = e.parts.map(stripPoolIncompatibleRules);
+            next.successThreshold = seedSuccessThreshold(e.parts);
+          } else {
+            delete next.successThreshold;
+          }
+        }
+        if ('successThreshold' in patch) {
+          if (patch.successThreshold) next.successThreshold = patch.successThreshold;
+          else delete next.successThreshold;
+        }
         return next;
       });
     },

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
-import type { DicePart } from '../types';
+import type { DicePart, PersistedState } from '../types';
 import type { PartPatch } from '../state/useApp';
 
 // Counting stub for the editor leaf. The fix under test stabilizes the
@@ -62,6 +62,42 @@ function renderEditor() {
 
 function resetCounts() {
   for (const k of Object.keys(renderCounts)) delete renderCounts[k];
+}
+
+// Hydration silently replaces the seed with the initial sum expression if any
+// pool row fails validatePersistedState, so the seeded pool row must carry a
+// valid successThreshold and parts free of keep/explode.
+function seedPoolExpressionInStorage() {
+  const state: PersistedState = {
+    version: 3,
+    expressions: [
+      {
+        id: SEED_EXPR_ID,
+        name: '6d6 pool',
+        parts: [{ id: SEED_PART_ID, count: 6, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'pool',
+        successThreshold: { direction: 'gte', value: 4 },
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [], ruling: 'gte' },
+      view: 'table',
+      poolTarget: 1,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+function rollModeButton(name: 'Normal' | 'Advantage' | 'Disadvantage') {
+  const group = screen.getByRole('group', { name: 'Roll mode' });
+  return within(group).getByRole('button', { name });
 }
 
 function secondPartId(): string {
@@ -129,5 +165,48 @@ describe('RollExpand part-edit isolation', () => {
       '4',
     );
     expect(renderCounts[SEED_PART_ID] ?? 0).toBe(0);
+  });
+});
+
+describe('RollExpand roll-mode buttons in pool mode', () => {
+  it('marks all three roll-mode buttons aria-disabled on a pool expression', () => {
+    seedPoolExpressionInStorage();
+    renderEditor();
+
+    for (const name of ['Normal', 'Advantage', 'Disadvantage'] as const) {
+      const button = rollModeButton(name);
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      expect(button).toHaveAttribute('data-disabled');
+    }
+  });
+
+  it('clicking a roll-mode button on a pool expression does not change the roll mode', () => {
+    seedPoolExpressionInStorage();
+    renderEditor();
+
+    fireEvent.click(rollModeButton('Advantage'));
+
+    expect(rollModeButton('Normal')).toHaveAttribute('aria-pressed', 'true');
+    expect(rollModeButton('Advantage')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not mark the roll-mode buttons disabled on a sum expression', () => {
+    renderEditor();
+
+    for (const name of ['Normal', 'Advantage', 'Disadvantage'] as const) {
+      const button = rollModeButton(name);
+      expect(button).not.toHaveAttribute('aria-disabled');
+      expect(button).not.toHaveAttribute('data-disabled');
+    }
+  });
+
+  it('clicking a roll-mode button on a sum expression moves the pressed state', () => {
+    // The initial seed expression is sum mode with rollMode 'advantage'.
+    renderEditor();
+
+    fireEvent.click(rollModeButton('Normal'));
+
+    expect(rollModeButton('Normal')).toHaveAttribute('aria-pressed', 'true');
+    expect(rollModeButton('Advantage')).toHaveAttribute('aria-pressed', 'false');
   });
 });

@@ -2,10 +2,12 @@ import { createContext, useContext } from 'react';
 import type {
   ChartView,
   Expression,
+  ExpressionMode,
   ExplodeRule,
   KeepRule,
   RerollRule,
   RollMode,
+  SuccessThreshold,
   TargetRuling,
   TargetState,
   WorkshopView,
@@ -15,6 +17,8 @@ export type ExpressionPatch = {
   name?: string;
   flatModifier?: number;
   rollMode?: RollMode;
+  mode?: ExpressionMode;
+  successThreshold?: SuccessThreshold | undefined;
 };
 
 export type PartPatch = {

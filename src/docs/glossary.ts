@@ -57,7 +57,8 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Modifier',
     alt: '+M / −M',
     group: 'notation',
-    plain: 'A flat number added to every roll’s total.',
+    plain:
+      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead.',
   },
   {
     id: 'keep',
@@ -267,7 +268,7 @@ const uiTips: Record<string, string> = {
   rollMode:
     'Applies to the whole roll. Advantage rolls twice and takes the higher; disadvantage rolls twice and takes the lower.',
   globalRollMode:
-    'Applies one roll mode to every roll in the list: advantage rolls twice and keeps the higher result, disadvantage keeps the lower. Mixed means rows currently differ.',
+    'Sets one roll mode for every roll in the list. Mixed means rows currently differ, and rolls that count successes ignore it.',
   rollModeNormal: 'Roll once.',
   rollModeAdvantage: 'Roll twice and take the higher result.',
   rollModeDisadvantage: 'Roll twice and take the lower result.',
@@ -280,6 +281,22 @@ const uiTips: Record<string, string> = {
   inspectMode: 'The results most likely to come up, ordered by chance.',
   inspectSigma:
     'The shaded band is one σ either side of the mean. Most rolls land here.',
+  sumMode:
+    'Add the faces together into one total. The classic damage-roll style.',
+  poolMode:
+    'Count how many dice meet a threshold instead of adding them into a total. The row then shows successes, not totals.',
+  successThreshold:
+    'Which faces count as a success on each die. Pick the direction and the number, like 8 or higher on a d10.',
+  successDirection:
+    'A die succeeds when it lands at or above (≥) or at or below (≤) the number. Click to flip.',
+  poolAutoSuccess:
+    'Added straight to the number of successes. It doesn’t change each die’s chance. A roll never goes below zero successes.',
+  keepDisabledInPool:
+    'Keep highest or lowest applies when dice add into a total. Switch this roll back to Sum to use it.',
+  explodeDisabledInPool:
+    'Explode adds bonus rolls into a total. Switch this roll back to Sum to use it.',
+  rollModeIgnoredInPool:
+    'This roll counts successes, so advantage and disadvantage have no effect on it. The setting is kept for when you switch back to Sum.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   import:

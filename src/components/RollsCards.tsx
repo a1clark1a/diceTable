@@ -14,9 +14,21 @@ import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
 import { hitProbability } from '../engine/stats';
-import { MAX_EXPRESSIONS, type ChartView, type Expression, type TargetState } from '../types';
+import {
+  MAX_EXPRESSIONS,
+  type ChartView,
+  type Expression,
+  type ExpressionMode,
+  type SuccessThreshold,
+  type TargetState,
+} from '../types';
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
+import {
+  PoolBadge,
+  PoolModeToggle,
+  PoolThresholdEditor,
+} from './editor/PoolControls';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
@@ -161,6 +173,7 @@ const RollCard = memo(function RollCard({
 }: RollCardProps) {
   const { stats, tooComplex } = getRowData(expr);
   const color = rowColor(idx);
+  const isPool = expr.mode === 'pool';
   const hits = useMemo(
     () =>
       showHit && stats.hasDist
@@ -184,6 +197,15 @@ const RollCard = memo(function RollCard({
     (value: number) => updateExpression(expr.id, { flatModifier: value }),
     [updateExpression, expr.id],
   );
+  const onModeChange = useCallback(
+    (mode: ExpressionMode) => updateExpression(expr.id, { mode }),
+    [updateExpression, expr.id],
+  );
+  const onThresholdChange = useCallback(
+    (successThreshold: SuccessThreshold) =>
+      updateExpression(expr.id, { successThreshold }),
+    [updateExpression, expr.id],
+  );
   const nameBuf = useBufferedValue<string>({
     committed: expr.name,
     commit: onRename,
@@ -203,6 +225,9 @@ const RollCard = memo(function RollCard({
       borderColor="border.subtle"
       borderRadius="md"
       overflow="hidden"
+      // Inset shadow instead of a thicker border so pool cards' content stays
+      // aligned with sum cards in the stack (a 3px border would inset it 2px).
+      boxShadow={isPool ? 'inset 3px 0 0 {colors.purple.solid}' : undefined}
     >
       <Box p={3}>
         <HStack gap={2} align="center">
@@ -225,6 +250,7 @@ const RollCard = memo(function RollCard({
         </HStack>
 
         <HStack gap={2} mt={2} align="center">
+          {isPool && <PoolBadge />}
           <Text
             fontFamily="mono"
             fontSize="xs"
@@ -247,8 +273,18 @@ const RollCard = memo(function RollCard({
               </Text>
             )}
           </Text>
-          <HStack gap={1} align="center">
-            <HelpTerm tip={tipForId('mod')}>
+        </HStack>
+
+        <HStack gap={1} mt={1.5} flexWrap="wrap" align="center">
+          <PoolModeToggle mode={expr.mode} onSelect={onModeChange} />
+          {isPool && expr.successThreshold && (
+            <PoolThresholdEditor
+              threshold={expr.successThreshold}
+              onChange={onThresholdChange}
+            />
+          )}
+          <HStack gap={1} align="center" ml="auto">
+            <HelpTerm tip={tipForId(isPool ? 'poolAutoSuccess' : 'mod')}>
               <Text as="span" fontSize="xs" color="fg.muted">
                 Mod
               </Text>
@@ -370,13 +406,17 @@ const RollCard = memo(function RollCard({
         </Grid>
 
         <HStack justify="flex-end" gap={1} mt={2} align="center">
-          <RollResultInline exprId={expr.id} />
-          <RollPopover
-            exprId={expr.id}
-            exprName={expr.name}
-            dist={stats.dist}
-            disabled={!stats.hasDist || tooComplex}
-          />
+          {!isPool && (
+            <>
+              <RollResultInline exprId={expr.id} />
+              <RollPopover
+                exprId={expr.id}
+                exprName={expr.name}
+                dist={stats.dist}
+                disabled={!stats.hasDist || tooComplex}
+              />
+            </>
+          )}
           <IconButton
             aria-label={expanded ? 'Collapse card' : 'Expand card'}
             size="xs"

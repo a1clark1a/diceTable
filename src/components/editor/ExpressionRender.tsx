@@ -58,8 +58,9 @@ export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextPro
   let mod = '';
   if (expr.flatModifier > 0) mod = ` + ${expr.flatModifier}`;
   else if (expr.flatModifier < 0) mod = ` − ${Math.abs(expr.flatModifier)}`;
+  // Pool math ignores rollMode, so its suffix would be displayed-but-ignored.
   const rollSuffix =
-    showRollMode && expr.rollMode !== 'normal'
+    showRollMode && expr.mode !== 'pool' && expr.rollMode !== 'normal'
       ? expr.rollMode === 'advantage'
         ? ' adv'
         : ' dis'

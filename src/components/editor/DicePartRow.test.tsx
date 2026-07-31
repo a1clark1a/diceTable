@@ -23,6 +23,7 @@ function renderRow() {
     <Provider>
       <DicePartRow
         part={basePart()}
+        mode="sum"
         onChange={vi.fn()}
         onRemove={vi.fn()}
         canRemove
@@ -36,6 +37,7 @@ function renderWith(part: DicePart, onChange = vi.fn()) {
     <Provider>
       <DicePartRow
         part={part}
+        mode="sum"
         onChange={onChange}
         onRemove={vi.fn()}
         canRemove
@@ -100,6 +102,7 @@ describe('DicePartRow KeepRuleEditor', () => {
       <Provider>
         <DicePartRow
           part={partWithKeep(2)}
+          mode="sum"
           onChange={vi.fn()}
           onRemove={vi.fn()}
           canRemove
@@ -110,6 +113,7 @@ describe('DicePartRow KeepRuleEditor', () => {
       <Provider>
         <DicePartRow
           part={{ id: 'p1', count: 4, sides: 6 }}
+          mode="sum"
           onChange={vi.fn()}
           onRemove={vi.fn()}
           canRemove
@@ -121,6 +125,7 @@ describe('DicePartRow KeepRuleEditor', () => {
       <Provider>
         <DicePartRow
           part={partWithKeep(5)}
+          mode="sum"
           onChange={vi.fn()}
           onRemove={vi.fn()}
           canRemove
@@ -163,5 +168,73 @@ describe('DicePartRow ExplodeRuleEditor', () => {
     const buttons = group.querySelectorAll<HTMLButtonElement>('button');
     expect(buttons.length).toBe(6);
     expect(buttons[5]!.getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('DicePartRow pool-mode chip disabling', () => {
+  function barePart(): DicePart {
+    return { id: 'p1', count: 4, sides: 6 };
+  }
+
+  function renderInMode(
+    mode: 'sum' | 'pool',
+    part: DicePart = barePart(),
+    onChange = vi.fn(),
+  ) {
+    render(
+      <Provider>
+        <DicePartRow
+          part={part}
+          mode={mode}
+          onChange={onChange}
+          onRemove={vi.fn()}
+          canRemove
+        />
+      </Provider>,
+    );
+    return { onChange };
+  }
+
+  it('marks Keep and Explode as disabled in pool mode while Reroll stays enabled', () => {
+    renderInMode('pool');
+    const keep = screen.getByRole('button', { name: 'Keep' });
+    const explode = screen.getByRole('button', { name: 'Explode' });
+    const reroll = screen.getByRole('button', { name: 'Reroll' });
+    expect(keep).toHaveAttribute('aria-disabled', 'true');
+    expect(keep).toHaveAttribute('data-disabled');
+    expect(explode).toHaveAttribute('aria-disabled', 'true');
+    expect(explode).toHaveAttribute('data-disabled');
+    expect(reroll).not.toHaveAttribute('aria-disabled');
+    expect(reroll).not.toHaveAttribute('data-disabled');
+  });
+
+  it('ignores clicks on the disabled Keep and Explode chips in pool mode', () => {
+    const { onChange } = renderInMode('pool');
+    fireEvent.click(screen.getByRole('button', { name: 'Keep' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Explode' }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('toggles Reroll on with the default rule in pool mode', () => {
+    const { onChange } = renderInMode('pool');
+    fireEvent.click(screen.getByRole('button', { name: 'Reroll' }));
+    expect(onChange).toHaveBeenCalledWith({
+      reroll: { values: [1], mode: 'once' },
+    });
+  });
+
+  it('toggles Keep on with a keep rule in sum mode', () => {
+    const { onChange } = renderInMode('sum');
+    fireEvent.click(screen.getByRole('button', { name: 'Keep' }));
+    expect(onChange).toHaveBeenCalledWith({
+      keep: { type: 'highest', n: 3 },
+    });
+  });
+
+  it('keeps the disabled Keep chip in the tab order in pool mode', () => {
+    renderInMode('pool');
+    const keep = screen.getByRole('button', { name: 'Keep' });
+    expect(keep).not.toHaveAttribute('disabled');
+    expect(keep.tabIndex).toBe(0);
   });
 });
