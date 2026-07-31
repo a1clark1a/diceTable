@@ -69,6 +69,7 @@ export function RollsCards() {
     expandedId,
     chartView,
     target,
+    poolTarget,
     setExpandedId,
     deleteExpression,
     renameExpression,
@@ -118,6 +119,7 @@ export function RollsCards() {
               showHit={showHit}
               view={view}
               target={target}
+              poolTarget={poolTarget}
               setExpandedId={setExpandedId}
               deleteExpression={deleteExpression}
               renameExpression={renameExpression}
@@ -153,6 +155,7 @@ interface RollCardProps {
   showHit: boolean;
   view: ChartView;
   target: TargetState;
+  poolTarget: number;
   setExpandedId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
@@ -166,6 +169,7 @@ const RollCard = memo(function RollCard({
   showHit,
   view,
   target,
+  poolTarget,
   setExpandedId,
   deleteExpression,
   renameExpression,
@@ -176,11 +180,15 @@ const RollCard = memo(function RollCard({
   const isPool = expr.mode === 'pool';
   const hits = useMemo(
     () =>
-      showHit && stats.hasDist
+      !isPool && showHit && stats.hasDist
         ? target.values.map((v) => hitProbability(stats.dist, v, target.ruling))
         : null,
-    [showHit, stats, target],
+    [isPool, showHit, stats, target],
   );
+  const poolHit =
+    isPool && showHit && stats.hasDist
+      ? hitProbability(stats.dist, poolTarget, 'gte')
+      : null;
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
@@ -375,10 +383,33 @@ const RollCard = memo(function RollCard({
           {showHit && (
             <StatPill
               label="Hit %"
-              accessory={<RulingSymbol ruling={target.ruling} color="fg.muted" />}
-              tip={tipForId('hit')}
+              // The numeric ruling symbol describes sum rows only; pool cards
+              // carry their own ≥n label against the pool target instead.
+              accessory={
+                isPool ? undefined : (
+                  <RulingSymbol ruling={target.ruling} color="fg.muted" />
+                )
+              }
+              tip={tipForId(isPool ? 'poolTarget' : 'hit')}
               value={
-                hits === null ? (
+                isPool ? (
+                  poolHit === null ? (
+                    EM_DASH
+                  ) : (
+                    <HStack gap={2} justify="center">
+                      <Text as="span" color="purple.fg" fontSize="2xs">
+                        ≥{poolTarget}
+                      </Text>
+                      <Text
+                        as="span"
+                        color={hitColor(poolHit)}
+                        fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
+                      >
+                        {formatPercent(poolHit)}
+                      </Text>
+                    </HStack>
+                  )
+                ) : hits === null ? (
                   EM_DASH
                 ) : (
                   <Stack gap={0.5} align="center">

@@ -438,3 +438,84 @@ describe('AppContext updateExpression mode switching', () => {
     expect(result.current.expressions[0]!.successThreshold).toBeUndefined();
   });
 });
+
+describe('AppContext setPoolTarget', () => {
+  it('defaults to 1', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('stores a positive integer as given', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(4);
+    });
+    expect(result.current.poolTarget).toBe(4);
+  });
+
+  it('floors a fractional value down to the nearest integer', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(3.9);
+    });
+    expect(result.current.poolTarget).toBe(3);
+  });
+
+  it('clamps zero up to 1', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(0);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('clamps a negative value up to 1', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(-3);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('falls back to 1 for NaN', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(NaN);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('falls back to 1 for Infinity', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(Infinity);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('leaves expressions and target values untouched', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setTarget({ values: [13, 16] });
+    });
+    const beforeExpressions = result.current.expressions;
+    act(() => {
+      result.current.setPoolTarget(3);
+    });
+    expect(result.current.expressions).toEqual(beforeExpressions);
+    expect(result.current.target.values).toEqual([13, 16]);
+    expect(result.current.target.ruling).toBe('gte');
+  });
+});

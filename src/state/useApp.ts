@@ -40,10 +40,12 @@ export interface AppContextValue {
   chartView: ChartView;
   target: TargetState;
   view: WorkshopView;
+  poolTarget: number;
   setExpandedId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
+  setPoolTarget: (value: number) => void;
   addExpression: () => void;
   duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;

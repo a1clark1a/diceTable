@@ -220,6 +220,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const setPoolTarget = useCallback(
+    (value: number) => {
+      const next = Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1;
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, poolTarget: next } }));
+    },
+    [setState],
+  );
+
   const addExpression = useCallback(() => {
     setState((prev) => {
       if (prev.expressions.length >= MAX_EXPRESSIONS) {
@@ -426,10 +434,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       chartView: state.ui.chartView,
       target: state.ui.target,
       view: state.ui.view,
+      poolTarget: state.ui.poolTarget,
       setExpandedId,
       setChartView,
       setView,
       setTarget,
+      setPoolTarget,
       addExpression,
       duplicateExpression,
       deleteExpression,
@@ -448,6 +458,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setChartView,
       setView,
       setTarget,
+      setPoolTarget,
       addExpression,
       duplicateExpression,
       deleteExpression,

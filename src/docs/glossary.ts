@@ -289,6 +289,8 @@ const uiTips: Record<string, string> = {
     'Which faces count as a success on each die. Pick the direction and the number, like 8 or higher on a d10.',
   successDirection:
     'A die succeeds when it lands at or above (≥) or at or below (≤) the number. Click to flip.',
+  poolTarget:
+    'How many successes count as a hit for every pool row. Sum rows keep using the targets in the toolbar.',
   poolAutoSuccess:
     'Added straight to the number of successes. It doesn’t change each die’s chance. A roll never goes below zero successes.',
   keepDisabledInPool:

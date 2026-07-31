@@ -153,3 +153,92 @@ describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', ()
     }
   });
 });
+
+interface PoolSeedOptions {
+  ruling?: 'gte' | 'lte';
+  targetValues?: number[];
+  poolTarget?: number;
+}
+
+// One sum row (2d6) and one pool row (2d6, success on 4+, so per-die p = 0.5).
+// Hand-computed expectations: pool P(>=2 successes) = 0.25, P(>=1) = 0.75;
+// sum P(2d6 >= 10) = 6/36 = 16.7%, P(2d6 <= 10) = 33/36 = 91.7%.
+function seedMixedTable({
+  ruling = 'gte',
+  targetValues = [10],
+  poolTarget = 2,
+}: PoolSeedOptions = {}) {
+  const state = {
+    version: 3,
+    expressions: [
+      {
+        id: 'sum1',
+        name: 'Sum row',
+        parts: [{ id: 'sp1', count: 2, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'sum',
+      },
+      {
+        id: 'pool1',
+        name: 'Pool row',
+        parts: [{ id: 'pp1', count: 2, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'pool',
+        successThreshold: { direction: 'gte', value: 4 },
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: targetValues, ruling },
+      view: 'table',
+      poolTarget,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+describe('RollsTable pool Hit %', () => {
+  it('shows the pool row Hit % against the pool target with an at-least label', () => {
+    seedMixedTable();
+    renderTable();
+    expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('shows the sum row Hit % against the toolbar target in the same table', () => {
+    seedMixedTable();
+    renderTable();
+    expect(screen.getByText('16.7%')).toBeInTheDocument();
+  });
+
+  it('ignores the numeric target ruling on pool rows while sum rows follow it', () => {
+    seedMixedTable({ ruling: 'lte' });
+    renderTable();
+    expect(screen.getByText('91.7%')).toBeInTheDocument();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('committing a new pool target with Enter updates the pool Hit % live', () => {
+    seedMixedTable();
+    renderTable();
+    const input = screen.getByLabelText('Pool target, minimum successes');
+    fireEvent.change(input, { target: { value: '1' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.getByLabelText('At least 1 successes')).toBeInTheDocument();
+  });
+
+  it('renders no pool Hit % when no targets are set', () => {
+    seedMixedTable({ targetValues: [] });
+    renderTable();
+    expect(screen.queryByText('25.0%')).toBeNull();
+    expect(screen.queryByLabelText('At least 2 successes')).toBeNull();
+  });
+});
+

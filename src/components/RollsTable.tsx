@@ -69,6 +69,7 @@ export function RollsTable() {
     expandedId,
     chartView,
     target,
+    poolTarget,
     setExpandedId,
     deleteExpression,
     renameExpression,
@@ -143,6 +144,7 @@ export function RollsTable() {
                   showHit={showHit}
                   view={view}
                   target={target}
+                  poolTarget={poolTarget}
                   setExpandedId={setExpandedId}
                   deleteExpression={deleteExpression}
                   renameExpression={renameExpression}
@@ -222,6 +224,7 @@ interface RollTableRowProps {
   showHit: boolean;
   view: ChartView;
   target: TargetState;
+  poolTarget: number;
   setExpandedId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
@@ -235,6 +238,7 @@ const RollTableRow = memo(function RollTableRow({
   showHit,
   view,
   target,
+  poolTarget,
   setExpandedId,
   deleteExpression,
   renameExpression,
@@ -245,11 +249,15 @@ const RollTableRow = memo(function RollTableRow({
   const isPool = expr.mode === 'pool';
   const hits = useMemo(
     () =>
-      showHit && stats.hasDist
+      !isPool && showHit && stats.hasDist
         ? target.values.map((v) => hitProbability(stats.dist, v, target.ruling))
         : null,
-    [showHit, stats, target],
+    [isPool, showHit, stats, target],
   );
+  const poolHit =
+    isPool && showHit && stats.hasDist
+      ? hitProbability(stats.dist, poolTarget, 'gte')
+      : null;
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
@@ -430,7 +438,32 @@ const RollTableRow = memo(function RollTableRow({
             fontFamily="mono"
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
-            {hits === null ? (
+            {isPool ? (
+              poolHit === null ? (
+                EM_DASH
+              ) : (
+                <HStack gap={2} justify="flex-end">
+                  {/* Pool rows answer to the shared pool target, not the
+                      column's toolbar targets; the labeled ≥n makes that
+                      visible (and audible) per cell. */}
+                  <HelpTerm
+                    tip={tipForId('poolTarget')}
+                    ariaLabel={`At least ${poolTarget} successes`}
+                  >
+                    <Text as="span" color="purple.fg" fontSize="xs">
+                      ≥{poolTarget}
+                    </Text>
+                  </HelpTerm>
+                  <Text
+                    as="span"
+                    color={hitColor(poolHit)}
+                    fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
+                  >
+                    {formatPercent(poolHit)}
+                  </Text>
+                </HStack>
+              )
+            ) : hits === null ? (
               EM_DASH
             ) : (
               <Stack gap={0.5} align="flex-end">
