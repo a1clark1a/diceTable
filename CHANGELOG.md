@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Pool docs: glossary entries (dice pool, success, success threshold, auto-successes), a new "The Math" section on counting successes, a quickstart note on the Sum / Pool toggle, and an updated `public/llms.txt`.
 - Share/export format v2 carries the new pool fields; v1 links and files still import, with their rolls defaulting to Sum.
 
+### Fixed
+
+- Removed the leftover commit sign-off checkbox from the PR template and the create-pr playbook. The DCO requirement itself was dropped in 1.2.0; these two references had survived that cleanup.
+
 ## [1.3.0] - 2026-07-27
 
 ### Added
