@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-31
+
 ### Added
 
 - Dice pools (counting successes): every roll now has a Sum / Pool toggle in its Dice cell. A Pool roll counts how many dice meet a success threshold (direction and number editable inline, e.g. `count ≥8` on d10s) instead of adding faces into a total. Per-die odds stay exact, including rerolls. Keep and explode are stripped when a roll switches to Pool, so notation and math always agree; advantage/disadvantage is kept on the roll but has no effect while pooled.
@@ -71,7 +73,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.4.0
 [1.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.3.0
 [1.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.2.0
 [1.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.1.0
