@@ -42,6 +42,9 @@ export function InspectDistribution({
           alignItems="baseline"
           gap={1}
           bg="transparent"
+          // Buttons default to centered text; wrapped notation lines should
+          // align like the surrounding prose.
+          textAlign="start"
           color="inherit"
           fontFamily="inherit"
           fontSize="inherit"

@@ -4,17 +4,29 @@ import {
   type ChartView,
   type DicePart,
   type Expression,
+  type ExpressionMode,
   type ExplodeRule,
   type KeepRule,
   type PersistedState,
   type RerollRule,
   type RollMode,
+  type SuccessThreshold,
   type TargetRuling,
   type TargetState,
   type WorkshopView,
 } from '../types';
 
+// The inner schema version, deliberately decoupled from the useLocalStorage
+// envelope version in AppContext. The envelope gate rejects any version it does
+// not recognise before validation ever runs, so bumping both together would wipe
+// every saved table instead of migrating it.
+export const SCHEMA_VERSION = 3;
+
+const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3];
+
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
+const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool'];
+const THRESHOLD_DIRECTIONS: readonly SuccessThreshold['direction'][] = ['gte', 'lte'];
 const CHART_VIEWS: readonly ChartView[] = ['pmf', 'cdf', 'ccdf', 'target'];
 const WORKSHOP_VIEWS: readonly WorkshopView[] = ['table', 'target', 'rolloff', 'matrix'];
 const TARGET_RULINGS: readonly TargetRuling[] = ['gte', 'gt', 'lte', 'lt', 'eq'];
@@ -62,6 +74,13 @@ function validateExplode(v: unknown): ExplodeRule | null {
   return { onFaces: [...v.onFaces], depthCap: v.depthCap };
 }
 
+function validateSuccessThreshold(v: unknown): SuccessThreshold | null {
+  if (!isRecord(v)) return null;
+  if (!isOneOf(v.direction, THRESHOLD_DIRECTIONS)) return null;
+  if (!isInt(v.value) || v.value < 1) return null;
+  return { direction: v.direction, value: v.value };
+}
+
 function validatePart(v: unknown): DicePart | null {
   if (!isRecord(v)) return null;
   if (!isNonEmptyString(v.id)) return null;
@@ -98,19 +117,42 @@ export function validateExpression(v: unknown): Expression | null {
   }
   if (!isOneOf(v.rollMode, ROLL_MODES)) return null;
 
+  // Absent means a payload written before pool mode existed; present but
+  // unrecognised is corruption, and is rejected like any other bad enum.
+  let mode: ExpressionMode = 'sum';
+  if (v.mode !== undefined) {
+    if (!isOneOf(v.mode, EXPRESSION_MODES)) return null;
+    mode = v.mode;
+  }
+
   const parts: DicePart[] = [];
   for (const rawPart of v.parts) {
     const part = validatePart(rawPart);
     if (part === null) return null;
+    // Keep and explode have no honest meaning when counting successes, so a pool
+    // row carrying either is rejected rather than computed with them ignored.
+    if (mode === 'pool' && (part.keep !== undefined || part.explode !== undefined)) {
+      return null;
+    }
     parts.push(part);
   }
-  return {
+
+  const expression: Expression = {
     id: v.id,
     name: v.name,
     parts,
     flatModifier: v.flatModifier,
     rollMode: v.rollMode,
+    mode,
   };
+
+  if (mode === 'pool') {
+    const threshold = validateSuccessThreshold(v.successThreshold);
+    if (threshold === null) return null;
+    expression.successThreshold = threshold;
+  }
+
+  return expression;
 }
 
 function validateTarget(v: unknown): TargetState {
@@ -142,6 +184,7 @@ function validateUi(v: unknown): PersistedState['ui'] {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
+      poolTarget: 1,
     };
   }
   const expandedId =
@@ -153,12 +196,14 @@ function validateUi(v: unknown): PersistedState['ui'] {
   const chartView = isOneOf(v.chartView, CHART_VIEWS) ? v.chartView : 'pmf';
   const target = validateTarget(v.target);
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
-  return { expandedId, chartView, target, view };
+  const poolTarget = isInt(v.poolTarget) && v.poolTarget >= 1 ? v.poolTarget : 1;
+  return { expandedId, chartView, target, view, poolTarget };
 }
 
 export function validatePersistedState(raw: unknown): PersistedState | null {
   if (!isRecord(raw)) return null;
-  if (raw.version !== 2) return null;
+  if (typeof raw.version !== 'number') return null;
+  if (!ACCEPTED_SCHEMA_VERSIONS.includes(raw.version)) return null;
   if (!Array.isArray(raw.expressions)) return null;
 
   const expressions: Expression[] = [];
@@ -170,7 +215,7 @@ export function validatePersistedState(raw: unknown): PersistedState | null {
   }
 
   return {
-    version: 2,
+    version: SCHEMA_VERSION,
     expressions,
     ui: validateUi(raw.ui),
   };

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
-import { Sparkline, ShapeHeaderLabel } from './Sparkline';
+import { RowSparkline, Sparkline, ShapeHeaderLabel } from './Sparkline';
 import { uniformDistribution } from '../../engine/distribution';
 import type { TargetState } from '../../types';
 
@@ -212,6 +212,122 @@ describe('Sparkline', () => {
     );
     expect(titles[0]).toBe('≥ 1: 100%');
     expect(titles[5]).toBe('≥ 6: 16.7%');
+  });
+});
+
+describe('Sparkline pool ladder', () => {
+  it('renders one discrete bar per result instead of a step area in pool PMF', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          view="pmf"
+          mode="pool"
+        />
+      </Plain>,
+    );
+    const bars = container.querySelectorAll('rect[fill="#000"]');
+    expect(bars).toHaveLength(6);
+    bars.forEach((b) => expect(b.getAttribute('fill-opacity')).toBe('0.55'));
+    expect(container.querySelectorAll('path[fill-opacity]')).toHaveLength(0);
+    expect(container.querySelector('path[fill="none"]')).toBeNull();
+  });
+
+  it('skips the mode tick in pool PMF where sum PMF would draw one', () => {
+    const dist = new Map([
+      [0, 0.2],
+      [1, 0.5],
+      [2, 0.3],
+    ]);
+    const sum = render(
+      <Plain>
+        <Sparkline dist={dist} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(sum.container.querySelector('line[stroke="#000"]')).not.toBeNull();
+    const pool = render(
+      <Plain>
+        <Sparkline dist={dist} color="#000" view="pmf" mode="pool" />
+      </Plain>,
+    );
+    expect(pool.container.querySelector('line[stroke="#000"]')).toBeNull();
+  });
+
+  it('renders no bar for a zero-probability count but keeps its hover zone', () => {
+    const dist = new Map([
+      [0, 0.5],
+      [2, 0.5],
+    ]);
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={dist} color="#000" view="pmf" mode="pool" />
+      </Plain>,
+    );
+    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(2);
+    expect(
+      container.querySelectorAll('rect[fill="transparent"]'),
+    ).toHaveLength(3);
+  });
+
+  it('brightens matching bars and dims the rest in pool target view', () => {
+    const dist = new Map([
+      [0, 0.25],
+      [1, 0.25],
+      [2, 0.25],
+      [3, 0.25],
+    ]);
+    const target: TargetState = { values: [2], ruling: 'gte' };
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={dist}
+          color="#000"
+          view="target"
+          target={target}
+          mode="pool"
+        />
+      </Plain>,
+    );
+    expect(
+      container.querySelectorAll('rect[fill="#000"][fill-opacity="0.55"]'),
+    ).toHaveLength(2);
+    expect(
+      container.querySelectorAll('rect[fill="#000"][fill-opacity="0.16"]'),
+    ).toHaveLength(2);
+    expect(container.querySelector('path[fill-opacity="0.55"]')).toBeNull();
+  });
+
+  it('keeps the cumulative curve rendering for pool rows in CDF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          view="cdf"
+          mode="pool"
+        />
+      </Plain>,
+    );
+    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(0);
+    expect(container.querySelector('path[fill="none"]')).not.toBeNull();
+  });
+
+  it('passes mode through RowSparkline to render the ladder', () => {
+    const target: TargetState = { values: [], ruling: 'gte' };
+    const { container } = render(
+      <Plain>
+        <RowSparkline
+          dist={uniformDistribution(6)}
+          color="#000"
+          exprName="Pool row"
+          view="pmf"
+          target={target}
+          mode="pool"
+        />
+      </Plain>,
+    );
+    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(6);
   });
 });
 

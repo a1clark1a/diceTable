@@ -12,7 +12,13 @@ import {
 } from '@chakra-ui/react';
 import { Check, Minus, Plus, Trash2 } from 'lucide-react';
 import { memo, useCallback, useState, type ReactNode } from 'react';
-import type { DicePart, ExplodeRule, KeepRule, RerollRule } from '../../types';
+import type {
+  DicePart,
+  ExplodeRule,
+  ExpressionMode,
+  KeepRule,
+  RerollRule,
+} from '../../types';
 import type { PartPatch } from '../../state/useApp';
 import { Tooltip } from '../ui/tooltip';
 import { HelpTerm } from '../ui/help-term';
@@ -333,11 +339,25 @@ interface RuleChipProps {
   tip: string;
   active: boolean;
   onToggle: (on: boolean) => void;
+  disabled?: boolean;
+  disabledTip?: string;
 }
 
-function RuleChip({ label, tip, active, onToggle }: RuleChipProps) {
+// Disabled chips use aria-disabled + data-disabled instead of the native
+// attribute: a natively disabled button drops out of the tab order and swallows
+// hover, so the "why is this off" tooltip could never be discovered by mouse or
+// keyboard. data-disabled applies the recipe's disabled styling and suppresses
+// hover feedback without blocking pointer events.
+function RuleChip({
+  label,
+  tip,
+  active,
+  onToggle,
+  disabled,
+  disabledTip,
+}: RuleChipProps) {
   return (
-    <Tooltip content={tip}>
+    <Tooltip content={disabled ? disabledTip : tip}>
       <Button
         size="sm"
         h="40px"
@@ -347,8 +367,12 @@ function RuleChip({ label, tip, active, onToggle }: RuleChipProps) {
         variant={active ? 'subtle' : 'outline'}
         colorPalette={active ? 'blue' : 'gray'}
         aria-pressed={active}
+        aria-disabled={disabled || undefined}
+        data-disabled={disabled ? '' : undefined}
         _focusVisible={chipFocusRing}
-        onClick={() => onToggle(!active)}
+        onClick={() => {
+          if (!disabled) onToggle(!active);
+        }}
       >
         {active && <Check size={14} />}
         {label}
@@ -384,6 +408,7 @@ function RuleCard({ heading, children }: RuleCardProps) {
 
 interface DicePartRowProps {
   part: DicePart;
+  mode: ExpressionMode;
   onChange: (patch: PartPatch) => void;
   onRemove: () => void;
   canRemove: boolean;
@@ -391,10 +416,12 @@ interface DicePartRowProps {
 
 export const DicePartRow = memo(function DicePartRow({
   part,
+  mode,
   onChange,
   onRemove,
   canRemove,
 }: DicePartRowProps) {
+  const isPool = mode === 'pool';
   const errors = validatePart(part);
 
   const commitCount = useCallback(
@@ -575,6 +602,8 @@ export const DicePartRow = memo(function DicePartRow({
                 tip={tipForId('keep')}
                 active={part.keep !== undefined}
                 onToggle={toggleKeep}
+                disabled={isPool}
+                disabledTip={tipForId('keepDisabledInPool')}
               />
               <RuleChip
                 label="Reroll"
@@ -587,6 +616,8 @@ export const DicePartRow = memo(function DicePartRow({
                 tip={tipForId('explode')}
                 active={part.explode !== undefined}
                 onToggle={toggleExplode}
+                disabled={isPool}
+                disabledTip={tipForId('explodeDisabledInPool')}
               />
             </Wrap>
           </Box>

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { validatePersistedState } from './persistedSchema';
+import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
 import { defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
 import { toaster } from '../components/share/toaster-store';
@@ -19,12 +19,18 @@ import {
   type Expression,
   type PersistedState,
   type RollMode,
+  type SuccessThreshold,
   type TargetState,
   type WorkshopView,
 } from '../types';
 
 const STORAGE_KEY = 'dicetable.v2';
-const STATE_VERSION = 2;
+
+// Frozen. useLocalStorage gates reads on an exact envelope-version match and no
+// migrate is wired, so raising this discards every saved table. Schema changes
+// ride SCHEMA_VERSION inside the envelope instead, where the validator can accept
+// the older shape and normalise it.
+const ENVELOPE_VERSION = 2;
 
 const seedExpression: Expression = {
   id: 'seed-4d6kh3',
@@ -39,16 +45,18 @@ const seedExpression: Expression = {
   ],
   flatModifier: 2,
   rollMode: 'advantage',
+  mode: 'sum',
 };
 
 const initialState: PersistedState = {
-  version: STATE_VERSION,
+  version: SCHEMA_VERSION,
   expressions: [seedExpression],
   ui: {
     expandedId: null,
     chartView: 'pmf',
     target: { values: [], ruling: 'gte' },
     view: 'table',
+    poolTarget: 1,
   },
 };
 
@@ -72,6 +80,7 @@ function defaultExpression(name: string = DEFAULT_ROLL_NAME): Expression {
     parts: [defaultPart()],
     flatModifier: 0,
     rollMode: 'normal',
+    mode: 'sum',
   };
 }
 
@@ -100,6 +109,25 @@ function applyPartPatch(part: DicePart, patch: PartPatch): DicePart {
     else delete next.explode;
   }
   return next;
+}
+
+// Keep and explode have no honest meaning when counting successes; stripping
+// them on the switch keeps notation and math in agreement (they are never
+// displayed-but-ignored). Reroll survives: pool odds are post-reroll.
+function stripPoolIncompatibleRules(part: DicePart): DicePart {
+  if (part.keep === undefined && part.explode === undefined) return part;
+  const next: DicePart = { ...part };
+  delete next.keep;
+  delete next.explode;
+  return next;
+}
+
+// "Better than half" on the row's first die: 4+ on a d6, 6+ on a d10, 11+ on a
+// d20. Lands near real dice-pool systems without being tuned to any one of them.
+function seedSuccessThreshold(parts: DicePart[]): SuccessThreshold {
+  const sides = parts[0]?.sides ?? 6;
+  const value = Math.min(Math.max(Math.ceil(sides / 2) + 1, 1), sides);
+  return { direction: 'gte', value };
 }
 
 function isQuotaError(err: unknown): boolean {
@@ -131,7 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     STORAGE_KEY,
     initialState,
     {
-      version: STATE_VERSION,
+      version: ENVELOPE_VERSION,
       validate: validatePersistedState,
       onWriteError,
     },
@@ -188,6 +216,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (patch.ruling !== undefined) next.ruling = patch.ruling;
         return { ...prev, ui: { ...prev.ui, target: next } };
       });
+    },
+    [setState],
+  );
+
+  const setPoolTarget = useCallback(
+    (value: number) => {
+      const next = Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1;
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, poolTarget: next } }));
     },
     [setState],
   );
@@ -275,6 +311,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (patch.name !== undefined) next.name = patch.name;
         if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
+        if (patch.mode !== undefined && patch.mode !== e.mode) {
+          next.mode = patch.mode;
+          if (patch.mode === 'pool') {
+            next.parts = e.parts.map(stripPoolIncompatibleRules);
+            next.successThreshold = seedSuccessThreshold(e.parts);
+          } else {
+            delete next.successThreshold;
+          }
+        }
+        if ('successThreshold' in patch) {
+          if (patch.successThreshold) next.successThreshold = patch.successThreshold;
+          else delete next.successThreshold;
+        }
         return next;
       });
     },
@@ -385,10 +434,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       chartView: state.ui.chartView,
       target: state.ui.target,
       view: state.ui.view,
+      poolTarget: state.ui.poolTarget,
       setExpandedId,
       setChartView,
       setView,
       setTarget,
+      setPoolTarget,
       addExpression,
       duplicateExpression,
       deleteExpression,
@@ -407,6 +458,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setChartView,
       setView,
       setTarget,
+      setPoolTarget,
       addExpression,
       duplicateExpression,
       deleteExpression,

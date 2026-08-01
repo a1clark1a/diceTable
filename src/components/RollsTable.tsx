@@ -14,9 +14,21 @@ import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
 import { hitProbability } from '../engine/stats';
-import { MAX_EXPRESSIONS, type ChartView, type Expression, type TargetState } from '../types';
+import {
+  MAX_EXPRESSIONS,
+  type ChartView,
+  type Expression,
+  type ExpressionMode,
+  type SuccessThreshold,
+  type TargetState,
+} from '../types';
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
+import {
+  PoolBadge,
+  PoolModeToggle,
+  PoolThresholdEditor,
+} from './editor/PoolControls';
 import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
@@ -57,6 +69,7 @@ export function RollsTable() {
     expandedId,
     chartView,
     target,
+    poolTarget,
     setExpandedId,
     deleteExpression,
     renameExpression,
@@ -82,10 +95,19 @@ export function RollsTable() {
           borderRadius="md"
           overflow="hidden"
         >
-          <Table.Root size="sm" variant="line" striped={false}>
+          {/* Tables cannot shrink below min-content; without a scroll fallback
+              the overflow:hidden panel would clip the rightmost columns
+              unreachably at narrow desktop widths. */}
+          <Table.ScrollArea>
+            <Table.Root size="sm" variant="line" striped={false}>
             <Table.Header>
               <Table.Row bg="bg.subtle">
-                <Table.ColumnHeader>Name</Table.ColumnHeader>
+                <Table.ColumnHeader
+                  borderLeftWidth="3px"
+                  borderLeftColor="transparent"
+                >
+                  Name
+                </Table.ColumnHeader>
                 <Table.ColumnHeader>Dice</Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
                   <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
@@ -122,6 +144,7 @@ export function RollsTable() {
                   showHit={showHit}
                   view={view}
                   target={target}
+                  poolTarget={poolTarget}
                   setExpandedId={setExpandedId}
                   deleteExpression={deleteExpression}
                   renameExpression={renameExpression}
@@ -129,7 +152,12 @@ export function RollsTable() {
                 />
               ))}
               <Table.Row>
-                <Table.Cell colSpan={showHit ? 8 : 7} py={3}>
+                <Table.Cell
+                  colSpan={showHit ? 8 : 7}
+                  py={3}
+                  borderLeftWidth="3px"
+                  borderLeftColor="transparent"
+                >
                   <Tooltip
                     content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
                     disabled={!atCap}
@@ -149,7 +177,8 @@ export function RollsTable() {
                 </Table.Cell>
               </Table.Row>
             </Table.Body>
-          </Table.Root>
+            </Table.Root>
+          </Table.ScrollArea>
         </Box>
       )}
     </Stack>
@@ -195,6 +224,7 @@ interface RollTableRowProps {
   showHit: boolean;
   view: ChartView;
   target: TargetState;
+  poolTarget: number;
   setExpandedId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
@@ -208,6 +238,7 @@ const RollTableRow = memo(function RollTableRow({
   showHit,
   view,
   target,
+  poolTarget,
   setExpandedId,
   deleteExpression,
   renameExpression,
@@ -215,12 +246,23 @@ const RollTableRow = memo(function RollTableRow({
 }: RollTableRowProps) {
   const { stats, tooComplex } = getRowData(expr);
   const color = rowColor(idx);
+  const isPool = expr.mode === 'pool';
   const hits = useMemo(
     () =>
-      showHit && stats.hasDist
+      !isPool && showHit && stats.hasDist
         ? target.values.map((v) => hitProbability(stats.dist, v, target.ruling))
         : null,
-    [showHit, stats, target],
+    [isPool, showHit, stats, target],
+  );
+  const poolHit =
+    isPool && showHit && stats.hasDist
+      ? hitProbability(stats.dist, poolTarget, 'gte')
+      : null;
+  // In target view a pool row's shape highlights against the shared pool
+  // target; the numeric target list describes sums, not success counts.
+  const sparkTarget = useMemo<TargetState>(
+    () => (isPool ? { values: [poolTarget], ruling: 'gte' } : target),
+    [isPool, poolTarget, target],
   );
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
@@ -238,6 +280,15 @@ const RollTableRow = memo(function RollTableRow({
     (value: number) => updateExpression(expr.id, { flatModifier: value }),
     [updateExpression, expr.id],
   );
+  const onModeChange = useCallback(
+    (mode: ExpressionMode) => updateExpression(expr.id, { mode }),
+    [updateExpression, expr.id],
+  );
+  const onThresholdChange = useCallback(
+    (successThreshold: SuccessThreshold) =>
+      updateExpression(expr.id, { successThreshold }),
+    [updateExpression, expr.id],
+  );
   const nameBuf = useBufferedValue<string>({
     committed: expr.name,
     commit: onRename,
@@ -253,7 +304,12 @@ const RollTableRow = memo(function RollTableRow({
   return (
     <>
       <Table.Row _hover={{ bg: 'bg.subtle' }}>
-        <Table.Cell>
+        {/* Transparent border on sum rows keeps every row's left edge aligned;
+            pool rows tint it as their identity band. */}
+        <Table.Cell
+          borderLeftWidth="3px"
+          borderLeftColor={isPool ? 'purple.solid' : 'transparent'}
+        >
           <HStack gap={2} minW="200px">
             <Box
               w="10px"
@@ -272,39 +328,55 @@ const RollTableRow = memo(function RollTableRow({
               maxW="220px"
               aria-label="Roll name"
             />
+            {isPool && <PoolBadge />}
           </HStack>
         </Table.Cell>
-        <Table.Cell fontFamily="mono" fontSize="xs" color="fg">
-          <InspectDistribution
-            exprName={expr.name}
-            dist={stats.dist}
-            mean={stats.mean}
-            modes={stats.mode}
-            hasDist={stats.hasDist && !tooComplex}
-          >
-            <ExpressionDiceText expr={expr} showRollMode />
-          </InspectDistribution>
-          {tooComplex && (
-            <Text as="span" ml={2} color="fg.muted">
-              (too complex)
-            </Text>
-          )}
+        <Table.Cell>
+          <Stack gap={1} align="flex-start">
+            <Box fontFamily="mono" fontSize="xs" color="fg">
+              <InspectDistribution
+                exprName={expr.name}
+                dist={stats.dist}
+                mean={stats.mean}
+                modes={stats.mode}
+                hasDist={stats.hasDist && !tooComplex}
+              >
+                <ExpressionDiceText expr={expr} showRollMode />
+              </InspectDistribution>
+              {tooComplex && (
+                <Text as="span" ml={2} color="fg.muted">
+                  (too complex)
+                </Text>
+              )}
+            </Box>
+            <HStack gap={1} flexWrap="wrap">
+              <PoolModeToggle mode={expr.mode} onSelect={onModeChange} />
+              {isPool && expr.successThreshold && (
+                <PoolThresholdEditor
+                  threshold={expr.successThreshold}
+                  onChange={onThresholdChange}
+                />
+              )}
+            </HStack>
+          </Stack>
         </Table.Cell>
         <Table.Cell textAlign="end">
-          <Input
-            size="sm"
-            type="text"
-            inputMode="numeric"
-            value={modBuf.value}
-            onChange={(e) => modBuf.setValue(e.target.value)}
-            onBlur={modBuf.onBlur}
-            onKeyDown={modBuf.onKeyDown}
-            maxW="64px"
-            textAlign="end"
-            fontFamily="mono"
-            aria-label="Modifier"
-            ml="auto"
-          />
+          <Tooltip content={tipForId('poolAutoSuccess')} disabled={!isPool}>
+            <Input
+              size="sm"
+              type="text"
+              inputMode="numeric"
+              value={modBuf.value}
+              onChange={(e) => modBuf.setValue(e.target.value)}
+              onBlur={modBuf.onBlur}
+              onKeyDown={modBuf.onKeyDown}
+              maxW="64px"
+              textAlign="end"
+              fontFamily="mono"
+              aria-label="Modifier"
+              ml="auto"
+            />
+          </Tooltip>
         </Table.Cell>
         <Table.Cell
           textAlign="end"
@@ -357,7 +429,8 @@ const RollTableRow = memo(function RollTableRow({
                 color={color}
                 exprName={expr.name}
                 view={view}
-                target={target}
+                target={sparkTarget}
+                mode={expr.mode}
               />
             </InspectChart>
           ) : (
@@ -372,7 +445,32 @@ const RollTableRow = memo(function RollTableRow({
             fontFamily="mono"
             style={{ fontVariantNumeric: 'tabular-nums' }}
           >
-            {hits === null ? (
+            {isPool ? (
+              poolHit === null ? (
+                EM_DASH
+              ) : (
+                <HStack gap={2} justify="flex-end">
+                  {/* Pool rows answer to the shared pool target, not the
+                      column's toolbar targets; the labeled ≥n makes that
+                      visible (and audible) per cell. */}
+                  <HelpTerm
+                    tip={tipForId('poolTarget')}
+                    ariaLabel={`At least ${poolTarget} successes`}
+                  >
+                    <Text as="span" color="purple.fg" fontSize="xs">
+                      ≥{poolTarget}
+                    </Text>
+                  </HelpTerm>
+                  <Text
+                    as="span"
+                    color={hitColor(poolHit)}
+                    fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
+                  >
+                    {formatPercent(poolHit)}
+                  </Text>
+                </HStack>
+              )
+            ) : hits === null ? (
               EM_DASH
             ) : (
               <Stack gap={0.5} align="flex-end">
@@ -398,13 +496,17 @@ const RollTableRow = memo(function RollTableRow({
         )}
         <Table.Cell textAlign="end">
           <HStack gap={1} justify="flex-end" align="center">
-            <RollResultInline exprId={expr.id} />
-            <RollPopover
-              exprId={expr.id}
-              exprName={expr.name}
-              dist={stats.dist}
-              disabled={!stats.hasDist || tooComplex}
-            />
+            {!isPool && (
+              <>
+                <RollResultInline exprId={expr.id} />
+                <RollPopover
+                  exprId={expr.id}
+                  exprName={expr.name}
+                  dist={stats.dist}
+                  disabled={!stats.hasDist || tooComplex}
+                />
+              </>
+            )}
             <IconButton
               aria-label={expanded ? 'Collapse row' : 'Expand row'}
               size="xs"
@@ -435,7 +537,13 @@ const RollTableRow = memo(function RollTableRow({
       </Table.Row>
       {expanded && (
         <Table.Row>
-          <Table.Cell colSpan={showHit ? 8 : 7} p={0} bg="bg.subtle">
+          <Table.Cell
+            colSpan={showHit ? 8 : 7}
+            p={0}
+            bg="bg.subtle"
+            borderLeftWidth="3px"
+            borderLeftColor={isPool ? 'purple.solid' : 'transparent'}
+          >
             <RollExpand expression={expr} />
           </Table.Cell>
         </Table.Row>

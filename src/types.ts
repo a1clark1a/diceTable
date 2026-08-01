@@ -24,12 +24,21 @@ export interface DicePart {
   explode?: ExplodeRule;
 }
 
+export type ExpressionMode = 'sum' | 'pool';
+
+export interface SuccessThreshold {
+  direction: 'gte' | 'lte';
+  value: number;
+}
+
 export interface Expression {
   id: string;
   name: string;
   parts: DicePart[];
   flatModifier: number;
   rollMode: RollMode;
+  mode: ExpressionMode;
+  successThreshold?: SuccessThreshold;
 }
 
 export type Distribution = Map<number, number>;
@@ -49,12 +58,13 @@ export interface TargetState {
 }
 
 export interface PersistedState {
-  version: 2;
+  version: 3;
   expressions: Expression[];
   ui: {
     expandedId: string | null;
     chartView: ChartView;
     target: TargetState;
     view: WorkshopView;
+    poolTarget: number;
   };
 }

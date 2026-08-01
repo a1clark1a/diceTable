@@ -44,8 +44,25 @@ export function partComplexity(part: DicePart): number {
   return cost;
 }
 
+// Pool rows strip keep and explode, the only two things partComplexity scores, so
+// they would all score 0 and never trip the guard while their real cost, the
+// Bernoulli convolution, stays quadratic in dice count with nothing bounding it.
+// Squaring the total dice puts pool rows on the same scale as the sum path.
+function poolComplexity(expr: Expression): number {
+  let dice = 0;
+  for (const part of expr.parts) {
+    if (!Number.isInteger(part.count) || part.count < 1) continue;
+    if (!Number.isInteger(part.sides) || part.sides < 2) continue;
+    dice += part.count;
+    if (dice > MAX_COMPLEXITY) return COMPLEXITY_OVERFLOW;
+  }
+  return dice * dice;
+}
+
 export function expressionComplexity(expr: Expression): number {
   if (!Array.isArray(expr.parts) || expr.parts.length === 0) return 0;
+  if (expr.mode === 'pool') return poolComplexity(expr);
+
   let total = 0;
   for (const part of expr.parts) {
     const c = partComplexity(part);

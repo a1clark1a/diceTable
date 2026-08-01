@@ -205,4 +205,45 @@ explode(P, F, depth):
 
 // ⊕ = pointwise sum, ⊛ = convolution`,
   },
+  {
+    id: 'pool',
+    title: '8 · Dice pools: counting successes',
+    subtitle: 'e.g. 7d10 count ≥8, score by how many dice clear the bar',
+    plain: (
+      <Text>
+        A pool roll never adds the faces. Each die simply succeeds or fails,
+        so the only number that matters per die is its chance of clearing the
+        threshold. DiceTable reads that chance off the die’s exact
+        distribution (after any rerolls), then builds the pool one die at a
+        time: each new die either adds one success or adds nothing. Mixed
+        pools like 2d6 + 3d8 build each part’s count the same way, then
+        combine them with the convolution from section 2. A modifier becomes
+        auto-successes that shift the final count, and any result that would
+        land below zero piles up at exactly zero.
+      </Text>
+    ),
+    example: (
+      <Text>
+        In 7d10 with “count ≥8”, each die succeeds with <Code>p = 3/10</Code>
+        , so exactly 2 successes has probability{' '}
+        <Code>C(7,2) · 0.3² · 0.7⁵ ≈ 0.318</Code>.
+        <br />
+        Add “reroll 1s once” and each die’s chance rises to{' '}
+        <Code>p = 33/100</Code>, because a rerolled 1 gets a fresh shot at 8
+        or higher.
+      </Text>
+    ),
+    snippet: `// per-die success chance, read off the exact single-die odds
+p = Σ P(die = f)     for every face f that meets the threshold
+
+// build the pool one die at a time (Bernoulli convolution)
+start:    P(0) = 1
+per die:  P_next(k) = P(k) · (1 − p) + P(k − 1) · p
+
+// identical dice collapse to the binomial formula
+P(k successes in N dice) = C(N, k) · p^k · (1 − p)^(N − k)
+
+// modifier M = auto-successes, clamped at zero
+P_final(k) = Σ P_pool(j)     over all j with max(0, j + M) = k`,
+  },
 ];

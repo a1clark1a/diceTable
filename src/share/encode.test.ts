@@ -19,6 +19,7 @@ const sampleRolls: Expression[] = [
     ],
     flatModifier: 2,
     rollMode: 'advantage',
+    mode: 'sum',
   },
   {
     id: 'expr-2',
@@ -26,6 +27,7 @@ const sampleRolls: Expression[] = [
     parts: [{ id: 'part-2', count: 1, sides: 20 }],
     flatModifier: 5,
     rollMode: 'normal',
+    mode: 'sum',
   },
 ];
 
@@ -63,6 +65,7 @@ describe('encodeRollsToHash', () => {
       ],
       flatModifier: i,
       rollMode: 'normal',
+      mode: 'sum',
     }));
     const hash = encodeRollsToHash(ten);
     const result = decodeFromHashFragment(hash);

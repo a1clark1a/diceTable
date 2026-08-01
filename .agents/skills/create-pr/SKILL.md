@@ -22,7 +22,6 @@ The repository has a PR template; fill it honestly.
 
 - **Summary:** one or two sentences on what changes and why, in plain language. Link the issue with `Closes #123`. This is the place to spend effort: a reviewer who understands the change in ten seconds reviews it the same day. Summarize what the diff does, not the journey of writing it.
 - **Checklist:** tick items only if they are actually true. Ticking "added tests" without tests wastes a review round trip.
-- Commits are signed off (`git commit -s`).
 - Keep the title imperative and concrete, for example `fix: clamp explode depth in reroll parser`, not `Various fixes`.
 
 If the diff turned out larger than one logical change, do not open it as-is. Split it into stacked or sequential PRs; smaller PRs merge faster here.

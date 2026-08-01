@@ -49,17 +49,25 @@ interface HitRow {
   hits: number[];
 }
 
+// Which quantity the x-axis / bars describe. The Successes panel reads its
+// hits against the shared pool target, so its target-view header and
+// accessible name must say "successes", not "targets".
+export type ChartUnit = 'totals' | 'successes';
+
 interface OverlayChartImplProps {
   expressions: Expression[];
   dists: Map<string, Distribution>;
   effectiveView: ChartView;
   target: TargetState;
   hoveredId: string | null;
+  colors: Map<string, string>;
+  unit?: ChartUnit;
 }
 
 function buildSeries(
   expressions: Expression[],
   dists: Map<string, Distribution>,
+  colors: Map<string, string>,
 ): RowSeries[] {
   const out: RowSeries[] = [];
   expressions.forEach((expr, idx) => {
@@ -78,7 +86,10 @@ function buildSeries(
     out.push({
       id: expr.id,
       name: expr.name,
-      color: rowColor(idx),
+      // The caller keys colors by unfiltered row position so a panel fed a
+      // filtered list (sum-only or pool-only) still matches the table
+      // swatches; the index fallback only fires if an id is missing.
+      color: colors.get(expr.id) ?? rowColor(idx),
       dist,
       min,
       max,
@@ -252,10 +263,12 @@ export default function OverlayChartImpl({
   effectiveView,
   target,
   hoveredId,
+  colors,
+  unit = 'totals',
 }: OverlayChartImplProps) {
   const series = useMemo(
-    () => buildSeries(expressions, dists),
-    [expressions, dists],
+    () => buildSeries(expressions, dists, colors),
+    [expressions, dists, colors],
   );
   const data = useMemo(
     () => buildChartData(series, effectiveView),
@@ -277,7 +290,12 @@ export default function OverlayChartImpl({
 
   if (effectiveView === 'target' && target.values.length > 0) {
     return (
-      <TargetHitView rows={hitRows} target={target} focusedId={focusedId} />
+      <TargetHitView
+        rows={hitRows}
+        target={target}
+        focusedId={focusedId}
+        unit={unit}
+      />
     );
   }
 
@@ -396,6 +414,7 @@ interface TargetHitViewProps {
   rows: HitRow[];
   target: TargetState;
   focusedId: string | null;
+  unit: ChartUnit;
 }
 
 interface TargetChartDatum {
@@ -420,10 +439,11 @@ function targetOpacity(targetIndex: number, totalTargets: number): number {
   return max - step * targetIndex;
 }
 
-function TargetHitView({ rows, target, focusedId }: TargetHitViewProps) {
+function TargetHitView({ rows, target, focusedId, unit }: TargetHitViewProps) {
   if (target.values.length === 0) return null;
   const symbol = RULING_SYMBOL[target.ruling];
   const targetCount = target.values.length;
+  const isSuccesses = unit === 'successes';
 
   const data: TargetChartDatum[] = rows.map((r) => {
     const datum: TargetChartDatum = {
@@ -451,7 +471,9 @@ function TargetHitView({ rows, target, focusedId }: TargetHitViewProps) {
           fontFamily="mono"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          <Text as="span">Hit rate · Target</Text>
+          <Text as="span">
+            {isSuccesses ? 'Hit rate · Successes' : 'Hit rate · Target'}
+          </Text>
           <RulingSymbol ruling={target.ruling} />
           <Text as="span">{targetsLabel}</Text>
         </HStack>
@@ -489,7 +511,11 @@ function TargetHitView({ rows, target, focusedId }: TargetHitViewProps) {
         maxW={`${rows.length * (targetCount * 28 + 40) + 96}px`}
         mx="auto"
         role="img"
-        aria-label={`Hit rate per roll for targets ${symbol} ${targetsLabel}`}
+        aria-label={
+          isSuccesses
+            ? `Hit rate per roll for ${targetsLabel} or more successes`
+            : `Hit rate per roll for targets ${symbol} ${targetsLabel}`
+        }
       >
         <ResponsiveContainer
           width="100%"

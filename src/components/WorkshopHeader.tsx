@@ -11,10 +11,30 @@ import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { useIsDesktop } from '../hooks/useBreakpoint';
 
-const ROLL_MODES: { value: RollMode; label: string; tip: string }[] = [
-  { value: 'normal', label: 'Normal', tip: tipForId('rollModeNormal') },
-  { value: 'advantage', label: 'Adv', tip: tipForId('rollModeAdvantage') },
-  { value: 'disadvantage', label: 'Dis', tip: tipForId('rollModeDisadvantage') },
+const ROLL_MODES: {
+  value: RollMode;
+  label: string;
+  fullLabel: string;
+  tip: string;
+}[] = [
+  {
+    value: 'normal',
+    label: 'Normal',
+    fullLabel: 'Normal',
+    tip: tipForId('rollModeNormal'),
+  },
+  {
+    value: 'advantage',
+    label: 'Adv',
+    fullLabel: 'Advantage',
+    tip: tipForId('rollModeAdvantage'),
+  },
+  {
+    value: 'disadvantage',
+    label: 'Dis',
+    fullLabel: 'Disadvantage',
+    tip: tipForId('rollModeDisadvantage'),
+  },
 ];
 
 interface WorkshopHeaderProps {
@@ -31,11 +51,17 @@ export function WorkshopHeader({
   const isDesktop = useIsDesktop();
   const { expressions, setAllRollModes, addExpression } = useApp();
 
-  const rollModes = new Set(expressions.map((e) => e.rollMode));
-  const mixed = rollModes.size > 1;
+  // Pool rows ignore rollMode entirely (they count successes), so only sum rows
+  // decide "mixed". An all-pool table falls back to the stored modes so a
+  // definite chip shows instead of a permanently mixed label.
+  const sumModes = new Set(
+    expressions.filter((e) => e.mode === 'sum').map((e) => e.rollMode),
+  );
+  const mixed = sumModes.size > 1;
+  const firstSumMode = sumModes.values().next().value ?? null;
   const activeMode: RollMode | null = mixed
     ? null
-    : expressions[0]?.rollMode ?? null;
+    : firstSumMode ?? expressions[0]?.rollMode ?? null;
 
   return (
     <Flex
@@ -82,7 +108,7 @@ export function WorkshopHeader({
                     colorPalette={active ? 'blue' : 'gray'}
                     onClick={() => setAllRollModes(m.value)}
                     aria-pressed={active}
-                    aria-label={m.label}
+                    aria-label={m.fullLabel}
                     minH="40px"
                   >
                     {m.label}

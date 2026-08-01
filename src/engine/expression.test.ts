@@ -11,6 +11,7 @@ const expr = (overrides: Partial<Expression>): Expression => ({
   parts: [{ id: 'p', count: 1, sides: 6 }],
   flatModifier: 0,
   rollMode: 'normal',
+  mode: 'sum',
   ...overrides,
 });
 
