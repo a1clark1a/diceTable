@@ -8,12 +8,14 @@ import {
   IconButton,
   Input,
   NativeSelect,
+  Stack,
   Text,
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
 import { X } from 'lucide-react';
 import { useApp } from '../state/useApp';
+import { useBufferedValue } from '../hooks/useBufferedValue';
 import { MAX_TARGETS, type TargetRuling } from '../types';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
@@ -27,9 +29,21 @@ function parseDraft(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function parsePoolTarget(raw: string): number {
+  const n = Number.parseInt(raw.trim(), 10);
+  return Number.isFinite(n) ? Math.max(1, n) : 1;
+}
+
+function formatPoolTarget(n: number): string {
+  return String(n);
+}
+
 export function TargetToolbar() {
-  const { target, setTarget } = useApp();
+  const { target, setTarget, expressions, poolTarget, setPoolTarget } =
+    useApp();
   const [draft, setDraft] = useState('');
+  const hasPoolRow = expressions.some((e) => e.mode === 'pool');
+  const showPoolTarget = hasPoolRow && target.values.length > 0;
 
   const isFull = target.values.length >= MAX_TARGETS;
 
@@ -87,6 +101,101 @@ export function TargetToolbar() {
       : 'Add another target or clear to hide Hit %.';
 
   return (
+    <Stack gap={2}>
+      <HStack
+        gap={2}
+        px={3}
+        py={2}
+        bg="bg.panel"
+        borderWidth="1px"
+        borderColor="border.subtle"
+        borderRadius="md"
+        flexWrap="wrap"
+      >
+        <HelpTerm tip={tipForId('target')}>
+          <Text
+            as="span"
+            fontSize="xs"
+            fontWeight="semibold"
+            color="fg.muted"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            Target
+          </Text>
+        </HelpTerm>
+        <NativeSelect.Root size="sm" maxW="180px">
+          <NativeSelect.Field
+            value={target.ruling}
+            onChange={(e) => {
+              if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
+            }}
+            aria-label="Target ruling"
+            title="How to compare each roll to the target."
+          >
+            {RULING_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.shortLabel}
+              </option>
+            ))}
+          </NativeSelect.Field>
+          <NativeSelect.Indicator />
+        </NativeSelect.Root>
+        <Wrap gap={1} flexShrink={1}>
+          {target.values.map((v) => (
+            <WrapItem key={v}>
+              <TargetChip
+                ruling={target.ruling}
+                value={v}
+                onRemove={() => removeValue(v)}
+              />
+            </WrapItem>
+          ))}
+        </Wrap>
+        <Input
+          size="sm"
+          type="text"
+          inputMode="numeric"
+          placeholder={isFull ? '—' : 'Add'}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitDraft}
+          onKeyDown={onKeyDown}
+          disabled={isFull}
+          maxW="80px"
+          textAlign="right"
+          fontFamily="mono"
+          aria-label="Add target value"
+        />
+        <Text
+          fontSize="xs"
+          color="fg.muted"
+          ml="auto"
+          display={{ base: 'none', md: 'inline' }}
+        >
+          {hint}
+        </Text>
+      </HStack>
+      {showPoolTarget && (
+        <PoolTargetRow poolTarget={poolTarget} setPoolTarget={setPoolTarget} />
+      )}
+    </Stack>
+  );
+}
+
+interface PoolTargetRowProps {
+  poolTarget: number;
+  setPoolTarget: (value: number) => void;
+}
+
+function PoolTargetRow({ poolTarget, setPoolTarget }: PoolTargetRowProps) {
+  const buf = useBufferedValue<number>({
+    committed: poolTarget,
+    commit: setPoolTarget,
+    parse: parsePoolTarget,
+    format: formatPoolTarget,
+  });
+  return (
     <HStack
       gap={2}
       px={3}
@@ -94,71 +203,58 @@ export function TargetToolbar() {
       bg="bg.panel"
       borderWidth="1px"
       borderColor="border.subtle"
+      borderLeftWidth="3px"
+      borderLeftColor="purple.solid"
       borderRadius="md"
       flexWrap="wrap"
     >
-      <HelpTerm tip={tipForId('target')}>
+      <HelpTerm tip={tipForId('poolTarget')}>
         <Text
           as="span"
           fontSize="xs"
           fontWeight="semibold"
-          color="fg.muted"
+          color="purple.fg"
           textTransform="uppercase"
           letterSpacing="wider"
         >
-          Target
+          Pool target
         </Text>
       </HelpTerm>
-      <NativeSelect.Root size="sm" maxW="180px">
-        <NativeSelect.Field
-          value={target.ruling}
-          onChange={(e) => {
-            if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
-          }}
-          aria-label="Target ruling"
-          title="How to compare each roll to the target."
-        >
-          {RULING_OPTIONS.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.shortLabel}
-            </option>
-          ))}
-        </NativeSelect.Field>
-        <NativeSelect.Indicator />
-      </NativeSelect.Root>
-      <Wrap gap={1} flexShrink={1}>
-        {target.values.map((v) => (
-          <WrapItem key={v}>
-            <TargetChip
-              ruling={target.ruling}
-              value={v}
-              onRemove={() => removeValue(v)}
-            />
-          </WrapItem>
-        ))}
-      </Wrap>
+      {/* Decorative: the input's aria-label carries the "at least" relation
+          for anyone who can't see the glyph. */}
+      <Text
+        as="span"
+        fontFamily="mono"
+        fontSize="sm"
+        color="fg.muted"
+        aria-hidden="true"
+      >
+        ≥
+      </Text>
       <Input
         size="sm"
         type="text"
         inputMode="numeric"
-        placeholder={isFull ? '—' : 'Add'}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commitDraft}
-        onKeyDown={onKeyDown}
-        disabled={isFull}
-        maxW="80px"
+        value={buf.value}
+        onChange={(e) => buf.setValue(e.target.value)}
+        onBlur={buf.onBlur}
+        onKeyDown={buf.onKeyDown}
+        maxW="64px"
         textAlign="right"
         fontFamily="mono"
-        aria-label="Add target value"
+        aria-label="Pool target, minimum successes"
+        style={{ fontVariantNumeric: 'tabular-nums' }}
       />
+      <Text fontSize="xs" color="fg.muted">
+        successes
+      </Text>
       <Text
         fontSize="xs"
         color="fg.muted"
         ml="auto"
         display={{ base: 'none', md: 'inline' }}
       >
-        {hint}
+        Hit % on pool rows uses this count.
       </Text>
     </HStack>
   );

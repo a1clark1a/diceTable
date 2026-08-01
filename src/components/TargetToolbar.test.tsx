@@ -138,3 +138,120 @@ describe('TargetToolbar', () => {
     ]);
   });
 });
+
+interface PoolSeedOptions {
+  targetValues?: number[];
+  poolTarget?: number;
+}
+
+function seedPoolRow({ targetValues = [], poolTarget = 1 }: PoolSeedOptions = {}) {
+  const state = {
+    version: 3,
+    expressions: [
+      {
+        id: 'pool1',
+        name: 'Pool row',
+        parts: [{ id: 'pp1', count: 2, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'pool',
+        successThreshold: { direction: 'gte', value: 4 },
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: targetValues, ruling: 'gte' },
+      view: 'table',
+      poolTarget,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+function queryPoolInput(): HTMLInputElement | null {
+  return screen.queryByLabelText(
+    'Pool target, minimum successes',
+  ) as HTMLInputElement | null;
+}
+
+function getPoolInput(): HTMLInputElement {
+  return screen.getByLabelText(
+    'Pool target, minimum successes',
+  ) as HTMLInputElement;
+}
+
+describe('TargetToolbar pool target row', () => {
+  it('does not render when a target is set but no pool row exists', () => {
+    renderToolbar();
+    addValue('13');
+    expect(queryPoolInput()).toBeNull();
+  });
+
+  it('does not render when a pool row exists but no target is set', () => {
+    seedPoolRow();
+    renderToolbar();
+    expect(queryPoolInput()).toBeNull();
+  });
+
+  it('appears when a target is added and disappears when the target is removed', () => {
+    seedPoolRow();
+    renderToolbar();
+    addValue('13');
+    expect(getPoolInput()).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove target ≥ 13' }),
+    );
+    expect(queryPoolInput()).toBeNull();
+  });
+
+  it('shows the persisted pool target value', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 4 });
+    renderToolbar();
+    expect(getPoolInput().value).toBe('4');
+  });
+
+  it('commits a typed pool target on Enter', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 2 });
+    renderToolbar();
+    const input = getPoolInput();
+    fireEvent.change(input, { target: { value: '6' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.value).toBe('6');
+    // Escape snaps back to the committed value, so a surviving '6' proves
+    // Enter committed rather than just buffered.
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input.value).toBe('6');
+  });
+
+  it('clamps a pool target below one up to one', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 3 });
+    renderToolbar();
+    const input = getPoolInput();
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.value).toBe('1');
+  });
+
+  it('falls back to one when the pool target is not a number', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 3 });
+    renderToolbar();
+    const input = getPoolInput();
+    fireEvent.change(input, { target: { value: 'abc' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.value).toBe('1');
+  });
+
+  it('reverts an uncommitted pool target edit on Escape', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 4 });
+    renderToolbar();
+    const input = getPoolInput();
+    fireEvent.change(input, { target: { value: '9' } });
+    expect(input.value).toBe('9');
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input.value).toBe('4');
+  });
+});

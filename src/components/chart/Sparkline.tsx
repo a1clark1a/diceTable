@@ -1,6 +1,11 @@
 import { memo, useMemo } from 'react';
 import { Text } from '@chakra-ui/react';
-import type { ChartView, Distribution, TargetState } from '../../types';
+import type {
+  ChartView,
+  Distribution,
+  ExpressionMode,
+  TargetState,
+} from '../../types';
 import { sortedKeys } from '../../engine/distribution';
 import { useApp } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
@@ -49,6 +54,7 @@ interface SparklineProps {
   color: string;
   view?: ChartView;
   target?: TargetState | undefined;
+  mode?: ExpressionMode;
   width?: number;
   height?: number;
   fill?: boolean;
@@ -247,6 +253,7 @@ export const Sparkline = memo(function Sparkline({
   color,
   view = 'pmf',
   target,
+  mode = 'sum',
   width = 80,
   height = 24,
   fill = false,
@@ -271,11 +278,21 @@ export const Sparkline = memo(function Sparkline({
   const stepOpts = { stepWidth };
   const isFilledView = effectiveView === 'pmf' || effectiveView === 'target';
   const isLineView = effectiveView === 'cdf' || effectiveView === 'ccdf';
+  // Pool distributions count discrete successes, so the filled views render
+  // one bar per count (a ladder) instead of a continuous stepped area. The
+  // cumulative views keep the shared curve rendering.
+  const isPoolLadder = mode === 'pool' && isFilledView;
   const hasMatchOverlay =
     effectiveView === 'target' && matchMask.some((m) => m);
 
-  const areaD = isFilledView ? buildStepAreaPath(topPoints, baselineY, stepOpts) : '';
-  const pmfStrokeD = effectiveView === 'pmf' ? buildStepPath(topPoints, stepOpts) : '';
+  const areaD =
+    isFilledView && !isPoolLadder
+      ? buildStepAreaPath(topPoints, baselineY, stepOpts)
+      : '';
+  const pmfStrokeD =
+    effectiveView === 'pmf' && !isPoolLadder
+      ? buildStepPath(topPoints, stepOpts)
+      : '';
   const curveD = isLineView
     ? buildMonotonePath(
         topPoints.length > 1
@@ -286,11 +303,13 @@ export const Sparkline = memo(function Sparkline({
           : topPoints,
       )
     : '';
-  const matchD = hasMatchOverlay
-    ? buildMatchAreaPath(topPoints, matchMask, baselineY, stepWidth)
-    : '';
+  const matchD =
+    hasMatchOverlay && !isPoolLadder
+      ? buildMatchAreaPath(topPoints, matchMask, baselineY, stepWidth)
+      : '';
 
-  const showModeTick = isFilledView && modeIndex >= 0;
+  // The tallest ladder bar already marks the mode; the tick would double it.
+  const showModeTick = isFilledView && !isPoolLadder && modeIndex >= 0;
   const modePoint = showModeTick ? topPoints[modeIndex] : undefined;
   const modeCx = modePoint ? modePoint.x + stepWidth / 2 : 0;
   const modeTopY = modePoint ? modePoint.y : 0;
@@ -314,13 +333,31 @@ export const Sparkline = memo(function Sparkline({
         strokeWidth={1}
         vectorEffect="non-scaling-stroke"
       />
-      {isFilledView && (
+      {areaD !== '' && (
         <path d={areaD} fill={color} fillOpacity={0.16} />
       )}
-      {hasMatchOverlay && (
+      {matchD !== '' && (
         <path d={matchD} fill={color} fillOpacity={0.55} />
       )}
-      {effectiveView === 'pmf' && (
+      {isPoolLadder &&
+        topPoints.map((p, i) => {
+          const barHeight = baselineY - p.y;
+          if (barHeight <= 0) return null;
+          const inset = stepWidth * 0.15;
+          const dimmed = hasMatchOverlay && !matchMask[i];
+          return (
+            <rect
+              key={`bar-${i}`}
+              x={p.x + inset}
+              y={p.y}
+              width={Math.max(stepWidth - inset * 2, 0.5)}
+              height={barHeight}
+              fill={color}
+              fillOpacity={dimmed ? 0.16 : 0.55}
+            />
+          );
+        })}
+      {pmfStrokeD !== '' && (
         <path
           d={pmfStrokeD}
           fill="none"
@@ -374,6 +411,7 @@ interface RowSparklineProps {
   exprName: string;
   view: ChartView;
   target: TargetState;
+  mode?: ExpressionMode;
   height?: number;
   fill?: boolean;
 }
@@ -384,6 +422,7 @@ export const RowSparkline = memo(function RowSparkline({
   exprName,
   view,
   target,
+  mode,
   height,
   fill,
 }: RowSparklineProps) {
@@ -393,6 +432,7 @@ export const RowSparkline = memo(function RowSparkline({
       color={color}
       view={view}
       target={target}
+      {...(mode !== undefined && { mode })}
       {...(height !== undefined && { height })}
       {...(fill !== undefined && { fill })}
       ariaLabel={`Distribution shape for ${exprName}`}

@@ -2,10 +2,12 @@ import { createContext, useContext } from 'react';
 import type {
   ChartView,
   Expression,
+  ExpressionMode,
   ExplodeRule,
   KeepRule,
   RerollRule,
   RollMode,
+  SuccessThreshold,
   TargetRuling,
   TargetState,
   WorkshopView,
@@ -15,6 +17,8 @@ export type ExpressionPatch = {
   name?: string;
   flatModifier?: number;
   rollMode?: RollMode;
+  mode?: ExpressionMode;
+  successThreshold?: SuccessThreshold | undefined;
 };
 
 export type PartPatch = {
@@ -36,10 +40,12 @@ export interface AppContextValue {
   chartView: ChartView;
   target: TargetState;
   view: WorkshopView;
+  poolTarget: number;
   setExpandedId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
+  setPoolTarget: (value: number) => void;
   addExpression: () => void;
   duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;

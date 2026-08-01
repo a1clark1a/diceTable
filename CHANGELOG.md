@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Dice pools (counting successes): every roll now has a Sum / Pool toggle in its Dice cell. A Pool roll counts how many dice meet a success threshold (direction and number editable inline, e.g. `count ≥8` on d10s) instead of adding faces into a total. Per-die odds stay exact, including rerolls. Keep and explode are stripped when a roll switches to Pool, so notation and math always agree; advantage/disadvantage is kept on the roll but has no effect while pooled.
+- Auto-successes: on a Pool roll the flat modifier adds or removes successes directly (shown as `+2 auto`), and a result never drops below zero successes.
+- Pool target: a shared "at least n successes" control in the target toolbar. Pool rolls' Hit % reads against it, while Sum rolls keep using the numeric targets.
+- Successes chart: Pool rolls compare on their own panel with a success-count axis, beside the totals chart on desktop and stacked on mobile. Row colors still match the table swatches.
+- Pool docs: glossary entries (dice pool, success, success threshold, auto-successes), a new "The Math" section on counting successes, a quickstart note on the Sum / Pool toggle, and an updated `public/llms.txt`.
+- Share/export format v2 carries the new pool fields; v1 links and files still import, with their rolls defaulting to Sum.
+
+### Fixed
+
+- Removed the leftover commit sign-off checkbox from the PR template and the create-pr playbook. The DCO requirement itself was dropped in 1.2.0; these two references had survived that cleanup.
+
 ## [1.3.0] - 2026-07-27
 
 ### Added

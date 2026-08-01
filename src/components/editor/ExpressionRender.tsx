@@ -3,6 +3,7 @@ import { Fragment, type ReactNode } from 'react';
 import type { DicePart, Expression } from '../../types';
 import { HelpTerm } from '../ui/help-term';
 import { tipForKeep } from '../../docs/dynamicTips';
+import { tipForId } from '../../docs/glossary';
 
 function formatFaceList(values: number[]): string {
   return [...values].sort((a, b) => a - b).join(',');
@@ -55,6 +56,59 @@ interface ExpressionDiceTextProps {
 export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextProps) {
   const parts = expr.parts.map(renderPartText).filter((s) => s.length > 0);
   const body = parts.length > 0 ? parts.join(' + ') : '(no parts)';
+
+  // Pool notation: `7d10 · count ≥8 · +2 auto`. The modifier reads as auto-
+  // successes, and there is no roll-mode suffix because pool math ignores
+  // rollMode (a suffix would be displayed-but-ignored).
+  if (expr.mode === 'pool') {
+    const threshold = expr.successThreshold;
+    return (
+      <chakra.span>
+        {renderTokenized(body, 'body')}
+        {threshold && (
+          <>
+            <Text as="span" color="fg.muted">
+              {' · '}
+            </Text>
+            <HelpTerm
+              tip={tipForId('successThreshold')}
+              ariaLabel={`count ${
+                threshold.direction === 'gte' ? 'at least' : 'at most'
+              } ${threshold.value}`}
+            >
+              {/* nowrap keeps each pool segment intact when the notation wraps
+                  at narrow widths; the middots are the intended break points. */}
+              <Text as="span" color="purple.fg" whiteSpace="nowrap">
+                count {threshold.direction === 'gte' ? '≥' : '≤'}
+                {threshold.value}
+              </Text>
+            </HelpTerm>
+          </>
+        )}
+        {expr.flatModifier !== 0 && (
+          <>
+            <Text as="span" color="fg.muted">
+              {' · '}
+            </Text>
+            <HelpTerm
+              tip={tipForId('poolAutoSuccess')}
+              ariaLabel={`${expr.flatModifier > 0 ? 'plus' : 'minus'} ${Math.abs(
+                expr.flatModifier,
+              )} automatic successes`}
+            >
+              <Text as="span" color="purple.fg" whiteSpace="nowrap">
+                {expr.flatModifier > 0
+                  ? `+${expr.flatModifier}`
+                  : `−${Math.abs(expr.flatModifier)}`}
+                {' auto'}
+              </Text>
+            </HelpTerm>
+          </>
+        )}
+      </chakra.span>
+    );
+  }
+
   let mod = '';
   if (expr.flatModifier > 0) mod = ` + ${expr.flatModifier}`;
   else if (expr.flatModifier < 0) mod = ` − ${Math.abs(expr.flatModifier)}`;
