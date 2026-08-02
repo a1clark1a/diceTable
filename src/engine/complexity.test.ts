@@ -23,6 +23,7 @@ const expr = (overrides: Partial<Expression>): Expression => ({
   parts: [part({})],
   flatModifier: 0,
   rollMode: 'normal',
+  mode: 'sum',
   ...overrides,
 });
 

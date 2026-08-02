@@ -8,7 +8,7 @@ import {
 import { Plus } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useApp, type PartPatch } from '../state/useApp';
-import type { DicePart, Expression, RollMode } from '../types';
+import type { DicePart, Expression, ExpressionMode, RollMode } from '../types';
 import { DicePartRow } from './editor/DicePartRow';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { Tooltip } from './ui/tooltip';
@@ -28,6 +28,7 @@ interface RollExpandProps {
 interface PartRowProps {
   exprId: string;
   part: DicePart;
+  mode: ExpressionMode;
   canRemove: boolean;
   updatePart: (exprId: string, partId: string, patch: PartPatch) => void;
   removePart: (exprId: string, partId: string) => void;
@@ -41,6 +42,7 @@ interface PartRowProps {
 const PartRow = memo(function PartRow({
   exprId,
   part,
+  mode,
   canRemove,
   updatePart,
   removePart,
@@ -57,6 +59,7 @@ const PartRow = memo(function PartRow({
   return (
     <DicePartRow
       part={part}
+      mode={mode}
       onChange={onChange}
       onRemove={onRemove}
       canRemove={canRemove}
@@ -66,6 +69,7 @@ const PartRow = memo(function PartRow({
 
 export function RollExpand({ expression }: RollExpandProps) {
   const { addPart, removePart, updatePart, updateExpression } = useApp();
+  const isPool = expression.mode === 'pool';
 
   return (
     <Box bg="bg.subtle" p={{ base: 3, md: 4 }}>
@@ -124,6 +128,7 @@ export function RollExpand({ expression }: RollExpandProps) {
                 key={part.id}
                 exprId={expression.id}
                 part={part}
+                mode={expression.mode}
                 canRemove={expression.parts.length > 1}
                 updatePart={updatePart}
                 removePart={removePart}
@@ -164,20 +169,33 @@ export function RollExpand({ expression }: RollExpandProps) {
             borderRadius="md"
             p={1}
             display="inline-flex"
+            role="group"
+            aria-label="Roll mode"
           >
+            {/* aria-disabled + data-disabled instead of the native attribute so
+                pool rows keep the chips hoverable and focusable and the "why"
+                tooltip stays discoverable; data-disabled applies the recipe's
+                disabled styling and suppresses hover feedback. */}
             {ROLL_MODES.map((m) => {
               const active = expression.rollMode === m.value;
               return (
-                <Tooltip key={m.value} content={m.tip}>
+                <Tooltip
+                  key={m.value}
+                  content={isPool ? tipForId('rollModeIgnoredInPool') : m.tip}
+                >
                   <Button
                     size="sm"
                     variant={active ? 'solid' : 'ghost'}
                     colorPalette={active ? 'blue' : 'gray'}
-                    onClick={() =>
-                      updateExpression(expression.id, { rollMode: m.value })
-                    }
+                    onClick={() => {
+                      if (!isPool) {
+                        updateExpression(expression.id, { rollMode: m.value });
+                      }
+                    }}
                     aria-pressed={active}
                     aria-label={m.label}
+                    aria-disabled={isPool || undefined}
+                    data-disabled={isPool ? '' : undefined}
                   >
                     {m.label}
                   </Button>

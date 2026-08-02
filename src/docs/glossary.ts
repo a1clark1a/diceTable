@@ -57,7 +57,8 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Modifier',
     alt: '+M / −M',
     group: 'notation',
-    plain: 'A flat number added to every roll’s total.',
+    plain:
+      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead.',
   },
   {
     id: 'keep',
@@ -89,6 +90,45 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'When a die lands on a chosen face, roll it again and add the result. The chain stops after a few pops to keep the chart readable.',
     details:
       'Each "pop" on the trigger face adds another roll on top, so a single die could in theory stack into very large totals. To keep the chart readable, DiceTable stops the chain after a few pops; any tiny chance left beyond that gets folded into the last rolled face.',
+  },
+  {
+    id: 'pool',
+    term: 'Dice pool',
+    alt: 'Sum / Pool toggle',
+    group: 'notation',
+    plain:
+      'A roll scored by counting how many dice clear a threshold, instead of adding the faces into one total.',
+    details:
+      'Switch a roll to Pool in its Dice cell and each die simply succeeds or fails; the result is the number of successes. 7d10 · count ≥8 asks "out of seven d10s, how many show 8 or higher?" Keep and explode only make sense for totals, so they don’t apply while a roll is pooled. Reroll still works, and the per-die odds stay exact.',
+  },
+  {
+    id: 'success',
+    term: 'Success',
+    group: 'notation',
+    plain:
+      'One die in a pool that meets the threshold. A pool roll’s result is how many successes came up.',
+    details:
+      'Successes are all-or-nothing: a die that clears the bar counts as exactly one success, no matter how high it lands. Adding a die to the pool adds at most one success, so pool results grow in small, steady steps compared to totals.',
+  },
+  {
+    id: 'threshold',
+    term: 'Success threshold',
+    alt: 'count ≥8 / count ≤2',
+    group: 'notation',
+    plain:
+      'Which faces count as a success on each die: at or above (≥) or at or below (≤) the number you pick.',
+    details:
+      'The threshold applies to every die in the roll, and the direction flips next to the number. Pick ≥ for "high faces are good" systems, like 8 or higher on a d10, and ≤ for roll-under pools. Moving the threshold changes every die’s chance at once, so a one-step nudge can swing the odds more than adding a die.',
+  },
+  {
+    id: 'auto-successes',
+    term: 'Auto-successes',
+    alt: '+2 auto',
+    group: 'notation',
+    plain:
+      'On a pool roll, the modifier adds or removes successes directly. A roll never drops below zero successes.',
+    details:
+      'Auto-successes shift the count after the dice are read: +2 auto means two free successes on top of whatever you rolled, and −2 takes two away. They don’t change any die’s chance of succeeding. Penalties can’t push a result below zero; all of that would-be-negative chance lands on exactly zero successes.',
   },
 
   {
@@ -252,7 +292,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Roller',
     group: 'app',
     plain:
-      'A simulated dice roller you can run on any row. History stays until you reload the page.',
+      'A simulated dice roller you can run on any roll that adds up a total. History stays until you reload the page.',
     details:
       'The roller is a sanity check, not where the numbers on each row come from. Those numbers are worked out from the exact odds, not from these sample rolls. Use the roller to feel out variance: rolling 4d6kh3 a dozen times will rarely match the calculated average, and that gap is exactly what the σ value is measuring.',
   },
@@ -267,7 +307,7 @@ const uiTips: Record<string, string> = {
   rollMode:
     'Applies to the whole roll. Advantage rolls twice and takes the higher; disadvantage rolls twice and takes the lower.',
   globalRollMode:
-    'Applies one roll mode to every roll in the list: advantage rolls twice and keeps the higher result, disadvantage keeps the lower. Mixed means rows currently differ.',
+    'Sets one roll mode for every roll in the list. Mixed means rows currently differ, and rolls that count successes ignore it.',
   rollModeNormal: 'Roll once.',
   rollModeAdvantage: 'Roll twice and take the higher result.',
   rollModeDisadvantage: 'Roll twice and take the lower result.',
@@ -280,6 +320,28 @@ const uiTips: Record<string, string> = {
   inspectMode: 'The results most likely to come up, ordered by chance.',
   inspectSigma:
     'The shaded band is one σ either side of the mean. Most rolls land here.',
+  sumMode:
+    'Add the faces together into one total. The classic damage-roll style.',
+  poolMode:
+    'Count how many dice meet a threshold instead of adding them into a total. The row then shows successes, not totals.',
+  successThreshold:
+    'Which faces count as a success on each die. Pick the direction and the number, like 8 or higher on a d10.',
+  successDirection:
+    'A die succeeds when it lands at or above (≥) or at or below (≤) the number. Click to flip.',
+  poolTarget:
+    'How many successes count as a hit for every pool row. Sum rows keep using the targets in the toolbar.',
+  totalsChart:
+    'Sum rolls compare here. The bottom axis shows each possible total.',
+  successesChart:
+    'Pool rolls compare here. The bottom axis counts successes, not totals.',
+  poolAutoSuccess:
+    'Added straight to the number of successes. It doesn’t change each die’s chance. A roll never goes below zero successes.',
+  keepDisabledInPool:
+    'Keep highest or lowest applies when dice add into a total. Switch this roll back to Sum to use it.',
+  explodeDisabledInPool:
+    'Explode adds bonus rolls into a total. Switch this roll back to Sum to use it.',
+  rollModeIgnoredInPool:
+    'This roll counts successes, so advantage and disadvantage have no effect on it. The setting is kept for when you switch back to Sum.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   import:

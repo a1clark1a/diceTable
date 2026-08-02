@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { ReactNode } from 'react';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
-import type { RollMode } from '../types';
+import type { Expression, RollMode } from '../types';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AppProvider>{children}</AppProvider>
@@ -82,6 +82,7 @@ interface SeededExpr {
   parts: { id: string; count: number; sides: number }[];
   flatModifier: number;
   rollMode: 'normal';
+  mode: 'sum';
 }
 
 function makeExprs(count: number): SeededExpr[] {
@@ -91,6 +92,7 @@ function makeExprs(count: number): SeededExpr[] {
     parts: [{ id: `p${i}`, count: 1, sides: 6 }],
     flatModifier: 0,
     rollMode: 'normal',
+    mode: 'sum',
   }));
 }
 
@@ -259,5 +261,261 @@ describe('AppContext setAllRollModes', () => {
       result.current.setAllRollModes('advantage');
     });
     expect(result.current.expressions).toEqual([]);
+  });
+});
+
+function sumRow(overrides: Partial<Expression> = {}): Expression {
+  return {
+    id: 'e0',
+    name: 'Row 0',
+    parts: [{ id: 'p0', count: 1, sides: 6 }],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'sum',
+    ...overrides,
+  };
+}
+
+function seedRows(expressions: Expression[]) {
+  const state = {
+    version: 2,
+    expressions,
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [] as number[], ruling: 'gte' as const },
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+describe('AppContext updateExpression mode switching', () => {
+  it('switching a 4d6kh3 row to pool strips keep and seeds a 4+ threshold from the d6', () => {
+    seedRows([
+      sumRow({
+        parts: [
+          { id: 'p0', count: 4, sides: 6, keep: { type: 'highest', n: 3 } },
+        ],
+      }),
+    ]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.mode).toBe('pool');
+    expect(row.parts[0]!.keep).toBeUndefined();
+    expect(row.successThreshold).toEqual({ direction: 'gte', value: 4 });
+  });
+
+  it('switching a multi-part row to pool strips keep and explode from every part but keeps reroll, seeding from the first part', () => {
+    seedRows([
+      sumRow({
+        parts: [
+          {
+            id: 'p0',
+            count: 2,
+            sides: 10,
+            explode: { onFaces: [6], depthCap: 10 },
+          },
+          {
+            id: 'p1',
+            count: 3,
+            sides: 6,
+            keep: { type: 'highest', n: 3 },
+            reroll: { values: [1], mode: 'once' },
+          },
+        ],
+      }),
+    ]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.parts[0]!.explode).toBeUndefined();
+    expect(row.parts[1]!.keep).toBeUndefined();
+    expect(row.parts[1]!.reroll).toEqual({ values: [1], mode: 'once' });
+    expect(row.successThreshold).toEqual({ direction: 'gte', value: 6 });
+  });
+
+  it('seeds an 11+ threshold when the first part is a d20', () => {
+    seedRows([sumRow({ parts: [{ id: 'p0', count: 1, sides: 20 }] })]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    expect(result.current.expressions[0]!.successThreshold).toEqual({
+      direction: 'gte',
+      value: 11,
+    });
+  });
+
+  it('clamps the seeded threshold to the die size when the first part is a d2', () => {
+    seedRows([sumRow({ parts: [{ id: 'p0', count: 1, sides: 2 }] })]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    expect(result.current.expressions[0]!.successThreshold).toEqual({
+      direction: 'gte',
+      value: 2,
+    });
+  });
+
+  it('leaves roll mode and flat modifier unchanged when switching to pool', () => {
+    seedRows([sumRow({ rollMode: 'advantage', flatModifier: 2 })]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.rollMode).toBe('advantage');
+    expect(row.flatModifier).toBe(2);
+  });
+
+  it('switching back to sum deletes the threshold and does not restore keep or explode', () => {
+    seedRows([
+      sumRow({
+        parts: [
+          {
+            id: 'p0',
+            count: 4,
+            sides: 6,
+            keep: { type: 'highest', n: 3 },
+            explode: { onFaces: [6], depthCap: 10 },
+          },
+        ],
+      }),
+    ]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'sum' });
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.mode).toBe('sum');
+    expect(row.successThreshold).toBeUndefined();
+    expect(row.parts[0]!.keep).toBeUndefined();
+    expect(row.parts[0]!.explode).toBeUndefined();
+  });
+
+  it('patching mode pool on an already-pool row leaves a user-edited threshold alone', () => {
+    seedRows([sumRow()]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    act(() => {
+      result.current.updateExpression('e0', {
+        successThreshold: { direction: 'lte', value: 2 },
+      });
+    });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    expect(result.current.expressions[0]!.successThreshold).toEqual({
+      direction: 'lte',
+      value: 2,
+    });
+  });
+
+  it('an explicit undefined successThreshold patch clears the field', () => {
+    seedRows([sumRow()]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.updateExpression('e0', { mode: 'pool' });
+    });
+    expect(result.current.expressions[0]!.successThreshold).toBeDefined();
+    act(() => {
+      result.current.updateExpression('e0', { successThreshold: undefined });
+    });
+    expect(result.current.expressions[0]!.successThreshold).toBeUndefined();
+  });
+});
+
+describe('AppContext setPoolTarget', () => {
+  it('defaults to 1', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('stores a positive integer as given', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(4);
+    });
+    expect(result.current.poolTarget).toBe(4);
+  });
+
+  it('floors a fractional value down to the nearest integer', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(3.9);
+    });
+    expect(result.current.poolTarget).toBe(3);
+  });
+
+  it('clamps zero up to 1', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(0);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('clamps a negative value up to 1', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(-3);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('falls back to 1 for NaN', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(NaN);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('falls back to 1 for Infinity', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTarget(5);
+    });
+    act(() => {
+      result.current.setPoolTarget(Infinity);
+    });
+    expect(result.current.poolTarget).toBe(1);
+  });
+
+  it('leaves expressions and target values untouched', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setTarget({ values: [13, 16] });
+    });
+    const beforeExpressions = result.current.expressions;
+    act(() => {
+      result.current.setPoolTarget(3);
+    });
+    expect(result.current.expressions).toEqual(beforeExpressions);
+    expect(result.current.target.values).toEqual([13, 16]);
+    expect(result.current.target.ruling).toBe('gte');
   });
 });

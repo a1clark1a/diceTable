@@ -37,6 +37,16 @@
       "label": "The Math · §7 Explode — recursive convolution with depth cap",
       "deps": ["src/engine/parts.ts", "src/docs/math.tsx"]
     },
+    {
+      "id": "math.pool",
+      "label": "The Math · §8 Dice pools — counting successes",
+      "deps": [
+        "src/engine/parts.ts",
+        "src/engine/expression.ts",
+        "src/engine/distribution.ts",
+        "src/docs/math.tsx"
+      ]
+    },
 
     {
       "id": "quickstart.add-roll",
@@ -55,6 +65,7 @@
       "deps": [
         "src/components/editor/ExpressionRender.tsx",
         "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/PoolControls.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
       ]

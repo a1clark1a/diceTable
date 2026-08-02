@@ -3,7 +3,7 @@ import { validatePersistedState } from './persistedSchema';
 import type { PersistedState } from '../types';
 
 const validPayload: PersistedState = {
-  version: 2,
+  version: 3,
   expressions: [
     {
       id: 'expr-1',
@@ -18,6 +18,7 @@ const validPayload: PersistedState = {
       ],
       flatModifier: 2,
       rollMode: 'advantage',
+      mode: 'sum',
     },
   ],
   ui: {
@@ -25,6 +26,7 @@ const validPayload: PersistedState = {
     chartView: 'cdf',
     target: { values: [15], ruling: 'gte' },
     view: 'table',
+    poolTarget: 1,
   },
 };
 
@@ -134,6 +136,7 @@ describe('validatePersistedState', () => {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
+      poolTarget: 1,
     });
   });
 
@@ -149,6 +152,7 @@ describe('validatePersistedState', () => {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
+      poolTarget: 1,
     });
   });
 

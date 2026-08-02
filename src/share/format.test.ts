@@ -13,6 +13,7 @@ const sampleExpr: Expression = {
   parts: [{ id: 'part-1', count: 1, sides: 20 }],
   flatModifier: 5,
   rollMode: 'normal',
+  mode: 'sum',
 };
 
 describe('buildExportEnvelope', () => {

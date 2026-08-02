@@ -8,6 +8,8 @@ DiceTable is for tabletop and strategy gamers who want to understand and balance
 
 All probabilities are exact. DiceTable enumerates each die's distribution and combines them by full convolution, so every number is the true probability of that outcome. It does not use normal or uniform approximations, and it does not sample or simulate to produce its stats.
 
+A roll can be scored two ways. Sum mode adds the dice into one total. Pool mode counts successes instead: each die succeeds when it meets a threshold (for example, 8 or higher on a d10), the result is the number of successes, and the flat modifier grants or removes successes directly (a result never drops below zero). Pool odds are exact too, including rerolls.
+
 For each roll it reports:
 
 - Mean (the long-run average result).
@@ -25,6 +27,7 @@ DiceTable reads standard tabletop dice notation, edited inline in the table:
 - Keep highest or lowest, such as 4d6kh3 (roll four six-sided dice, keep the highest 3) or klN.
 - Reroll specific faces, once or always, such as r1 or r<3.
 - Explode a chosen face, such as !6 (on that face, roll again and add), with a depth cap that keeps results readable.
+- Count successes (dice pools), shown as count ≥8 or count ≤2: the roll's result is how many dice meet the threshold, and the flat modifier becomes auto-successes (+2 auto). Keep and explode apply only to summed rolls.
 
 ## Roll modes
 
@@ -34,16 +37,20 @@ A roll mode applies to the whole expression:
 - Advantage (roll twice and take the higher result).
 - Disadvantage (roll twice and take the lower result).
 
+Roll modes affect summed rolls only. A pool roll keeps its setting for when it switches back to summing, but counting successes ignores it.
+
 ## Comparing and balancing rolls
 
-Every row appears in one overlay chart with its own color. The chart has four views:
+Every row appears in an overlay chart with its own color. The chart has four views:
 
 - PMF: how likely each exact result is.
 - CDF: the chance of rolling at most a given number.
 - CCDF: the chance of rolling at least a given number, useful for "beat the DC" checks.
 - Target: per-row hit-rate bars once you set one or more target numbers.
 
-You can set up to five targets (for example armor classes or save DCs) and choose how a roll is compared to them: at least, greater than, at most, less than, or exactly. A Hit % column then shows how often each row meets each target. A built-in roller can also simulate any row, using the same exact odds the chart shows.
+Summed rolls and pool rolls chart on separate panels, because their axes mean different things: one shows totals, the other counts successes.
+
+You can set up to five targets (for example armor classes or save DCs) and choose how a roll is compared to them: at least, greater than, at most, less than, or exactly. A Hit % column then shows how often each summed roll meets each target. Pool rolls answer to a separate shared pool target ("at least n successes") instead. A built-in roller can also simulate any summed roll, using the same exact odds the chart shows.
 
 ## Privacy
 
