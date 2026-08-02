@@ -342,6 +342,14 @@ const uiTips: Record<string, string> = {
     'Explode adds bonus rolls into a total. Switch this roll back to Sum to use it.',
   rollModeIgnoredInPool:
     'This roll counts successes, so advantage and disadvantage have no effect on it. The setting is kept for when you switch back to Sum.',
+  targetGridName:
+    'Shows rolls in table order. Click to clear sorting.',
+  targetGridSort:
+    'Click to sort rolls by this target. Another click flips the order, one more clears it.',
+  targetCurves:
+    'Each line shows a roll’s chance to hit for every possible target at once. Dashed lines mark your current targets.',
+  targetBars:
+    'How often each roll meets this target. Longer, greener bars mean more reliable.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   import:

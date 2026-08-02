@@ -3,6 +3,8 @@ import { Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
 import { OverlayChart } from '../components/chart/OverlayChart';
+import { TargetToolbar } from '../components/TargetToolbar';
+import { TargetHitView } from '../components/target/TargetHitView';
 import { ViewBar } from '../components/ViewBar';
 import { WorkshopHeader } from '../components/WorkshopHeader';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
@@ -24,12 +26,27 @@ export default function TablePage() {
       id: 'table',
       label: 'Table & chart',
       mobileLabel: 'Rolls',
+      // The toolbar keeps its old slot inside a gap-3 stack so the table view
+      // renders exactly as it did when RollsTable/RollsCards owned it.
       render: () => (
         <>
           <ViewBar chartRef={chartRef} />
-          {isDesktop ? <RollsTable /> : <RollsCards />}
+          <Stack gap={3}>
+            <TargetToolbar />
+            {isDesktop ? <RollsTable /> : <RollsCards />}
+          </Stack>
           <OverlayChart ref={chartRef} />
         </>
+      ),
+    },
+    {
+      id: 'target',
+      label: 'Target hit',
+      render: () => (
+        <Stack gap={3}>
+          <TargetToolbar />
+          <TargetHitView />
+        </Stack>
       ),
     },
   ];
