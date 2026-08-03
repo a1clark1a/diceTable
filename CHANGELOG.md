@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-02
+
+### Added
+
+- Target hit view: the second workshop view, registered beside "Table & chart" in the view switcher. It answers "how reliably does each roll meet the targets?" three ways. Grid shows a rolls × targets matrix of hit chances, color-coded from reliable (green) to long shot (red) and sortable by any target column (click to sort, click again to flip, once more to clear). Curves plots each Sum roll's hit chance for every possible target value at once, with dashed markers at the current targets. Bars shows one panel per target with rolls ranked by hit chance. The target toolbar is shared with the Table & chart view, which is unchanged visually.
+- Pool rolls in the Target hit view: Grid and Bars show them against the shared pool target (marked with `*` and a footnote), and an All / Sum / Pools filter appears whenever both kinds of roll exist. Curves compares Sum rolls only.
+- `public/llms.txt` now describes the Target hit view.
+
+### Fixed
+
+- Vercel API build: `api/tsconfig.json` now includes the Node type definitions, so the serverless error-report endpoint type-checks correctly on Vercel.
+
 ## [1.4.0] - 2026-07-31
 
 ### Added
@@ -73,7 +85,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.5.0
 [1.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.4.0
 [1.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.3.0
 [1.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.2.0
