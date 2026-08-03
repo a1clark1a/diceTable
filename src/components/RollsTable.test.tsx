@@ -53,15 +53,19 @@ vi.mock('./editor/DicePartRow', () => ({
 const { AppProvider } = await import('../state/AppContext');
 const { RollHistoryProvider } = await import('../state/RollHistoryContext');
 const { RollsTable } = await import('./RollsTable');
+const { TargetToolbar } = await import('./TargetToolbar');
 
 const SEED_EXPR_ID = 'seed-4d6kh3';
 const SEED_PART_ID = 'seed-4d6kh3-part';
 
+// The toolbar renders alongside the table (TablePage hoists it to the page
+// level), and the pool Hit % tests drive the pool-target input it owns.
 function renderTable() {
   return render(
     <ChakraProvider value={defaultSystem}>
       <AppProvider>
         <RollHistoryProvider>
+          <TargetToolbar />
           <RollsTable />
         </RollHistoryProvider>
       </AppProvider>

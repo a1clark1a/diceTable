@@ -4,6 +4,7 @@ import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
 import { RollHistoryProvider } from '../state/RollHistoryContext';
 import { RollsCards } from './RollsCards';
+import { TargetToolbar } from './TargetToolbar';
 
 function seedState(opts: { targetValues: number[]; poolTarget: number }) {
   const state = {
@@ -41,11 +42,14 @@ function seedState(opts: { targetValues: number[]; poolTarget: number }) {
   );
 }
 
+// The toolbar renders alongside the cards (TablePage hoists it to the page
+// level), and the pool Hit % tests drive the pool-target input it owns.
 function renderCards() {
   return render(
     <ChakraProvider value={defaultSystem}>
       <AppProvider>
         <RollHistoryProvider>
+          <TargetToolbar />
           <RollsCards />
         </RollHistoryProvider>
       </AppProvider>

@@ -52,6 +52,8 @@ Summed rolls and pool rolls chart on separate panels, because their axes mean di
 
 You can set up to five targets (for example armor classes or save DCs) and choose how a roll is compared to them: at least, greater than, at most, less than, or exactly. A Hit % column then shows how often each summed roll meets each target. Pool rolls answer to a separate shared pool target ("at least n successes") instead. A built-in roller can also simulate any summed roll, using the same exact odds the chart shows.
 
+A dedicated Target hit view compares every roll against all of your targets at once, three ways. A grid shows each roll's hit chance per target, color-coded from reliable to long shot and sortable by any target column. Curves plot each summed roll's hit chance for every possible target value, with your current targets marked. Bars show one panel per target with rolls ranked by hit chance. Pool rolls appear in the grid and bars under the shared pool target.
+
 ## Privacy
 
 DiceTable runs entirely in your browser. Your rolls and settings are stored on your own device, and the site collects only anonymous analytics. There are no accounts.

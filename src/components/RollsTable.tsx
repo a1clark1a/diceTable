@@ -29,7 +29,6 @@ import {
   PoolModeToggle,
   PoolThresholdEditor,
 } from './editor/PoolControls';
-import { TargetToolbar } from './TargetToolbar';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
@@ -83,8 +82,6 @@ export function RollsTable() {
 
   return (
     <Stack gap={3}>
-      <TargetToolbar />
-
       {expressions.length === 0 ? (
         <EmptyState onAdd={addExpression} />
       ) : (

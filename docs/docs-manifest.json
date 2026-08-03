@@ -203,7 +203,11 @@
         "src/engine/stats.ts",
         "src/engine/distribution.ts",
         "src/components/chart/OverlayChart.tsx",
-        "src/components/TargetToolbar.tsx"
+        "src/components/TargetToolbar.tsx",
+        "src/components/target/TargetHitView.tsx",
+        "src/components/target/TargetBars.tsx",
+        "src/components/target/TargetCurves.tsx",
+        "src/components/target/targetHitRows.ts"
       ]
     },
     {
