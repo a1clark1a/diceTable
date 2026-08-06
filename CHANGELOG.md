@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Community dice vocabulary: the glossary's "Target ruling" entry now ends with a small map from each ruling to its community name (≥ is "roll over" or "meet or beat" as in D&D and Pathfinder, ≤ is "roll under" as in Call of Cthulhu and GURPS, and the strict `>` `<` `=` readings are marked as having no common name).
+
+### Changed
+
+- The ≥ and ≤ ruling tooltips (on target chips, the Hit % header, and the target hit view) gained a second sentence naming the same community terms.
+
+### Fixed
+
+- TARGET view bar labels no longer overlap. Labels drop a redundant trailing ".0" (100.0% reads 100%), hide as a group when the bars are too narrow to fit them (hover or tap a bar for the exact value), and the chart claims a little more width per bar so labels fit at desktop sizes.
+
 ## [1.5.0] - 2026-08-02
 
 ### Added
