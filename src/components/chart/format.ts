@@ -16,3 +16,14 @@ export function formatPercent(value: number): string {
 export function formatPercentCompact(value: number): string {
   return formatPercent(value).replace('.0%', '%');
 }
+
+// ~px per glyph of 10px ui-monospace; used to decide whether a label fits.
+const LABEL_CHAR_WIDTH = 6.1;
+// Adjacent bars sit one intra-group gap (4px) apart; keep 2px of whitespace
+// between neighboring labels.
+const LABEL_PITCH_SLACK = 2;
+
+/** fitChars is the longest label in the chart, so labels turn on or off as one group. */
+export function targetLabelFits(fitChars: number, width: number): boolean {
+  return fitChars * LABEL_CHAR_WIDTH <= width + LABEL_PITCH_SLACK;
+}
