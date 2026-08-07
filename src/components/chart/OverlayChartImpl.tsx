@@ -25,7 +25,7 @@ import type {
 import { rowColor } from './palette';
 import { RulingSymbol } from '../targetRuling';
 import { RULING_SYMBOL } from '../targetRulingMeta';
-import { formatPercentCompact } from './format';
+import { formatPercentCompact, targetLabelFits } from './format';
 
 interface RowSeries {
   id: string;
@@ -431,14 +431,6 @@ interface TargetBarLabelProps {
   value?: number | string | boolean | null | undefined;
 }
 
-// ~px per glyph of 10px ui-monospace; used to decide whether a label fits.
-const LABEL_CHAR_WIDTH = 6.1;
-// Adjacent bars sit one intra-group gap (4px) apart; keep 2px of whitespace
-// between neighboring labels.
-const LABEL_PITCH_SLACK = 2;
-
-// fitChars is the longest label in the whole chart, so the fit decision is
-// identical for every bar: labels are all-on or all-off, never a ragged mix.
 function TargetBarLabel({
   x,
   y,
@@ -455,7 +447,7 @@ function TargetBarLabel({
   ) {
     return null;
   }
-  if (fitChars * LABEL_CHAR_WIDTH > width + LABEL_PITCH_SLACK) return null;
+  if (!targetLabelFits(fitChars, width)) return null;
   return (
     <text
       x={x + width / 2}
