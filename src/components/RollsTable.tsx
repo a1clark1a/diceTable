@@ -315,6 +315,7 @@ const RollTableRow = memo(function RollTableRow({
     return comparison.isPool ? comparison.hits[0] : comparison.hits[i];
   };
   const poolBaseHit = deltasActive ? baseHitFor(0) : undefined;
+  const hitMax = comparison?.maxHitDelta ?? 0;
   const verdict = deltasActive
     ? buildVerdict({
         mean: stats.mean,
@@ -539,7 +540,7 @@ const RollTableRow = memo(function RollTableRow({
                   css={{ textWrap: 'pretty' }}
                 >
                   {showHit
-                    ? 'different scale, compare Hit % instead'
+                    ? 'different scale, compare Hit % instead'
                     : 'different scale from the baseline'}
                 </Text>
               )}
@@ -598,7 +599,10 @@ const RollTableRow = memo(function RollTableRow({
                     </Text>
                   </HelpTerm>
                   {poolBaseHit !== undefined ? (
-                    <HitDeltaValue delta={poolHit - poolBaseHit} />
+                    <HitDeltaValue
+                      delta={poolHit - poolBaseHit}
+                      maxDelta={hitMax}
+                    />
                   ) : (
                     <Text
                       as="span"
@@ -624,7 +628,7 @@ const RollTableRow = memo(function RollTableRow({
                         </Text>
                       )}
                       {baseHit !== undefined ? (
-                        <HitDeltaValue delta={p - baseHit} />
+                        <HitDeltaValue delta={p - baseHit} maxDelta={hitMax} />
                       ) : (
                         <Text
                           as="span"
