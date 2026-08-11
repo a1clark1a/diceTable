@@ -27,6 +27,7 @@ const validPayload: PersistedState = {
     target: { values: [15], ruling: 'gte' },
     view: 'table',
     poolTarget: 1,
+    baselineId: null,
   },
 };
 
@@ -137,6 +138,7 @@ describe('validatePersistedState', () => {
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
+      baselineId: null,
     });
   });
 
@@ -153,6 +155,7 @@ describe('validatePersistedState', () => {
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
+      baselineId: null,
     });
   });
 

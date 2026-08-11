@@ -87,6 +87,7 @@ function seedPoolExpressionInStorage() {
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
+      baselineId: null,
     },
   };
   window.localStorage.setItem(

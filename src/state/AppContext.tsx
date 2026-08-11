@@ -57,6 +57,7 @@ const initialState: PersistedState = {
     target: { values: [], ruling: 'gte' },
     view: 'table',
     poolTarget: 1,
+    baselineId: null,
   },
 };
 
@@ -182,6 +183,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  const setBaselineId = useCallback(
+    (id: string | null) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, baselineId: id } }));
+    },
+    [setState],
+  );
+
   const setChartView = useCallback(
     (view: ChartView) => {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, chartView: view } }));
@@ -285,10 +293,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const remaining = prev.expressions.filter((e) => e.id !== id);
         const nextExpanded =
           prev.ui.expandedId === id ? null : prev.ui.expandedId;
+        const nextBaseline =
+          prev.ui.baselineId === id ? null : prev.ui.baselineId;
         return {
           ...prev,
           expressions: remaining,
-          ui: { ...prev.ui, expandedId: nextExpanded },
+          ui: { ...prev.ui, expandedId: nextExpanded, baselineId: nextBaseline },
         };
       });
     },
@@ -386,10 +396,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           description: `The import had ${incoming.length}. Up to ${MAX_EXPRESSIONS} fit in one table.`,
         });
       }
+      // replaceExpressions re-ids every row, so a spread-through baselineId
+      // could never match again; null it here instead of leaking a stale id.
       setState((prev) => ({
         ...prev,
         expressions: fresh,
-        ui: { ...prev.ui, expandedId: null },
+        ui: { ...prev.ui, expandedId: null, baselineId: null },
       }));
     },
     [setState],
@@ -435,7 +447,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       target: state.ui.target,
       view: state.ui.view,
       poolTarget: state.ui.poolTarget,
+      baselineId: state.ui.baselineId,
       setExpandedId,
+      setBaselineId,
       setChartView,
       setView,
       setTarget,
@@ -455,6 +469,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [
       state,
       setExpandedId,
+      setBaselineId,
       setChartView,
       setView,
       setTarget,
