@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo } from 'react';
 import {
+  Badge,
   Box,
   Button,
   HStack,
@@ -9,7 +10,7 @@ import {
   Table,
   Text,
 } from '@chakra-ui/react';
-import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Pin, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
@@ -34,7 +35,21 @@ import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
 import { RowSparkline, ShapeHeaderLabel } from './chart/Sparkline';
 import { effectiveChartView } from './chart/effectiveView';
-import { EM_DASH, formatNumber, formatPercent } from './chart/format';
+import {
+  EM_DASH,
+  deltaTone,
+  formatDelta,
+  formatNumber,
+  formatPercent,
+} from './chart/format';
+import {
+  STAT_DELTA_EPS,
+  buildBaselineComparison,
+  type BaselineComparison,
+} from './baseline/comparison';
+import { buildVerdict } from './baseline/verdict';
+import { DeltaLine, HitDeltaValue } from './baseline/DeltaLine';
+import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
@@ -69,7 +84,9 @@ export function RollsTable() {
     chartView,
     target,
     poolTarget,
+    baselineId,
     setExpandedId,
+    setBaselineId,
     deleteExpression,
     renameExpression,
     updateExpression,
@@ -79,6 +96,10 @@ export function RollsTable() {
   const showHit = target.values.length > 0;
   const view = effectiveChartView(chartView, target);
   const atCap = expressions.length >= MAX_EXPRESSIONS;
+  const comparison = useMemo(
+    () => buildBaselineComparison(expressions, baselineId, target, poolTarget),
+    [expressions, baselineId, target, poolTarget],
+  );
 
   return (
     <Stack gap={3}>
@@ -110,7 +131,13 @@ export function RollsTable() {
                   <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
+                  {comparison !== null ? (
+                    <HelpTerm tip={tipForId('baseline')}>
+                      vs {comparison.name}
+                    </HelpTerm>
+                  ) : (
+                    <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
+                  )}
                 </Table.ColumnHeader>
                 <Table.ColumnHeader textAlign="end">
                   <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
@@ -121,12 +148,16 @@ export function RollsTable() {
                 {showHit && (
                   <Table.ColumnHeader textAlign="end">
                     <HStack as="span" gap={1} justify="end">
-                      <HelpTerm tip={tipForId('hit')}>Hit %</HelpTerm>
+                      <HelpTerm
+                        tip={tipForId(comparison !== null ? 'deltaHit' : 'hit')}
+                      >
+                        Hit %
+                      </HelpTerm>
                       <RulingSymbol ruling={target.ruling} color="fg.muted" />
                     </HStack>
                   </Table.ColumnHeader>
                 )}
-                <Table.ColumnHeader textAlign="end" w="140px">
+                <Table.ColumnHeader textAlign="end" w="160px">
                   {' '}
                 </Table.ColumnHeader>
               </Table.Row>
@@ -142,7 +173,10 @@ export function RollsTable() {
                   view={view}
                   target={target}
                   poolTarget={poolTarget}
+                  baselineId={baselineId}
+                  comparison={comparison}
                   setExpandedId={setExpandedId}
+                  setBaselineId={setBaselineId}
                   deleteExpression={deleteExpression}
                   renameExpression={renameExpression}
                   updateExpression={updateExpression}
@@ -222,7 +256,10 @@ interface RollTableRowProps {
   view: ChartView;
   target: TargetState;
   poolTarget: number;
+  baselineId: string | null;
+  comparison: BaselineComparison | null;
   setExpandedId: (id: string | null) => void;
+  setBaselineId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
@@ -236,7 +273,10 @@ const RollTableRow = memo(function RollTableRow({
   view,
   target,
   poolTarget,
+  baselineId,
+  comparison,
   setExpandedId,
+  setBaselineId,
   deleteExpression,
   renameExpression,
   updateExpression,
@@ -261,9 +301,40 @@ const RollTableRow = memo(function RollTableRow({
     () => (isPool ? { values: [poolTarget], ruling: 'gte' } : target),
     [isPool, poolTarget, target],
   );
+  const isBaseline = baselineId === expr.id;
+  const rowOk = stats.hasDist && !tooComplex;
+  const deltasActive = comparison !== null && !isBaseline && rowOk;
+  const sameScale = comparison === null || isPool === comparison.isPool;
+  const baselineAccent = isBaseline && comparison !== null;
+  const meanDelta =
+    comparison !== null ? stats.mean - comparison.stats.mean : 0;
+  const sigmaDelta =
+    comparison !== null ? stats.stddev - comparison.stats.stddev : 0;
+  const baseHitFor = (i: number): number | undefined => {
+    if (comparison === null || comparison.hits === null) return undefined;
+    return comparison.isPool ? comparison.hits[0] : comparison.hits[i];
+  };
+  const poolBaseHit = deltasActive ? baseHitFor(0) : undefined;
+  const hitMax = comparison?.maxHitDelta ?? 0;
+  const verdict = deltasActive
+    ? buildVerdict({
+        mean: stats.mean,
+        stddev: stats.stddev,
+        isPool,
+        firstHit: isPool ? poolHit : (hits?.[0] ?? null),
+        baseMean: comparison.stats.mean,
+        baseStddev: comparison.stats.stddev,
+        baseIsPool: comparison.isPool,
+        baseFirstHit: comparison.hits?.[0] ?? null,
+      })
+    : null;
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
+  );
+  const onTogglePin = useCallback(
+    () => setBaselineId(isBaseline ? null : expr.id),
+    [setBaselineId, isBaseline, expr.id],
   );
   const onDelete = useCallback(
     () => deleteExpression(expr.id),
@@ -300,33 +371,62 @@ const RollTableRow = memo(function RollTableRow({
   });
   return (
     <>
-      <Table.Row _hover={{ bg: 'bg.subtle' }}>
+      <Table.Row
+        bg={baselineAccent ? 'bg.subtle' : undefined}
+        _hover={{ bg: 'bg.subtle' }}
+      >
         {/* Transparent border on sum rows keeps every row's left edge aligned;
-            pool rows tint it as their identity band. */}
+            pool rows tint it as their identity band. The pool band wins over
+            the baseline band so a pinned pool row never hides its scale cue. */}
         <Table.Cell
           borderLeftWidth="3px"
-          borderLeftColor={isPool ? 'purple.solid' : 'transparent'}
+          borderLeftColor={
+            isPool
+              ? 'purple.solid'
+              : baselineAccent
+                ? 'blue.solid'
+                : 'transparent'
+          }
         >
-          <HStack gap={2} minW="200px">
-            <Box
-              w="10px"
-              h="10px"
-              borderRadius="2px"
-              bg={color}
-              flexShrink={0}
-            />
-            <Input
-              size="sm"
-              variant="subtle"
-              value={nameBuf.value}
-              onChange={(e) => nameBuf.setValue(e.target.value)}
-              onBlur={nameBuf.onBlur}
-              onKeyDown={nameBuf.onKeyDown}
-              maxW="220px"
-              aria-label="Roll name"
-            />
-            {isPool && <PoolBadge />}
-          </HStack>
+          <Stack gap={1} align="flex-start">
+            <HStack gap={2} minW="200px">
+              <Box
+                w="10px"
+                h="10px"
+                borderRadius="2px"
+                bg={color}
+                flexShrink={0}
+              />
+              <Input
+                size="sm"
+                variant="subtle"
+                value={nameBuf.value}
+                onChange={(e) => nameBuf.setValue(e.target.value)}
+                onBlur={nameBuf.onBlur}
+                onKeyDown={nameBuf.onKeyDown}
+                maxW="220px"
+                aria-label="Roll name"
+              />
+              {isBaseline && (
+                <Tooltip content={tipForId('baseline')}>
+                  <Badge colorPalette="blue" variant="surface" flexShrink={0}>
+                    Baseline
+                  </Badge>
+                </Tooltip>
+              )}
+              {isPool && <PoolBadge />}
+            </HStack>
+            {verdict !== null && (
+              <Text
+                fontSize="xs"
+                color="fg.muted"
+                maxW="260px"
+                css={{ textWrap: 'pretty' }}
+              >
+                {verdict}
+              </Text>
+            )}
+          </Stack>
         </Table.Cell>
         <Table.Cell>
           <Stack gap={1} align="flex-start">
@@ -380,7 +480,37 @@ const RollTableRow = memo(function RollTableRow({
           fontFamily="mono"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          {stats.hasDist ? (
+          {!stats.hasDist ? (
+            EM_DASH
+          ) : deltasActive && sameScale ? (
+            <Stack gap={0.5} align="flex-end">
+              <DeltaLine
+                label="avg"
+                tip={tipForId('deltaAvg')}
+                text={formatDelta(meanDelta, 2)}
+                ariaLabel={avgDeltaAria(
+                  meanDelta,
+                  deltaTone(meanDelta, STAT_DELTA_EPS),
+                )}
+                delta={meanDelta}
+                maxDelta={comparison.maxMeanDelta}
+                tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
+              />
+              <DeltaLine
+                label="spread"
+                tip={tipForId('deltaSpread')}
+                text={formatDelta(sigmaDelta, 2)}
+                ariaLabel={spreadDeltaAria(
+                  sigmaDelta,
+                  deltaTone(sigmaDelta, STAT_DELTA_EPS),
+                )}
+                delta={sigmaDelta}
+                maxDelta={comparison.maxSigmaDelta}
+                tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
+                neutralBar
+              />
+            </Stack>
+          ) : (
             <>
               <InspectMean
                 exprName={expr.name}
@@ -402,9 +532,19 @@ const RollTableRow = memo(function RollTableRow({
               >
                 {formatNumber(stats.stddev, 2)}
               </InspectSigma>
+              {deltasActive && !sameScale && (
+                <Text
+                  fontSize="xs"
+                  color="fg.muted"
+                  fontFamily="body"
+                  css={{ textWrap: 'pretty' }}
+                >
+                  {showHit
+                    ? 'different scale, compare Hit % instead'
+                    : 'different scale from the baseline'}
+                </Text>
+              )}
             </>
-          ) : (
-            EM_DASH
           )}
         </Table.Cell>
         <Table.Cell
@@ -458,35 +598,49 @@ const RollTableRow = memo(function RollTableRow({
                       ≥{poolTarget}
                     </Text>
                   </HelpTerm>
-                  <Text
-                    as="span"
-                    color={hitColor(poolHit)}
-                    fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
-                  >
-                    {formatPercent(poolHit)}
-                  </Text>
+                  {poolBaseHit !== undefined ? (
+                    <HitDeltaValue
+                      delta={poolHit - poolBaseHit}
+                      maxDelta={hitMax}
+                    />
+                  ) : (
+                    <Text
+                      as="span"
+                      color={hitColor(poolHit)}
+                      fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
+                    >
+                      {formatPercent(poolHit)}
+                    </Text>
+                  )}
                 </HStack>
               )
             ) : hits === null ? (
               EM_DASH
             ) : (
               <Stack gap={0.5} align="flex-end">
-                {hits.map((p, i) => (
-                  <HStack key={target.values[i]} gap={2} justify="flex-end">
-                    {target.values.length > 1 && (
-                      <Text as="span" color="fg.muted" fontSize="xs">
-                        {target.values[i]}
-                      </Text>
-                    )}
-                    <Text
-                      as="span"
-                      color={hitColor(p)}
-                      fontWeight={p >= 0.66 ? 'semibold' : undefined}
-                    >
-                      {formatPercent(p)}
-                    </Text>
-                  </HStack>
-                ))}
+                {hits.map((p, i) => {
+                  const baseHit = deltasActive ? baseHitFor(i) : undefined;
+                  return (
+                    <HStack key={target.values[i]} gap={2} justify="flex-end">
+                      {target.values.length > 1 && (
+                        <Text as="span" color="fg.muted" fontSize="xs">
+                          {target.values[i]}
+                        </Text>
+                      )}
+                      {baseHit !== undefined ? (
+                        <HitDeltaValue delta={p - baseHit} maxDelta={hitMax} />
+                      ) : (
+                        <Text
+                          as="span"
+                          color={hitColor(p)}
+                          fontWeight={p >= 0.66 ? 'semibold' : undefined}
+                        >
+                          {formatPercent(p)}
+                        </Text>
+                      )}
+                    </HStack>
+                  );
+                })}
               </Stack>
             )}
           </Table.Cell>
@@ -504,6 +658,16 @@ const RollTableRow = memo(function RollTableRow({
                 />
               </>
             )}
+            <IconButton
+              aria-label={isBaseline ? 'Clear baseline' : 'Pin as baseline'}
+              size="xs"
+              variant={isBaseline ? 'subtle' : 'ghost'}
+              colorPalette={isBaseline ? 'blue' : 'gray'}
+              onClick={onTogglePin}
+              title={tipForId(isBaseline ? 'baselinePinActive' : 'baselinePin')}
+            >
+              <Pin size={14} fill={isBaseline ? 'currentColor' : 'none'} />
+            </IconButton>
             <IconButton
               aria-label={expanded ? 'Collapse row' : 'Expand row'}
               size="xs"
@@ -539,7 +703,13 @@ const RollTableRow = memo(function RollTableRow({
             p={0}
             bg="bg.subtle"
             borderLeftWidth="3px"
-            borderLeftColor={isPool ? 'purple.solid' : 'transparent'}
+            borderLeftColor={
+              isPool
+                ? 'purple.solid'
+                : baselineAccent
+                  ? 'blue.solid'
+                  : 'transparent'
+            }
           >
             <RollExpand expression={expr} />
           </Table.Cell>

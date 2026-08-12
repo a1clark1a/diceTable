@@ -246,3 +246,136 @@ describe('RollsTable pool Hit %', () => {
   });
 });
 
+// Two sum rows with hand-computed stats: 2d6 → mean 7.00, σ 2.42;
+// 1d6+5 → mean 8.50, σ 1.71. Deltas vs the 2d6 baseline: avg +1.50,
+// spread −0.71; hit vs target 10 (gte): 33.3% − 16.7% → +16.7%.
+function seedTwoSumRows(targetValues: number[] = [10]) {
+  const state = {
+    version: 3,
+    expressions: [
+      {
+        id: 'sum1',
+        name: 'Sum row',
+        parts: [{ id: 'sp1', count: 2, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'sum',
+      },
+      {
+        id: 'sum2',
+        name: 'Bonus row',
+        parts: [{ id: 'sp2', count: 1, sides: 6 }],
+        flatModifier: 5,
+        rollMode: 'normal',
+        mode: 'sum',
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: targetValues, ruling: 'gte' },
+      view: 'table',
+      poolTarget: 1,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+describe('RollsTable baseline pin round trip', () => {
+  it('pinning switches the sibling to deltas and unpinning restores absolutes', () => {
+    seedTwoSumRows();
+    renderTable();
+
+    expect(screen.getByText('8.50')).toBeInTheDocument();
+    expect(screen.queryByText('Baseline')).toBeNull();
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
+    );
+
+    // The baseline row wears the badge and keeps its absolute stats.
+    expect(screen.getByText('Baseline')).toBeInTheDocument();
+    expect(screen.getByText('7.00')).toBeInTheDocument();
+    expect(screen.getByText('16.7%')).toBeInTheDocument();
+
+    // The sibling swaps to labeled delta lines and a signed hit delta.
+    expect(screen.getByText('avg')).toBeInTheDocument();
+    expect(screen.getByText('spread')).toBeInTheDocument();
+    expect(screen.getByText('+1.50')).toBeInTheDocument();
+    expect(screen.getByText('−0.71')).toBeInTheDocument();
+    expect(screen.getByText('+16.7%')).toBeInTheDocument();
+    expect(screen.queryByText('8.50')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear baseline' }));
+
+    expect(screen.queryByText('Baseline')).toBeNull();
+    expect(screen.queryByText('avg')).toBeNull();
+    expect(screen.queryByText('+1.50')).toBeNull();
+    expect(screen.getByText('8.50')).toBeInTheDocument();
+  });
+
+  it('labels each delta for screen readers', () => {
+    seedTwoSumRows();
+    renderTable();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
+    );
+
+    expect(
+      screen.getByLabelText('1.50 higher than baseline'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('0.71 less spread than baseline'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('hits 16.7 points more often than baseline'),
+    ).toBeInTheDocument();
+  });
+
+  it('writes a verdict line under the sibling name', () => {
+    seedTwoSumRows();
+    renderTable();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
+    );
+
+    expect(
+      screen.getByText('Averages 1.5 higher · steadier · hits 17% more often'),
+    ).toBeInTheDocument();
+  });
+
+  it('pinning a second row moves the baseline instead of adding one', () => {
+    seedTwoSumRows();
+    renderTable();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Pin as baseline' }));
+
+    expect(screen.getAllByText('Baseline')).toHaveLength(1);
+    expect(
+      screen.getAllByRole('button', { name: 'Clear baseline' }),
+    ).toHaveLength(1);
+    // The first row is now the comparing side: 7.00 − 8.50 → −1.50.
+    expect(screen.getByText('−1.50')).toBeInTheDocument();
+    expect(screen.getByText('8.50')).toBeInTheDocument();
+  });
+
+  it('renders delta lines without a Hit % column when no targets are set', () => {
+    seedTwoSumRows([]);
+    renderTable();
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
+    );
+
+    expect(screen.getByText('+1.50')).toBeInTheDocument();
+    expect(screen.queryByText('+16.7%')).toBeNull();
+    expect(
+      screen.getByText('Averages 1.5 higher · steadier'),
+    ).toBeInTheDocument();
+  });
+});
+

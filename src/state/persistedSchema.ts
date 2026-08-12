@@ -185,6 +185,7 @@ function validateUi(v: unknown): PersistedState['ui'] {
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
+      baselineId: null,
     };
   }
   const expandedId =
@@ -197,7 +198,8 @@ function validateUi(v: unknown): PersistedState['ui'] {
   const target = validateTarget(v.target);
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
   const poolTarget = isInt(v.poolTarget) && v.poolTarget >= 1 ? v.poolTarget : 1;
-  return { expandedId, chartView, target, view, poolTarget };
+  const baselineId = typeof v.baselineId === 'string' ? v.baselineId : null;
+  return { expandedId, chartView, target, view, poolTarget, baselineId };
 }
 
 export function validatePersistedState(raw: unknown): PersistedState | null {
@@ -214,9 +216,19 @@ export function validatePersistedState(raw: unknown): PersistedState | null {
     if (expressions.length >= MAX_EXPRESSIONS) break;
   }
 
+  const ui = validateUi(raw.ui);
+  // A baseline pointing at a row that didn't survive validation would pin
+  // nothing forever; drop it here so consumers can trust the id resolves.
+  if (
+    ui.baselineId !== null &&
+    !expressions.some((e) => e.id === ui.baselineId)
+  ) {
+    ui.baselineId = null;
+  }
+
   return {
     version: SCHEMA_VERSION,
     expressions,
-    ui: validateUi(raw.ui),
+    ui,
   };
 }

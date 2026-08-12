@@ -260,6 +260,13 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, so dragging a row also moves its chart series.',
   },
   {
+    id: 'baseline',
+    term: 'Baseline',
+    group: 'app',
+    plain:
+      'The roll you compare the others against. Pin a row to make it the baseline. Every other row then shows how it differs instead of its own totals.',
+  },
+  {
     id: 'target',
     term: 'Target',
     group: 'app',
@@ -350,6 +357,14 @@ const uiTips: Record<string, string> = {
     'Each line shows a roll’s chance to hit for every possible target at once. Dashed lines mark your current targets.',
   targetBars:
     'How often each roll meets this target. Longer, greener bars mean more reliable.',
+  deltaAvg:
+    'How much this roll’s average is above or below the baseline. Green means higher, red lower.',
+  deltaSpread:
+    'How much more or less spread out this roll is than the baseline. Neither direction is automatically better.',
+  deltaHit:
+    'How much more or less often this roll meets the target than the baseline, in percentage points.',
+  baselinePin: 'Pin as baseline to compare the other rolls against it.',
+  baselinePinActive: 'This is the baseline. Tap again to clear it.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   import:

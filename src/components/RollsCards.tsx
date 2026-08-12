@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import {
+  Badge,
   Box,
   Button,
   Grid,
@@ -8,8 +9,9 @@ import {
   Input,
   Stack,
   Text,
+  type BoxProps,
 } from '@chakra-ui/react';
-import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Pin, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
@@ -34,7 +36,21 @@ import { RollPopover, RollResultInline } from './RollResult';
 import { hitColor, rowColor } from './chart/palette';
 import { RowSparkline, ShapeCardLabel } from './chart/Sparkline';
 import { effectiveChartView } from './chart/effectiveView';
-import { EM_DASH, formatNumber, formatPercent } from './chart/format';
+import {
+  EM_DASH,
+  deltaTone,
+  formatDelta,
+  formatNumber,
+  formatPercent,
+} from './chart/format';
+import {
+  STAT_DELTA_EPS,
+  buildBaselineComparison,
+  type BaselineComparison,
+} from './baseline/comparison';
+import { buildVerdict } from './baseline/verdict';
+import { DeltaLine, HitDeltaValue } from './baseline/DeltaLine';
+import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
@@ -69,7 +85,9 @@ export function RollsCards() {
     chartView,
     target,
     poolTarget,
+    baselineId,
     setExpandedId,
+    setBaselineId,
     deleteExpression,
     renameExpression,
     updateExpression,
@@ -79,6 +97,10 @@ export function RollsCards() {
   const showHit = target.values.length > 0;
   const view = effectiveChartView(chartView, target);
   const atCap = expressions.length >= MAX_EXPRESSIONS;
+  const comparison = useMemo(
+    () => buildBaselineComparison(expressions, baselineId, target, poolTarget),
+    [expressions, baselineId, target, poolTarget],
+  );
 
   return (
     <Stack gap={3}>
@@ -117,7 +139,10 @@ export function RollsCards() {
               view={view}
               target={target}
               poolTarget={poolTarget}
+              baselineId={baselineId}
+              comparison={comparison}
               setExpandedId={setExpandedId}
+              setBaselineId={setBaselineId}
               deleteExpression={deleteExpression}
               renameExpression={renameExpression}
               updateExpression={updateExpression}
@@ -153,7 +178,10 @@ interface RollCardProps {
   view: ChartView;
   target: TargetState;
   poolTarget: number;
+  baselineId: string | null;
+  comparison: BaselineComparison | null;
   setExpandedId: (id: string | null) => void;
+  setBaselineId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
@@ -167,7 +195,10 @@ const RollCard = memo(function RollCard({
   view,
   target,
   poolTarget,
+  baselineId,
+  comparison,
   setExpandedId,
+  setBaselineId,
   deleteExpression,
   renameExpression,
   updateExpression,
@@ -192,9 +223,41 @@ const RollCard = memo(function RollCard({
     () => (isPool ? { values: [poolTarget], ruling: 'gte' } : target),
     [isPool, poolTarget, target],
   );
+  const isBaseline = baselineId === expr.id;
+  const rowOk = stats.hasDist && !tooComplex;
+  const deltasActive = comparison !== null && !isBaseline && rowOk;
+  const sameScale = comparison === null || isPool === comparison.isPool;
+  const deltaMode = deltasActive && sameScale;
+  const baselineAccent = isBaseline && comparison !== null;
+  const meanDelta =
+    comparison !== null ? stats.mean - comparison.stats.mean : 0;
+  const sigmaDelta =
+    comparison !== null ? stats.stddev - comparison.stats.stddev : 0;
+  const baseHitFor = (i: number): number | undefined => {
+    if (comparison === null || comparison.hits === null) return undefined;
+    return comparison.isPool ? comparison.hits[0] : comparison.hits[i];
+  };
+  const poolBaseHit = deltasActive ? baseHitFor(0) : undefined;
+  const hitMax = comparison?.maxHitDelta ?? 0;
+  const verdict = deltasActive
+    ? buildVerdict({
+        mean: stats.mean,
+        stddev: stats.stddev,
+        isPool,
+        firstHit: isPool ? poolHit : (hits?.[0] ?? null),
+        baseMean: comparison.stats.mean,
+        baseStddev: comparison.stats.stddev,
+        baseIsPool: comparison.isPool,
+        baseFirstHit: comparison.hits?.[0] ?? null,
+      })
+    : null;
   const onToggleExpand = useCallback(
     () => setExpandedId(expanded ? null : expr.id),
     [setExpandedId, expanded, expr.id],
+  );
+  const onTogglePin = useCallback(
+    () => setBaselineId(isBaseline ? null : expr.id),
+    [setBaselineId, isBaseline, expr.id],
   );
   const onDelete = useCallback(
     () => deleteExpression(expr.id),
@@ -231,14 +294,22 @@ const RollCard = memo(function RollCard({
   });
   return (
     <Box
-      bg="bg.panel"
+      bg={baselineAccent ? 'bg.subtle' : 'bg.panel'}
       borderWidth="1px"
       borderColor="border.subtle"
       borderRadius="md"
       overflow="hidden"
       // Inset shadow instead of a thicker border so pool cards' content stays
       // aligned with sum cards in the stack (a 3px border would inset it 2px).
-      boxShadow={isPool ? 'inset 3px 0 0 {colors.purple.solid}' : undefined}
+      // The pool band wins over the baseline band so a pinned pool card never
+      // hides its scale cue.
+      boxShadow={
+        isPool
+          ? 'inset 3px 0 0 {colors.purple.solid}'
+          : baselineAccent
+            ? 'inset 3px 0 0 {colors.blue.solid}'
+            : undefined
+      }
     >
       <Box p={3}>
         <HStack gap={2} align="center">
@@ -256,11 +327,57 @@ const RollCard = memo(function RollCard({
             onBlur={nameBuf.onBlur}
             onKeyDown={nameBuf.onKeyDown}
             flex="1"
+            minW={0}
             aria-label="Roll name"
           />
+          <IconButton
+            aria-label={isBaseline ? 'Clear baseline' : 'Pin as baseline'}
+            size="sm"
+            variant={isBaseline ? 'subtle' : 'ghost'}
+            colorPalette={isBaseline ? 'blue' : 'gray'}
+            onClick={onTogglePin}
+            title={tipForId(isBaseline ? 'baselinePinActive' : 'baselinePin')}
+            flexShrink={0}
+          >
+            <Pin size={14} fill={isBaseline ? 'currentColor' : 'none'} />
+          </IconButton>
+          <IconButton
+            aria-label={expanded ? 'Collapse card' : 'Expand card'}
+            size="sm"
+            variant="ghost"
+            onClick={onToggleExpand}
+            title={expanded ? 'Collapse' : 'Expand'}
+            flexShrink={0}
+          >
+            <Box
+              transform={expanded ? 'rotate(180deg)' : undefined}
+              transition="transform 0.15s"
+              lineHeight={0}
+            >
+              <ChevronDown size={14} />
+            </Box>
+          </IconButton>
+          <IconButton
+            aria-label="Delete card"
+            size="sm"
+            variant="ghost"
+            colorPalette="red"
+            onClick={onDelete}
+            title="Delete"
+            flexShrink={0}
+          >
+            <Trash2 size={14} />
+          </IconButton>
         </HStack>
 
         <HStack gap={2} mt={2} align="center">
+          {isBaseline && (
+            <Tooltip content={tipForId('baseline')}>
+              <Badge colorPalette="blue" variant="surface" flexShrink={0}>
+                Baseline
+              </Badge>
+            </Tooltip>
+          )}
           {isPool && <PoolBadge />}
           <Text
             fontFamily="mono"
@@ -316,6 +433,12 @@ const RollCard = memo(function RollCard({
           </HStack>
         </HStack>
 
+        {verdict !== null && (
+          <Text mt={2} fontSize="xs" color="fg.muted" css={{ textWrap: 'pretty' }}>
+            {verdict}
+          </Text>
+        )}
+
         {stats.hasDist && !tooComplex && (
           <Box mt={3} bg="bg.subtle" borderRadius="md" px={3} py={2}>
             <HStack gap={3} align="center">
@@ -342,16 +465,70 @@ const RollCard = memo(function RollCard({
           </Box>
         )}
 
+        {/* Two columns on cramped phones so mono values never wrap inside a
+            pill; the Hit pill drops to its own full-width row there. Delta
+            mode gives the wider vs-baseline pill 2fr of the first row. */}
         <Grid
-          templateColumns={showHit ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)'}
+          templateColumns={
+            deltaMode
+              ? { base: '2fr 1fr', sm: 'repeat(3, 1fr)' }
+              : showHit
+                ? { base: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)' }
+                : 'repeat(2, 1fr)'
+          }
           gap={2}
           mt={3}
         >
           <StatPill
-            label="Mean ± σ"
-            tip={tipForId('meanSigma')}
+            label={
+              deltaMode ? (
+                'vs baseline'
+              ) : (
+                // The label is CSS-uppercased; σ must opt out or it renders
+                // as capital sigma, a different symbol.
+                <>
+                  Mean ±{' '}
+                  <Box as="span" textTransform="none">
+                    σ
+                  </Box>
+                </>
+              )
+            }
+            tip={tipForId(deltaMode ? 'baseline' : 'meanSigma')}
             value={
-              stats.hasDist ? (
+              !stats.hasDist ? (
+                EM_DASH
+              ) : deltaMode && comparison !== null ? (
+                // Left-aligned lines inside a shrink-wrapped block, centered
+                // by the pill: the fixed label column keeps both bars flush.
+                <Stack gap={0.5} align="flex-start" display="inline-flex">
+                  <DeltaLine
+                    label="avg"
+                    tip={tipForId('deltaAvg')}
+                    text={formatDelta(meanDelta, 2)}
+                    ariaLabel={avgDeltaAria(
+                      meanDelta,
+                      deltaTone(meanDelta, STAT_DELTA_EPS),
+                    )}
+                    delta={meanDelta}
+                    maxDelta={comparison.maxMeanDelta}
+                    tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
+                  />
+                  <DeltaLine
+                    label="spread"
+                    tip={tipForId('deltaSpread')}
+                    text={formatDelta(sigmaDelta, 2)}
+                    ariaLabel={spreadDeltaAria(
+                      sigmaDelta,
+                      deltaTone(sigmaDelta, STAT_DELTA_EPS),
+                    )}
+                    delta={sigmaDelta}
+                    maxDelta={comparison.maxSigmaDelta}
+                    tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
+                    neutralBar
+                  />
+                </Stack>
+              ) : (
                 <>
                   <InspectMean
                     exprName={expr.name}
@@ -373,9 +550,19 @@ const RollCard = memo(function RollCard({
                   >
                     {formatNumber(stats.stddev, 2)}
                   </InspectSigma>
+                  {deltasActive && !sameScale && (
+                    <Text
+                      fontSize="xs"
+                      color="fg.muted"
+                      fontFamily="body"
+                      css={{ textWrap: 'pretty' }}
+                    >
+                      {showHit
+                        ? 'different scale, compare Hit % instead'
+                        : 'different scale from the baseline'}
+                    </Text>
+                  )}
                 </>
-              ) : (
-                EM_DASH
               )
             }
           />
@@ -387,6 +574,7 @@ const RollCard = memo(function RollCard({
           {showHit && (
             <StatPill
               label="Hit %"
+              gridColumn={{ base: '1 / -1', sm: 'auto' }}
               // The numeric ruling symbol describes sum rows only; pool cards
               // carry their own ≥n label against the pool target instead.
               accessory={
@@ -394,7 +582,9 @@ const RollCard = memo(function RollCard({
                   <RulingSymbol ruling={target.ruling} color="fg.muted" />
                 )
               }
-              tip={tipForId(isPool ? 'poolTarget' : 'hit')}
+              tip={tipForId(
+                deltasActive ? 'deltaHit' : isPool ? 'poolTarget' : 'hit',
+              )}
               value={
                 isPool ? (
                   poolHit === null ? (
@@ -404,35 +594,52 @@ const RollCard = memo(function RollCard({
                       <Text as="span" color="purple.fg" fontSize="2xs">
                         ≥{poolTarget}
                       </Text>
-                      <Text
-                        as="span"
-                        color={hitColor(poolHit)}
-                        fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
-                      >
-                        {formatPercent(poolHit)}
-                      </Text>
+                      {poolBaseHit !== undefined ? (
+                        <HitDeltaValue
+                          delta={poolHit - poolBaseHit}
+                          maxDelta={hitMax}
+                        />
+                      ) : (
+                        <Text
+                          as="span"
+                          color={hitColor(poolHit)}
+                          fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
+                        >
+                          {formatPercent(poolHit)}
+                        </Text>
+                      )}
                     </HStack>
                   )
                 ) : hits === null ? (
                   EM_DASH
                 ) : (
                   <Stack gap={0.5} align="center">
-                    {hits.map((p, i) => (
-                      <HStack key={target.values[i]} gap={2} justify="center">
-                        {target.values.length > 1 && (
-                          <Text as="span" color="fg.muted" fontSize="2xs">
-                            {target.values[i]}
-                          </Text>
-                        )}
-                        <Text
-                          as="span"
-                          color={hitColor(p)}
-                          fontWeight={p >= 0.66 ? 'semibold' : undefined}
-                        >
-                          {formatPercent(p)}
-                        </Text>
-                      </HStack>
-                    ))}
+                    {hits.map((p, i) => {
+                      const baseHit = deltasActive ? baseHitFor(i) : undefined;
+                      return (
+                        <HStack key={target.values[i]} gap={2} justify="center">
+                          {target.values.length > 1 && (
+                            <Text as="span" color="fg.muted" fontSize="2xs">
+                              {target.values[i]}
+                            </Text>
+                          )}
+                          {baseHit !== undefined ? (
+                            <HitDeltaValue
+                              delta={p - baseHit}
+                              maxDelta={hitMax}
+                            />
+                          ) : (
+                            <Text
+                              as="span"
+                              color={hitColor(p)}
+                              fontWeight={p >= 0.66 ? 'semibold' : undefined}
+                            >
+                              {formatPercent(p)}
+                            </Text>
+                          )}
+                        </HStack>
+                      );
+                    })}
                   </Stack>
                 )
               }
@@ -440,44 +647,17 @@ const RollCard = memo(function RollCard({
           )}
         </Grid>
 
-        <HStack justify="flex-end" gap={1} mt={2} align="center">
-          {!isPool && (
-            <>
-              <RollResultInline exprId={expr.id} />
-              <RollPopover
-                exprId={expr.id}
-                exprName={expr.name}
-                dist={stats.dist}
-                disabled={!stats.hasDist || tooComplex}
-              />
-            </>
-          )}
-          <IconButton
-            aria-label={expanded ? 'Collapse card' : 'Expand card'}
-            size="xs"
-            variant="ghost"
-            onClick={onToggleExpand}
-            title={expanded ? 'Collapse' : 'Expand'}
-          >
-            <Box
-              transform={expanded ? 'rotate(180deg)' : undefined}
-              transition="transform 0.15s"
-              lineHeight={0}
-            >
-              <ChevronDown size={14} />
-            </Box>
-          </IconButton>
-          <IconButton
-            aria-label="Delete card"
-            size="xs"
-            variant="ghost"
-            colorPalette="red"
-            onClick={onDelete}
-            title="Delete"
-          >
-            <Trash2 size={14} />
-          </IconButton>
-        </HStack>
+        {!isPool && (
+          <HStack justify="flex-end" gap={1} mt={2} align="center">
+            <RollResultInline exprId={expr.id} />
+            <RollPopover
+              exprId={expr.id}
+              exprName={expr.name}
+              dist={stats.dist}
+              disabled={!stats.hasDist || tooComplex}
+            />
+          </HStack>
+        )}
       </Box>
       {expanded && <RollExpand expression={expr} />}
     </Box>
@@ -485,15 +665,24 @@ const RollCard = memo(function RollCard({
 });
 
 interface StatPillProps {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   tip: string;
   accessory?: ReactNode;
+  /** Lets a pill span the stats grid when its content needs the full card width. */
+  gridColumn?: BoxProps['gridColumn'];
 }
 
-function StatPill({ label, value, tip, accessory }: StatPillProps) {
+function StatPill({ label, value, tip, accessory, gridColumn }: StatPillProps) {
   return (
-    <Box bg="bg.subtle" borderRadius="md" px={2} py={1.5} textAlign="center">
+    <Box
+      bg="bg.subtle"
+      borderRadius="md"
+      px={2}
+      py={1.5}
+      textAlign="center"
+      gridColumn={gridColumn}
+    >
       <HStack as="span" gap={1} justify="center">
         <HelpTerm tip={tip}>
           <Text
