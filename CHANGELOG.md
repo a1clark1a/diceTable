@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Baseline comparisons: pin any roll as the baseline with the pin button on its row. The pinned roll keeps its own numbers, wears a Baseline badge, and gets a tinted row with an accent band. Every other roll then shows how it differs instead of its own totals: labeled avg and spread delta lines with small direction bars, signed Hit % differences in percentage points, and a plain-language verdict under the name ("Averages 3.5 higher · swingier · hits 46% more often"). Green means better, red worse, and spread changes stay neutral because more or less swing is not automatically better. Rolls on a different scale (Pool vs Sum) keep their own totals and compare by Hit % only. Pinning another roll moves the baseline, tapping the pin again clears it, and the choice survives reload. A caption above the table explains the state either way, and a new "Baseline" glossary entry covers the concept on the docs page.
 - Community dice vocabulary: the glossary's "Target ruling" entry now ends with a small map from each ruling to its community name (≥ is "roll over" or "meet or beat" as in D&D and Pathfinder, ≤ is "roll under" as in Call of Cthulhu and GURPS, and the strict `>` `<` `=` readings are marked as having no common name).
 
 ### Changed
