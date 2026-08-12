@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Box, Grid, HStack, Heading, Stack, Text } from '@chakra-ui/react';
+import { Box, Grid, HStack, Heading, Stack, Table, Text } from '@chakra-ui/react';
 import {
   GLOSSARY_GROUP_LABELS,
   GLOSSARY_GROUP_ORDER,
@@ -42,6 +42,54 @@ function GlossaryAlt({ entry }: { entry: GlossaryEntry }) {
   );
 }
 
+function RulingCommunityTerms() {
+  return (
+    <Table.Root size="sm" variant="line" w="fit-content" maxW="100%">
+      <Table.Header>
+        <Table.Row>
+          <Table.ColumnHeader
+            ps={0}
+            fontSize="xs"
+            fontWeight="semibold"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            color="fg.muted"
+          >
+            Ruling
+          </Table.ColumnHeader>
+          <Table.ColumnHeader
+            fontSize="xs"
+            fontWeight="semibold"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            color="fg.muted"
+          >
+            Community name
+          </Table.ColumnHeader>
+        </Table.Row>
+      </Table.Header>
+      <Table.Body>
+        {RULING_OPTIONS.map((r) => (
+          <Table.Row key={r.value}>
+            <Table.Cell ps={0} fontFamily="mono" whiteSpace="nowrap">
+              {r.shortLabel}
+            </Table.Cell>
+            {r.communityTerm !== undefined ? (
+              <Table.Cell>{r.communityTerm}</Table.Cell>
+            ) : (
+              <Table.Cell color="fg.muted" fontStyle="italic">
+                {r.communityNote !== undefined
+                  ? `no common name; ${r.communityNote}`
+                  : 'no common name'}
+              </Table.Cell>
+            )}
+          </Table.Row>
+        ))}
+      </Table.Body>
+    </Table.Root>
+  );
+}
+
 function GlossaryRow({ entry, isLast }: { entry: GlossaryEntry; isLast: boolean }) {
   return (
     <Grid
@@ -80,6 +128,7 @@ function GlossaryRow({ entry, isLast }: { entry: GlossaryEntry; isLast: boolean 
             {entry.formal}
           </Box>
         )}
+        {entry.id === 'target-ruling' && <RulingCommunityTerms />}
       </Stack>
     </Grid>
   );

@@ -25,7 +25,7 @@ import type {
 import { rowColor } from './palette';
 import { RulingSymbol } from '../targetRuling';
 import { RULING_SYMBOL } from '../targetRulingMeta';
-import { formatPercent } from './format';
+import { formatPercentCompact, targetLabelFits } from './format';
 
 interface RowSeries {
   id: string;
@@ -424,11 +424,45 @@ interface TargetChartDatum {
   [hitKey: string]: number | string;
 }
 
-function formatPctLabel(
-  value: string | number | boolean | null | undefined,
-): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '';
-  return formatPercent(value);
+interface TargetBarLabelProps {
+  x?: number | string | undefined;
+  y?: number | string | undefined;
+  width?: number | string | undefined;
+  value?: number | string | boolean | null | undefined;
+}
+
+function TargetBarLabel({
+  x,
+  y,
+  width,
+  value,
+  fitChars,
+}: TargetBarLabelProps & { fitChars: number }) {
+  if (
+    typeof x !== 'number' ||
+    typeof y !== 'number' ||
+    typeof width !== 'number' ||
+    typeof value !== 'number' ||
+    !Number.isFinite(value)
+  ) {
+    return null;
+  }
+  if (!targetLabelFits(fitChars, width)) return null;
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 4}
+      textAnchor="middle"
+      fill="var(--chakra-colors-fg)"
+      style={{
+        fontSize: 10,
+        fontFamily: 'ui-monospace, monospace',
+        fontVariantNumeric: 'tabular-nums',
+      }}
+    >
+      {formatPercentCompact(value)}
+    </text>
+  );
 }
 
 function targetOpacity(targetIndex: number, totalTargets: number): number {
@@ -458,7 +492,11 @@ function TargetHitView({ rows, target, focusedId, unit }: TargetHitViewProps) {
   });
 
   const targetsLabel = target.values.join(', ');
-  const showLabels = rows.length * targetCount <= 24;
+  const maxLabelChars = rows.reduce(
+    (max, r) =>
+      r.hits.reduce((m, h) => Math.max(m, formatPercentCompact(h).length), max),
+    0,
+  );
 
   return (
     <Stack gap={3}>
@@ -508,7 +546,7 @@ function TargetHitView({ rows, target, focusedId, unit }: TargetHitViewProps) {
       <Box
         w="100%"
         h={{ base: '260px', md: '320px' }}
-        maxW={`${rows.length * (targetCount * 28 + 40) + 96}px`}
+        maxW={`${rows.length * (targetCount * 40 + 40) + 96}px`}
         mx="auto"
         role="img"
         aria-label={
@@ -600,19 +638,13 @@ function TargetHitView({ rows, target, focusedId, unit }: TargetHitViewProps) {
                     />
                   );
                 })}
-                {showLabels && (
-                  <LabelList
-                    dataKey={`hit_${ti}`}
-                    position="top"
-                    formatter={formatPctLabel}
-                    style={{
-                      fill: 'var(--chakra-colors-fg)',
-                      fontSize: 10,
-                      fontFamily: 'ui-monospace, monospace',
-                      fontVariantNumeric: 'tabular-nums',
-                    }}
-                  />
-                )}
+                <LabelList
+                  dataKey={`hit_${ti}`}
+                  position="top"
+                  content={(labelProps: TargetBarLabelProps) => (
+                    <TargetBarLabel {...labelProps} fitChars={maxLabelChars} />
+                  )}
+                />
               </Bar>
             ))}
           </BarChart>

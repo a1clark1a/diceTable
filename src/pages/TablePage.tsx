@@ -2,6 +2,7 @@ import { useRef, type ReactNode } from 'react';
 import { Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
+import { BaselineCaption } from '../components/baseline/BaselineCaption';
 import { OverlayChart } from '../components/chart/OverlayChart';
 import { TargetToolbar } from '../components/TargetToolbar';
 import { TargetHitView } from '../components/target/TargetHitView';
@@ -33,6 +34,7 @@ export default function TablePage() {
           <ViewBar chartRef={chartRef} />
           <Stack gap={3}>
             <TargetToolbar />
+            <BaselineCaption />
             {isDesktop ? <RollsTable /> : <RollsCards />}
           </Stack>
           <OverlayChart ref={chartRef} />

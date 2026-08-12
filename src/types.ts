@@ -66,5 +66,6 @@ export interface PersistedState {
     target: TargetState;
     view: WorkshopView;
     poolTarget: number;
+    baselineId: string | null;
   };
 }

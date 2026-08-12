@@ -41,7 +41,9 @@ export interface AppContextValue {
   target: TargetState;
   view: WorkshopView;
   poolTarget: number;
+  baselineId: string | null;
   setExpandedId: (id: string | null) => void;
+  setBaselineId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;

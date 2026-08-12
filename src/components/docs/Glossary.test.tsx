@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { Glossary } from './Glossary';
 import { glossaryEntries } from '../../docs/glossary';
+import { RULING_OPTIONS } from '../targetRulingMeta';
 
 const Provider = ({ children }: { children: React.ReactNode }) => (
   <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
@@ -57,6 +58,25 @@ describe('Glossary', () => {
         screen.getByText(entry.details as string),
         `details text for "${entry.id}" is missing`,
       ).toBeInTheDocument();
+    }
+  });
+
+  it('renders the community terms and no-common-name notes for target rulings', () => {
+    render(
+      <Provider>
+        <Glossary />
+      </Provider>,
+    );
+
+    for (const option of RULING_OPTIONS) {
+      if (option.communityTerm !== undefined) {
+        expect(screen.getByText(option.communityTerm)).toBeInTheDocument();
+      } else {
+        const expected = option.communityNote
+          ? `no common name; ${option.communityNote}`
+          : 'no common name';
+        expect(screen.getByText(expected)).toBeInTheDocument();
+      }
     }
   });
 });

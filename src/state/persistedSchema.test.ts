@@ -27,6 +27,7 @@ const validPayload: PersistedState = {
     target: { values: [15], ruling: 'gte' },
     view: 'table',
     poolTarget: 1,
+    baselineId: null,
   },
 };
 
@@ -137,6 +138,7 @@ describe('validatePersistedState', () => {
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
+      baselineId: null,
     });
   });
 
@@ -153,7 +155,32 @@ describe('validatePersistedState', () => {
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
+      baselineId: null,
     });
+  });
+
+  it('keeps a baselineId that matches a validated expression', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, baselineId: 'expr-1' },
+    });
+    expect(result!.ui.baselineId).toBe('expr-1');
+  });
+
+  it('nulls a baselineId that matches no expression', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, baselineId: 'expr-deleted' },
+    });
+    expect(result!.ui.baselineId).toBeNull();
+  });
+
+  it('nulls a non-string baselineId', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, baselineId: 42 },
+    });
+    expect(result!.ui.baselineId).toBeNull();
   });
 
   it('falls back to the table view when view is unknown', () => {

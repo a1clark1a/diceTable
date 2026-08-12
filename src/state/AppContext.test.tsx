@@ -519,3 +519,98 @@ describe('AppContext setPoolTarget', () => {
     expect(result.current.target.ruling).toBe('gte');
   });
 });
+
+function seedTwoRows() {
+  seedRows([
+    sumRow(),
+    sumRow({ id: 'e1', name: 'Row 1', parts: [{ id: 'p1', count: 1, sides: 6 }] }),
+  ]);
+}
+
+describe('AppContext baseline lifecycle', () => {
+  it('starts with no baseline', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    expect(result.current.baselineId).toBeNull();
+  });
+
+  it('setBaselineId pins a row and null clears it', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setBaselineId('e0');
+    });
+    expect(result.current.baselineId).toBe('e0');
+    act(() => {
+      result.current.setBaselineId(null);
+    });
+    expect(result.current.baselineId).toBeNull();
+  });
+
+  it('deleting the baseline row clears the baseline', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setBaselineId('e0');
+    });
+    act(() => {
+      result.current.deleteExpression('e0');
+    });
+    expect(result.current.baselineId).toBeNull();
+    expect(result.current.expressions).toHaveLength(1);
+  });
+
+  it('deleting a different row keeps the baseline', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setBaselineId('e0');
+    });
+    act(() => {
+      result.current.deleteExpression('e1');
+    });
+    expect(result.current.baselineId).toBe('e0');
+  });
+
+  it('replaceExpressions clears the baseline instead of leaking a stale id past the row re-id', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setBaselineId('e0');
+    });
+    act(() => {
+      result.current.replaceExpressions(makeExprs(2));
+    });
+    expect(result.current.baselineId).toBeNull();
+  });
+
+  it('addExpressions keeps the baseline on the existing row', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setBaselineId('e0');
+    });
+    act(() => {
+      result.current.addExpressions(makeExprs(1));
+    });
+    expect(result.current.baselineId).toBe('e0');
+    expect(
+      result.current.expressions.filter((e) => e.id === 'e0'),
+    ).toHaveLength(1);
+  });
+
+  it('duplicateExpression keeps the baseline on the original, not the copy', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setBaselineId('e0');
+    });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    expect(result.current.baselineId).toBe('e0');
+    expect(result.current.expressions).toHaveLength(3);
+    expect(
+      result.current.expressions.filter((e) => e.id === 'e0'),
+    ).toHaveLength(1);
+  });
+});

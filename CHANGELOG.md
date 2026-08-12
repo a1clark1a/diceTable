@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-11
+
+### Added
+
+- Baseline comparisons: pin any roll as the baseline with the pin button on its row. The pinned roll keeps its own numbers, wears a Baseline badge, and gets a tinted row with an accent band. Every other roll then shows how it differs instead of its own totals: labeled avg and spread delta lines with small direction bars, signed Hit % differences in percentage points, and a plain-language verdict under the name ("Averages 3.5 higher · swingier · hits 46% more often"). Green means better, red worse, and spread changes stay neutral because more or less swing is not automatically better. Rolls on a different scale (Pool vs Sum) keep their own totals and compare by Hit % only. Pinning another roll moves the baseline, tapping the pin again clears it, and the choice survives reload. A caption above the table explains the state either way, and a new "Baseline" glossary entry covers the concept on the docs page.
+- Community dice vocabulary: the glossary's "Target ruling" entry now ends with a small map from each ruling to its community name (≥ is "roll over" or "meet or beat" as in D&D and Pathfinder, ≤ is "roll under" as in Call of Cthulhu and GURPS, and the strict `>` `<` `=` readings are marked as having no common name).
+
+### Changed
+
+- The ≥ and ≤ ruling tooltips (on target chips, the Hit % header, and the target hit view) gained a second sentence naming the same community terms.
+
+### Fixed
+
+- TARGET view bar labels no longer overlap. Labels drop a redundant trailing ".0" (100.0% reads 100%), hide as a group when the bars are too narrow to fit them (hover or tap a bar for the exact value), and the chart claims a little more width per bar so labels fit at desktop sizes.
+
 ## [1.5.0] - 2026-08-02
 
 ### Added
@@ -85,7 +100,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.6.0
 [1.5.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.5.0
 [1.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.4.0
 [1.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.3.0
