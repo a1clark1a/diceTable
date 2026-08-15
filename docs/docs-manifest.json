@@ -47,6 +47,11 @@
         "src/docs/math.tsx"
       ]
     },
+    {
+      "id": "math.compare",
+      "label": "The Math · §9 Roll-off and head-to-head — exact win and tie chances",
+      "deps": ["src/engine/compare.ts", "src/docs/math.tsx"]
+    },
 
     {
       "id": "quickstart.add-roll",
@@ -189,6 +194,9 @@
         "src/components/inspect/InspectChart.tsx",
         "src/components/inspect/InspectDistribution.tsx",
         "src/components/RollExpand.tsx",
+        "src/engine/compare.ts",
+        "src/components/compare/RollOffView.tsx",
+        "src/components/compare/HeadToHeadView.tsx",
         "src/docs/glossary.ts"
       ]
     },
@@ -207,7 +215,11 @@
         "src/components/target/TargetHitView.tsx",
         "src/components/target/TargetBars.tsx",
         "src/components/target/TargetCurves.tsx",
-        "src/components/target/targetHitRows.ts"
+        "src/components/target/targetHitRows.ts",
+        "src/engine/compare.ts",
+        "src/components/compare/RollOffView.tsx",
+        "src/components/compare/HeadToHeadView.tsx",
+        "src/components/compare/compareRows.ts"
       ]
     },
     {

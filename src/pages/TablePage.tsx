@@ -6,6 +6,8 @@ import { BaselineCaption } from '../components/baseline/BaselineCaption';
 import { OverlayChart } from '../components/chart/OverlayChart';
 import { TargetToolbar } from '../components/TargetToolbar';
 import { TargetHitView } from '../components/target/TargetHitView';
+import { RollOffView } from '../components/compare/RollOffView';
+import { HeadToHeadView } from '../components/compare/HeadToHeadView';
 import { ViewBar } from '../components/ViewBar';
 import { WorkshopHeader } from '../components/WorkshopHeader';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
@@ -50,6 +52,16 @@ export default function TablePage() {
           <TargetHitView />
         </Stack>
       ),
+    },
+    {
+      id: 'rolloff',
+      label: 'Roll-off',
+      render: () => <RollOffView />,
+    },
+    {
+      id: 'matrix',
+      label: 'Head-to-head',
+      render: () => <HeadToHeadView />,
     },
   ];
 

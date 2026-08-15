@@ -54,6 +54,8 @@ You can set up to five targets (for example armor classes or save DCs) and choos
 
 A dedicated Target hit view compares every roll against all of your targets at once, three ways. A grid shows each roll's hit chance per target, color-coded from reliable to long shot and sortable by any target column. Curves plot each summed roll's hit chance for every possible target value, with your current targets marked. Bars show one panel per target with rolls ranked by hit chance. Pool rolls appear in the grid and bars under the shared pool target.
 
+Two more views answer "who wins?" directly, again with exact math rather than simulation. The Roll-off view imagines every roll rolling once and shows each roll's chance of producing the single highest result, with ties counted separately (nobody wins a tie outright). The Head-to-head view is a matrix of one-on-one odds: each cell is how often the row roll strictly beats the column roll, ignoring every other row, with the tie chance available on each cell. Pool rolls take part on their success-count scale, so cross-scale match-ups are usually lopsided.
+
 ## Privacy
 
 DiceTable runs entirely in your browser. Your rolls and settings are stored on your own device, and the site collects only anonymous analytics. There are no accounts.
