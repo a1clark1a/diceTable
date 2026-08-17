@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-16
+
 ### Added
 
 - Roll-off view: the third workshop view. If every roll rolled once, it shows each roll's exact chance of producing the single highest result, as win bars scaled against the favorite with a headline sentence ("Sneak attack is most likely to come out on top." or "It's nearly a coin flip between…"), per-roll "ties X%" notes, and a Win chance / Table order sort toggle. Ties are counted separately because nobody wins them outright.
@@ -107,7 +109,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.7.0
 [1.6.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.6.0
 [1.5.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.5.0
 [1.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.4.0
