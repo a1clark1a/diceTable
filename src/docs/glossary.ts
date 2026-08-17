@@ -303,6 +303,33 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     details:
       'The roller is a sanity check, not where the numbers on each row come from. Those numbers are worked out from the exact odds, not from these sample rolls. Use the roller to feel out variance: rolling 4d6kh3 a dozen times will rarely match the calculated average, and that gap is exactly what the σ value is measuring.',
   },
+  {
+    id: 'roll-off',
+    term: 'Roll-off',
+    group: 'app',
+    plain:
+      'If every roll in the list rolled once, this is each one’s exact chance of having the single highest result.',
+    details:
+      'The Roll-off view answers "who wins?" without simulating anything. For every result a roll could land on, it multiplies in the chance that every other roll lands lower, then adds those chances up. Bars are scaled against the current favorite, so a close race shows up as bars of nearly equal length. See "The Math" tab for the formula.',
+  },
+  {
+    id: 'head-to-head',
+    term: 'Head-to-head',
+    group: 'app',
+    plain:
+      'One-on-one odds: how often the roll on the left beats each roll across the top, ignoring everyone else.',
+    details:
+      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance.',
+  },
+  {
+    id: 'tie',
+    term: 'Tie',
+    group: 'app',
+    plain:
+      'Two or more rolls landing the same top number. Nobody wins a tie outright, so win chances don’t have to add up to 100%.',
+    details:
+      'Ties are counted separately from wins everywhere in the comparison views. In the roll-off, a roll’s "ties" note is its chance of sharing the best result without holding it alone. Rolls with many overlapping results, like identical dice, tie often; rolls on different scales rarely do.',
+  },
 ];
 
 const uiTips: Record<string, string> = {

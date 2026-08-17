@@ -246,4 +246,45 @@ P(k successes in N dice) = C(N, k) · p^k · (1 − p)^(N − k)
 // modifier M = auto-successes, clamped at zero
 P_final(k) = Σ P_pool(j)     over all j with max(0, j + M) = k`,
   },
+  {
+    id: 'compare',
+    title: '9 · Roll-off and head-to-head: who wins?',
+    subtitle: 'exact win and tie chances, no simulation',
+    plain: (
+      <Text>
+        Both comparison views build on one idea: a roll wins at some result
+        when it lands there <em>and</em> everyone else lands lower. Head-to-head
+        checks that against a single opponent. The roll-off multiplies the
+        “lands lower” chances of every other roll at once, so one pass over a
+        roll’s results gives its chance of holding the single highest number.
+        Landing equal is counted separately as a tie, which nobody wins
+        outright. That’s why win chances across a roll-off can add up to less
+        than 100%.
+      </Text>
+    ),
+    example: (
+      <Text>
+        1d20 against 1d6: adding up each d20 face times the chance the d6 is
+        lower gives a win chance of <Code>82.5%</Code>. They tie on the six
+        shared faces with chance{' '}
+        <Code>6 · (1/20)(1/6) = 5%</Code>, and the d6 sneaks the win in the
+        remaining <Code>12.5%</Code>.
+      </Text>
+    ),
+    snippet: `// head-to-head: A strictly beats B
+P(A beats B) = Σ  P_A(v) · P_B(X < v)
+               v
+
+// tie: both land on the same value
+P(tie) = Σ  P_A(v) · P_B(v)
+         v
+
+// n-way roll-off: roll i alone on top
+win_i = Σ  P_i(v) · Π  P_j(X < v)      over every other roll j
+        v          j≠i
+
+// tie share: best-or-tied-best, minus outright wins
+tie_i = Σ  P_i(v) · Π  P_j(X ≤ v)  −  win_i
+        v          j≠i`,
+  },
 ];

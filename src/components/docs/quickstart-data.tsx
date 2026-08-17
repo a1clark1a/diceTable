@@ -199,6 +199,46 @@ export const quickstartSteps: readonly QuickstartStep[] = [
   },
   {
     n: 8,
+    title: 'Switch workshop views',
+    plain:
+      'The chips above the table switch between four views of the same rolls. Table & chart is the editable list with the overlay chart. Target hit compares every roll against your targets as a grid, curves, or bars. Roll-off shows each roll’s chance of having the single highest result if every roll rolled once. Head-to-head is a matrix of one-on-one odds: how often the row roll beats the column roll, ignoring everyone else.',
+    body: (
+      <Stack gap={2}>
+        <Text>
+          The chips above the table switch between four views of the same
+          rolls:
+        </Text>
+        <List.Root pl={5}>
+          <List.Item>
+            <strong>Table &amp; chart</strong>. The editable list and overlay
+            chart from the steps above.
+          </List.Item>
+          <List.Item>
+            <strong>Target hit</strong>. Every roll against every target at
+            once, as a sortable grid, curves, or bars (needs a target from
+            Step 7).
+          </List.Item>
+          <List.Item>
+            <strong>Roll-off</strong>. If every roll rolled once, each one’s
+            chance of having the single highest result. Ties are counted
+            separately; nobody wins those outright.
+          </List.Item>
+          <List.Item>
+            <strong>Head-to-head</strong>. A matrix of one-on-one odds: how
+            often the row roll beats the column roll, ignoring everyone
+            else. Hover or tap a cell for the full sentence.
+          </List.Item>
+        </List.Root>
+        <Text color="fg.muted" fontSize="sm">
+          Roll-off and Head-to-head need at least two rolls with valid dice.
+          Pool rows join on their success-count scale, so those match-ups
+          are usually lopsided.
+        </Text>
+      </Stack>
+    ),
+  },
+  {
+    n: 9,
     title: 'Roll the dice',
     plain:
       'Click the dice icon on any Sum roll to roll it. The result appears next to the row, and the popover can roll a batch of 1 to 1000 to show the average, the range, and recent history. The roller uses the same odds the chart shows.',
@@ -214,7 +254,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     ),
   },
   {
-    n: 9,
+    n: 10,
     title: 'Share and import',
     plain:
       'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it.',
