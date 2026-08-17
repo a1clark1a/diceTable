@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Roll-off view: the third workshop view. If every roll rolled once, it shows each roll's exact chance of producing the single highest result, as win bars scaled against the favorite with a headline sentence ("Sneak attack is most likely to come out on top." or "It's nearly a coin flip between…"), per-roll "ties X%" notes, and a Win chance / Table order sort toggle. Ties are counted separately because nobody wins them outright.
 - Head-to-head view: the fourth workshop view. A matrix of one-on-one odds where each cell is how often the row roll strictly beats the column roll, ignoring every other row, colored by the hit-chance scale and bold at 50% or better. Hover or tap a cell for the full sentence including the tie chance. On mobile the matrix scrolls sideways inside its own container.
 - Both views compute exactly from the distributions already on hand (a new pure `compare` engine module, no simulation), require at least two rolls with valid dice, and include Pool rolls on their success-count scale with a caption explaining why cross-scale match-ups are usually lopsided.
-- Comparison docs: glossary entries (Roll-off, Head-to-head, Tie), a new "The Math" section on exact win and tie chances, and an updated `public/llms.txt`.
+- Comparison docs: glossary entries (Roll-off, Head-to-head, Tie), a new "The Math" section on exact win and tie chances, an updated `public/llms.txt`, and a new Quickstart step introducing the four workshop views (the Roll and Share steps renumbered to 9 and 10).
 
 ## [1.6.0] - 2026-08-11
 

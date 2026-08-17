@@ -134,8 +134,21 @@
       ]
     },
     {
+      "id": "quickstart.views",
+      "label": "Quickstart · Step 8 (Switch workshop views)",
+      "deps": [
+        "src/components/WorkshopViewSwitcher.tsx",
+        "src/components/WorkshopHeader.tsx",
+        "src/components/target/TargetHitView.tsx",
+        "src/components/compare/RollOffView.tsx",
+        "src/components/compare/HeadToHeadView.tsx",
+        "src/components/docs/Quickstart.tsx",
+        "src/components/docs/quickstart-data.tsx"
+      ]
+    },
+    {
       "id": "quickstart.roll",
-      "label": "Quickstart · Step 8 (Roll the dice)",
+      "label": "Quickstart · Step 9 (Roll the dice)",
       "deps": [
         "src/components/RollResult.tsx",
         "src/state/useRollHistory.ts",
@@ -147,7 +160,7 @@
     },
     {
       "id": "quickstart.share",
-      "label": "Quickstart · Step 9 (Share and import)",
+      "label": "Quickstart · Step 10 (Share and import)",
       "deps": [
         "src/components/share/SharePopover.tsx",
         "src/components/share/ImportDialog.tsx",
