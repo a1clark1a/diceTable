@@ -140,6 +140,12 @@ export function HeadToHeadView() {
                               color={hitColor(cell.win)}
                               fontWeight={cell.win >= 0.5 ? 'semibold' : undefined}
                               tabIndex={0}
+                              _focusVisible={{
+                                outline: '2px solid',
+                                outlineColor: 'blue.solid',
+                                outlineOffset: '2px',
+                                borderRadius: 'sm',
+                              }}
                             >
                               {formatPercent(cell.win)}
                             </Text>

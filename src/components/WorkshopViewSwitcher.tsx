@@ -28,6 +28,9 @@ export function WorkshopViewSwitcher({
       borderRadius="lg"
       display="inline-flex"
       alignSelf="flex-start"
+      // Four chips outgrow a 360px viewport; wrapping beats clipping or a
+      // hidden sideways scroll of the whole page.
+      flexWrap="wrap"
       role="group"
       aria-label="Workshop view"
     >

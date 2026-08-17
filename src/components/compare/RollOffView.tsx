@@ -126,7 +126,11 @@ export function RollOffView() {
           <Stack gap={3} mt={{ base: 3, md: 4 }}>
             {shown.map(({ row, win, tie }) => {
               const isWinner = row.expr.id === top?.row.expr.id;
-              const barWidth = `${Math.max(1, (win / maxWin) * 100)}%`;
+              // Tiny-but-real chances keep a visible sliver; an exact zero
+              // shows an empty track so it never suggests a chance that
+              // does not exist.
+              const barWidth =
+                win > 0 ? `${Math.max(1, (win / maxWin) * 100)}%` : '0';
               const tieText = tie >= 0.005 ? `ties ${formatPercent(tie)}` : '';
               return isDesktop ? (
                 <HStack key={row.expr.id} gap={3} align="center">
@@ -197,6 +201,11 @@ export function RollOffView() {
                     <Text
                       fontSize="xs"
                       fontWeight={isWinner ? 'semibold' : undefined}
+                      minW={0}
+                      // A runaway name truncates instead of starving the dice
+                      // notation or pushing the win percent off the row.
+                      maxW="60%"
+                      truncate
                     >
                       {row.expr.name}
                     </Text>
