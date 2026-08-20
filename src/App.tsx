@@ -34,7 +34,7 @@ export default function App() {
               <Route element={<AppShell />}>
                 <Route index element={<TablePage />} />
                 <Route
-                  path="docs"
+                  path="docs/*"
                   element={
                     <Suspense fallback={<DocsFallback />}>
                       <DocsPage />

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- Docs sections now live at their own addresses: /docs/quickstart, /docs/glossary, and /docs/math. The section strip is real navigation (each section can be opened, bookmarked, and shared directly), each section gets its own page title and description, and old links keep working: /docs and /docs?tab= links redirect to the matching section.
+- The glossary page now carries machine-readable definitions for every term (schema.org DefinedTermSet), and the sitemap and `public/llms.txt` point at the new section addresses. `llms.txt` also now covers the baseline comparison and share features, and describes the notation as displayed rather than typed.
+
 ## [1.7.0] - 2026-08-16
 
 ### Added

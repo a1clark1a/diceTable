@@ -245,7 +245,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Convolution',
     group: 'distributions',
     plain:
-      'The math operation that combines two independent dice into the distribution of their sum. See "The Math" tab for how it works.',
+      'The math operation that combines two independent dice into the distribution of their sum. See "The Math" page for how it works.',
     details:
       'Convolution is why 2d6 peaks at 7 instead of being flat: every way of making 7 (1+6, 2+5, 3+4, 4+3, 5+2, 6+1) adds up, while only one way makes 2 or 12. DiceTable does this combine-step for every extra die and every modifier in your roll. Nothing gets rounded or estimated; the result is the true odds of the sum.',
   },
@@ -310,7 +310,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'If every roll in the list rolled once, this is each one’s exact chance of having the single highest result.',
     details:
-      'The Roll-off view answers "who wins?" without simulating anything. For every result a roll could land on, it multiplies in the chance that every other roll lands lower, then adds those chances up. Bars are scaled against the current favorite, so a close race shows up as bars of nearly equal length. See "The Math" tab for the formula.',
+      'The Roll-off view answers "who wins?" without simulating anything. For every result a roll could land on, it multiplies in the chance that every other roll lands lower, then adds those chances up. Bars are scaled against the current favorite, so a close race shows up as bars of nearly equal length. See "The Math" page for the formula.',
   },
   {
     id: 'head-to-head',

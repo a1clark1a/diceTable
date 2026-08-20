@@ -1,4 +1,4 @@
-const SITE_ORIGIN = 'https://dice-table.app';
+import { SITE_ORIGIN } from './structuredData';
 
 interface RouteHeadProps {
   title: string;
