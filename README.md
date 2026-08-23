@@ -10,7 +10,7 @@ A focused dice probability tool for tabletop and strategy gaming. Build a single
 **[Live demo: dice-table.app](https://dice-table.app/)**
 
 <p align="center">
-  <img src="public/og-image.png" alt="DiceTable screenshot showing a table of dice rolls with an overlaid comparison chart" width="720" />
+  <img src="public/og-image.png" alt="DiceTable logo: a twenty-sided die sitting under a wooden table" width="720" />
 </p>
 
 ## What it is

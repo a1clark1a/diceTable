@@ -232,7 +232,13 @@
         "src/engine/compare.ts",
         "src/components/compare/RollOffView.tsx",
         "src/components/compare/HeadToHeadView.tsx",
-        "src/components/compare/compareRows.ts"
+        "src/components/compare/compareRows.ts",
+        "src/components/baseline/comparison.ts",
+        "src/components/baseline/verdict.ts",
+        "src/components/share/SharePopover.tsx",
+        "src/share/encode.ts",
+        "src/telemetry/errorReporter.ts",
+        "src/components/docs/docs-tab.ts"
       ]
     },
     {
@@ -246,7 +252,18 @@
       "deps": [
         "src/components/docs/quickstart-data.tsx",
         "src/components/seo/structuredData.ts",
-        "src/components/seo/JsonLd.tsx"
+        "src/components/seo/JsonLd.tsx",
+        "src/pages/DocsPage.tsx"
+      ]
+    },
+    {
+      "id": "seo.termset-jsonld",
+      "label": "GEO/SEO · DefinedTermSet JSON-LD (docs glossary)",
+      "deps": [
+        "src/docs/glossary.ts",
+        "src/components/seo/structuredData.ts",
+        "src/components/seo/JsonLd.tsx",
+        "src/pages/DocsPage.tsx"
       ]
     },
     {
@@ -257,7 +274,19 @@
         "src/pages/TablePage.tsx",
         "src/pages/DocsPage.tsx",
         "src/pages/PrivacyPage.tsx",
-        "src/pages/NotFoundPage.tsx"
+        "src/pages/NotFoundPage.tsx",
+        "src/components/docs/docs-tab.ts",
+        "src/App.tsx"
+      ]
+    },
+    {
+      "id": "seo.sitemap",
+      "label": "GEO/SEO · sitemap.xml (canonical URL list)",
+      "deps": [
+        "public/sitemap.xml",
+        "src/components/docs/docs-tab.ts",
+        "src/App.tsx",
+        "vercel.json"
       ]
     }
   ]

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-22
+
+### Changed
+
+- New app icon: a twenty-sided die sitting under a wooden table. The favicon, PWA icons, apple touch icon, and the social share card are all regenerated from it.
+- Docs sections now live at their own addresses: /docs/quickstart, /docs/glossary, and /docs/math. The section strip is real navigation (each section can be opened, bookmarked, and shared directly), each section gets its own page title and description, and old links keep working: /docs and /docs?tab= links redirect to the matching section.
+- The glossary page now carries machine-readable definitions for every term (schema.org DefinedTermSet), and the sitemap and `public/llms.txt` point at the new section addresses. `llms.txt` also now covers the baseline comparison and share features, and describes the notation as displayed rather than typed.
+
 ## [1.7.0] - 2026-08-16
 
 ### Added
@@ -109,7 +117,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.8.0
 [1.7.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.7.0
 [1.6.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.6.0
 [1.5.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.5.0
