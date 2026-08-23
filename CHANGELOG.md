@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-08-22
+
 ### Changed
 
 - New app icon: a twenty-sided die sitting under a wooden table. The favicon, PWA icons, apple touch icon, and the social share card are all regenerated from it.
@@ -115,7 +117,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.8.0
 [1.7.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.7.0
 [1.6.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.6.0
 [1.5.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.5.0
