@@ -1,7 +1,8 @@
 import { Button, HStack, chakra } from '@chakra-ui/react';
-import type { DocsTab } from './docs-tab';
+import { NavLink, useMatch } from 'react-router-dom';
+import { docsSectionPath, type DocsTab } from './docs-tab';
 
-const TabButton = chakra('button');
+const TabLink = chakra(NavLink);
 
 interface TabDef {
   value: DocsTab;
@@ -14,58 +15,48 @@ const TABS: readonly TabDef[] = [
   { value: 'math', label: 'The Math' },
 ];
 
-interface DocsTabsProps {
-  value: DocsTab;
-  onChange: (value: DocsTab) => void;
-}
-
-export function DocsTabs({ value, onChange }: DocsTabsProps) {
+export function DocsTabs() {
   return (
     <>
       <HStack
         as="nav"
-        role="tablist"
         aria-label="Docs sections"
         gap={1}
         borderBottomWidth="1px"
         borderColor="border.subtle"
         display={{ base: 'none', md: 'flex' }}
       >
-        {TABS.map((tab) => {
-          const active = tab.value === value;
-          return (
-            <TabButton
-              key={tab.value}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => onChange(tab.value)}
-              px={4}
-              py={2.5}
-              fontSize="sm"
-              fontWeight="medium"
-              color={active ? 'fg' : 'fg.muted'}
-              bg="transparent"
-              borderBottomWidth="2px"
-              borderColor={active ? 'colorPalette.solid' : 'transparent'}
-              colorPalette="blue"
-              mb="-1px"
-              cursor="pointer"
-              transition="color 0.15s, border-color 0.15s, background 0.15s"
-              _hover={{ color: 'fg', bg: 'bg.muted' }}
-              _focusVisible={{
-                outline: '2px solid',
-                outlineColor: 'colorPalette.solid',
-                outlineOffset: '2px',
-              }}
-            >
-              {tab.label}
-            </TabButton>
-          );
-        })}
+        {TABS.map((tab) => (
+          <TabLink
+            key={tab.value}
+            to={docsSectionPath(tab.value)}
+            px={4}
+            py={2.5}
+            fontSize="sm"
+            fontWeight="medium"
+            color="fg.muted"
+            textDecoration="none"
+            bg="transparent"
+            borderBottomWidth="2px"
+            borderColor="transparent"
+            colorPalette="blue"
+            mb="-1px"
+            cursor="pointer"
+            transition="color 0.15s, border-color 0.15s, background 0.15s"
+            _hover={{ color: 'fg', bg: 'bg.muted' }}
+            _focusVisible={{
+              outline: '2px solid',
+              outlineColor: 'colorPalette.solid',
+              outlineOffset: '2px',
+            }}
+            _currentPage={{ color: 'fg', borderColor: 'colorPalette.solid' }}
+          >
+            {tab.label}
+          </TabLink>
+        ))}
       </HStack>
       <HStack
-        role="tablist"
+        as="nav"
         aria-label="Docs sections"
         gap={0}
         bg="bg.subtle"
@@ -73,25 +64,26 @@ export function DocsTabs({ value, onChange }: DocsTabsProps) {
         p={1}
         display={{ base: 'flex', md: 'none' }}
       >
-        {TABS.map((tab) => {
-          const active = tab.value === value;
-          return (
-            <Button
-              key={tab.value}
-              role="tab"
-              aria-selected={active}
-              size="sm"
-              variant={active ? 'solid' : 'ghost'}
-              colorPalette={active ? 'blue' : 'gray'}
-              onClick={() => onChange(tab.value)}
-              flex="1"
-              minH="40px"
-            >
-              {tab.label}
-            </Button>
-          );
-        })}
+        {TABS.map((tab) => (
+          <MobileTabLink key={tab.value} tab={tab} />
+        ))}
       </HStack>
     </>
+  );
+}
+
+function MobileTabLink({ tab }: { tab: TabDef }) {
+  const active = useMatch(docsSectionPath(tab.value)) !== null;
+  return (
+    <Button
+      asChild
+      size="sm"
+      variant={active ? 'solid' : 'ghost'}
+      colorPalette={active ? 'blue' : 'gray'}
+      flex="1"
+      minH="40px"
+    >
+      <NavLink to={docsSectionPath(tab.value)}>{tab.label}</NavLink>
+    </Button>
   );
 }

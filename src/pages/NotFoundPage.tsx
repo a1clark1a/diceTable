@@ -1,5 +1,6 @@
 import { Button, Heading, Stack, Text } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { docsSectionPath } from '../components/docs/docs-tab';
 import { RouteHead } from '../components/seo/RouteHead';
 
 export default function NotFoundPage() {
@@ -23,7 +24,7 @@ export default function NotFoundPage() {
           <RouterLink to="/">Back to the table</RouterLink>
         </Button>
         <Button asChild variant="outline">
-          <RouterLink to="/docs">Open the docs</RouterLink>
+          <RouterLink to={docsSectionPath('quickstart')}>Open the docs</RouterLink>
         </Button>
       </Stack>
     </Stack>

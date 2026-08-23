@@ -1,4 +1,10 @@
 {
+  "redirects": [
+    { "source": "/docs", "has": [{ "type": "query", "key": "tab", "value": "quickstart" }], "destination": "/docs/quickstart", "permanent": true },
+    { "source": "/docs", "has": [{ "type": "query", "key": "tab", "value": "glossary" }], "destination": "/docs/glossary", "permanent": true },
+    { "source": "/docs", "has": [{ "type": "query", "key": "tab", "value": "math" }], "destination": "/docs/math", "permanent": true },
+    { "source": "/docs", "missing": [{ "type": "query", "key": "tab" }], "destination": "/docs/quickstart", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
