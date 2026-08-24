@@ -10,6 +10,7 @@ import { RollOffView } from '../components/compare/RollOffView';
 import { HeadToHeadView } from '../components/compare/HeadToHeadView';
 import { ViewBar } from '../components/ViewBar';
 import { WorkshopHeader } from '../components/WorkshopHeader';
+import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
 import { useIsDesktop } from '../hooks/useBreakpoint';
@@ -22,7 +23,7 @@ interface WorkshopViewEntry extends WorkshopViewChip {
 export default function TablePage() {
   const isDesktop = useIsDesktop();
   const chartRef = useRef<HTMLDivElement>(null);
-  const { view, setView } = useApp();
+  const { expressions, view, setView } = useApp();
 
   const registry: WorkshopViewEntry[] = [
     {
@@ -78,7 +79,12 @@ export default function TablePage() {
         <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
           Compare dice rolls side by side
         </Heading>
-        <Text color="fg.muted">
+        <Text
+          fontSize="sm"
+          color="fg.muted"
+          maxW="620px"
+          css={{ textWrap: 'pretty' }}
+        >
           Build a table of named rolls, set a target number, and see the exact
           probability for every result on one chart.
         </Text>
@@ -88,7 +94,7 @@ export default function TablePage() {
         activeView={active.id}
         onSelectView={setView}
       />
-      {active.render()}
+      {expressions.length === 0 ? <StartExamplesPanel /> : active.render()}
     </Stack>
   );
 }

@@ -392,6 +392,10 @@ const uiTips: Record<string, string> = {
     'How much more or less often this roll meets the target than the baseline, in percentage points.',
   baselinePin: 'Pin as baseline to compare the other rolls against it.',
   baselinePinActive: 'This is the baseline. Tap again to clear it.',
+  clearAll:
+    'Remove every roll from the table. Asks you to confirm first.',
+  examples:
+    'Ready-made example rolls. Adding one appends it to your table.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   import:

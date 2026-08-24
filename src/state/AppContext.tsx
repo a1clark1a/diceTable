@@ -32,25 +32,11 @@ const STORAGE_KEY = 'dicetable.v2';
 // the older shape and normalise it.
 const ENVELOPE_VERSION = 2;
 
-const seedExpression: Expression = {
-  id: 'seed-4d6kh3',
-  name: '4d6kh3 + 2 (adv)',
-  parts: [
-    {
-      id: 'seed-4d6kh3-part',
-      count: 4,
-      sides: 6,
-      keep: { type: 'highest', n: 3 },
-    },
-  ],
-  flatModifier: 2,
-  rollMode: 'advantage',
-  mode: 'sum',
-};
-
+// A first visit starts with zero rolls so the "Start with an example" panel
+// greets new users; nothing is persisted until their first edit.
 const initialState: PersistedState = {
   version: SCHEMA_VERSION,
-  expressions: [seedExpression],
+  expressions: [],
   ui: {
     expandedId: null,
     chartView: 'pmf',

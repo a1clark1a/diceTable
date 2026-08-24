@@ -52,18 +52,20 @@ describe('RollHistoryProvider', () => {
       () => ({ app: useApp(), hist: useRollHistory() }),
       { wrapper },
     );
-    // Seed expression from AppContext is 'seed-4d6kh3'.
-    const seedId = result.current.app.expressions[0]!.id;
+    act(() => {
+      result.current.app.addExpression();
+    });
+    const rowId = result.current.app.expressions[0]!.id;
     const dist = new Map([[1, 1]]);
     act(() => {
-      result.current.hist.roll(seedId, dist);
+      result.current.hist.roll(rowId, dist);
     });
-    expect(result.current.hist.getHistory(seedId).length).toBe(1);
+    expect(result.current.hist.getHistory(rowId).length).toBe(1);
 
     act(() => {
-      result.current.app.deleteExpression(seedId);
+      result.current.app.deleteExpression(rowId);
     });
-    expect(result.current.hist.getHistory(seedId)).toEqual([]);
+    expect(result.current.hist.getHistory(rowId)).toEqual([]);
   });
 
   it('preserves history for surviving expressions when another is deleted', () => {
@@ -73,6 +75,7 @@ describe('RollHistoryProvider', () => {
     );
     const dist = new Map([[3, 1]]);
     act(() => {
+      result.current.app.addExpression();
       result.current.app.addExpression();
     });
     const ids = result.current.app.expressions.map((e) => e.id);

@@ -58,6 +58,42 @@ const { TargetToolbar } = await import('./TargetToolbar');
 const SEED_EXPR_ID = 'seed-4d6kh3';
 const SEED_PART_ID = 'seed-4d6kh3-part';
 
+// A fresh mount now starts with zero rolls, so the isolation tests hydrate the
+// one addressable row they need (the 4d6kh3 shape the app used to seed).
+function seedIsolationRow() {
+  const state = {
+    version: 3,
+    expressions: [
+      {
+        id: SEED_EXPR_ID,
+        name: '4d6kh3 + 2 (adv)',
+        parts: [
+          {
+            id: SEED_PART_ID,
+            count: 4,
+            sides: 6,
+            keep: { type: 'highest', n: 3 },
+          },
+        ],
+        flatModifier: 2,
+        rollMode: 'advantage',
+        mode: 'sum',
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [], ruling: 'gte' },
+      view: 'table',
+      poolTarget: 1,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
 // The toolbar renders alongside the table (TablePage hoists it to the page
 // level), and the pool Hit % tests drive the pool-target input it owns.
 function renderTable() {
@@ -88,9 +124,10 @@ afterEach(() => {
 
 describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', () => {
   it('a Count commit in the expanded row re-renders zero sibling RollTableRows', () => {
+    seedIsolationRow();
     renderTable();
 
-    // Seed gives one row; add three more so there are real siblings to sample.
+    // The seeded row plus three more so there are real siblings to sample.
     // The plan's 100-row / rows-2,50,99 sampling exists only for the optional
     // wall-clock check; the memo bail is per-row identical, so three siblings
     // are a sufficient, faithful stand-in for the agent-run gate.
@@ -130,6 +167,7 @@ describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', ()
   });
 
   it('a Mod commit on one row re-renders zero sibling RollTableRows (regression guard)', () => {
+    seedIsolationRow();
     renderTable();
     const addRoll = screen.getByRole('button', { name: 'Add roll' });
     fireEvent.click(addRoll);

@@ -218,17 +218,17 @@ describe('WorkshopHeader', () => {
     expect(screen.queryByText(/mixed/i)).toBeNull();
   });
 
-  it('keeps a plain "Roll mode" label with no active chip on an empty table', () => {
+  it('hides the roll-mode chips and Clear on an empty table, keeping Add', () => {
     seedRows([]);
     renderHeader();
-    expect(screen.getByText('Roll mode')).toBeInTheDocument();
-    expect(screen.queryByText(/mixed/i)).toBeNull();
+    expect(screen.queryByText('Roll mode')).toBeNull();
     for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
-      expect(screen.getByRole('button', { name })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      );
+      expect(screen.queryByRole('button', { name })).toBeNull();
     }
+    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: /add roll/i }),
+    ).toBeInTheDocument();
   });
 
   it('appends a row when Add is clicked', () => {
