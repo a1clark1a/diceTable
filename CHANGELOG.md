@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-24
+
 ### Added
 
 - First visits start with an empty table and a "Start with an example" panel: eight ready-made rolls (weapon attack, two-hander, mixed dice, ability score, save DC check, check with advantage, a d10 success pool, and keep-the-best-die), each card showing its real engine-computed average and range. "Use this roll" adds one, "Load every example" adds all eight, and "Start from a blank roll" works like Add roll. Deleting or clearing every roll returns to the panel, and the roll-mode chips, target toolbar, table, and charts stay hidden until the table has rows again.
@@ -128,7 +130,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.9.0
 [1.8.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.8.0
 [1.7.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.7.0
 [1.6.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.6.0
