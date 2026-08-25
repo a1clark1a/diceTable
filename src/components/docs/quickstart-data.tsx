@@ -14,12 +14,18 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 1,
     title: 'Add your first roll',
     plain:
-      'Click + Add roll. A new row appears with the default 1d20. Click its name to rename it, for example "Attack roll".',
+      'Click + Add roll. A new row appears with the default 1d20. Click its name to rename it, for example "Attack roll". Prefer a head start? An empty table offers "Start with an example" with ready-made rolls, and the Examples button keeps the same rolls available once your table has rows.',
     body: (
       <Stack gap={2}>
         <Text>
           Click <strong>+ Add roll</strong>. A new row appears with the default{' '}
           <Code>1d20</Code>. Click the name to rename it (e.g. “Attack roll”).
+        </Text>
+        <Text>
+          Prefer a head start? An empty table offers{' '}
+          <strong>Start with an example</strong> with ready-made rolls, and the{' '}
+          <strong>Examples</strong> button keeps the same rolls available once
+          your table has rows.
         </Text>
         <Text color="fg.muted" fontSize="sm">
           The colored swatch on the left of each row matches that row’s color

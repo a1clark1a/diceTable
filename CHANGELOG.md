@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-24
+
+### Added
+
+- First visits start with an empty table and a "Start with an example" panel: eight ready-made rolls (weapon attack, two-hander, mixed dice, ability score, save DC check, check with advantage, a d10 success pool, and keep-the-best-die), each card showing its real engine-computed average and range. "Use this roll" adds one, "Load every example" adds all eight, and "Start from a blank roll" works like Add roll. Deleting or clearing every roll returns to the panel, and the roll-mode chips, target toolbar, table, and charts stay hidden until the table has rows again.
+- Clear all: a red button next to Add roll that empties the table after a confirmation dialog ("Clear the table?" with Cancel and a Clear N rolls button). Clearing also unpins the baseline. On phones the button reads "Clear".
+- Examples button: once the table has rows, the same eight example rolls stay available in a dialog. Adding one appends it to the table (re-adding an example renames the copy, like "Weapon attack (2)"), and "Load every example" appends all eight and closes the dialog.
+- Quickstart step 1 now mentions the example panel and the Examples button.
+
+### Changed
+
+- Every Add roll button now disables at the 100-roll cap with an explanatory tooltip, including the one in the toolbar.
+
 ## [1.8.0] - 2026-08-22
 
 ### Changed
@@ -117,7 +130,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.9.0
 [1.8.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.8.0
 [1.7.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.7.0
 [1.6.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.6.0

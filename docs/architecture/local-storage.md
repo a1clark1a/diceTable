@@ -68,7 +68,7 @@ flowchart TD
   LS -->|raw string| Hook
   Hook -->|JSON.parse| Validator
   Validator -->|PersistedState| Ctx
-  Validator -.->|null on bad shape| Init[fall back to seedExpression]
+  Validator -.->|null on bad shape| Init[fall back to empty initialState]
   Init --> Ctx
   Ctx -->|action callbacks| Hook
   Hook -->|JSON.stringify + setItem| LS
@@ -159,7 +159,7 @@ interface PersistedState {
 
 1. `App` renders; `Provider` (Chakra) and `ErrorBoundary` mount.
 2. `AppProvider` calls `useLocalStorage('dicetable.v2', initialState, { version: 2, validate: validatePersistedState })`.
-3. The hook reads the raw string. If empty / unparseable / wrong version / fails validation, returns `initialState` (a single seed `4d6kh3 + 2 (adv)` expression).
+3. The hook reads the raw string. If empty / unparseable / wrong version / fails validation, returns `initialState` (zero expressions; the UI shows the "Start with an example" panel).
 4. Initial state is held in React; the first effect-run skip prevents an immediate clobber-write.
 5. Children render against `state.expressions` and `state.ui`.
 
@@ -174,7 +174,7 @@ interface PersistedState {
 
 | Failure mode                        | What happens                                                                                                                 |
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Storage empty (first visit)         | `read()` returns `initialState`; user sees the seed row.                                                                     |
+| Storage empty (first visit)         | `read()` returns `initialState`; user sees the "Start with an example" panel.                                                |
 | `JSON.parse` throws                 | Caught; `read()` returns `initialState`. User loses prior data. (Logged: nothing today — see "Caveats".)                     |
 | Envelope `version` doesn't match    | Without a migrator, `read()` returns `initialState`. With a migrator, the migrator gets the raw parsed object and may upgrade it. |
 | Validation fails                    | `read()` returns `initialState`. Same effect as a parse failure.                                                             |
@@ -249,7 +249,7 @@ These are documented compromises. Some have fixes pending; some are deliberate.
 
 1. **No multi-tab coordination.** Open two tabs, edit both, last close wins. Acceptable today because the tool is single-user, single-task. If multi-tab becomes a real workflow, listen to `window.addEventListener('storage', …)` and merge or warn.
 2. **Quota and private-mode write failures are silent.** A user in private mode may not realize their session won't survive a refresh. Acceptable for now; surface via a toast if reports come in.
-3. **Parse / validation failures are silent at runtime.** The user just gets the seed row back with no banner explaining what happened. A pre-launch nice-to-have is a small "your saved rolls couldn't be read — is that ok?" notice with a one-click reset.
+3. **Parse / validation failures are silent at runtime.** The user just gets an empty table back with no banner explaining what happened, which now looks identical to a first visit. A pre-launch nice-to-have is a small "your saved rolls couldn't be read — is that ok?" notice with a one-click reset.
 4. **No telemetry on hydration failures.** We don't know how often validation rejects. If we add error reporting (Sentry-shaped), the validator's null returns and the hook's caught exceptions are the first events to capture.
 5. **`crypto.randomUUID` requires a secure context.** [`newId`](../../src/state/defaultPart.ts) falls back to `Math.random + Date.now`, which is fine because IDs are row keys, not security tokens. Don't change this without checking deployment context.
 6. **Synchronous writes on every keystroke.** Each character typed into a name or modifier field triggers a `JSON.stringify` + `setItem` of the entire state. State is small (kilobytes) so this is invisible today. If state grows, debounce the write effect — don't switch storage backends.
@@ -301,7 +301,7 @@ These are reasonable directions if a real need shows up. Not roadmap commitments
 | Envelope read / write               | [`src/hooks/useLocalStorage.ts`](../../src/hooks/useLocalStorage.ts)              |
 | Validation / type guards            | [`src/state/persistedSchema.ts`](../../src/state/persistedSchema.ts)              |
 | Persisted shape                     | [`src/types.ts`](../../src/types.ts) (`PersistedState`, `Expression`, `DicePart`) |
-| Seed data                           | [`src/state/AppContext.tsx`](../../src/state/AppContext.tsx) (`seedExpression`)   |
+| Starter presets                     | [`src/presets/starterRolls.ts`](../../src/presets/starterRolls.ts) (`STARTER_PRESETS`) |
 | ID generation                       | [`src/state/defaultPart.ts`](../../src/state/defaultPart.ts) (`newId`)            |
 | Recovery UI                         | [`src/components/ErrorBoundary.tsx`](../../src/components/ErrorBoundary.tsx)      |
 | Boundary wiring                     | [`src/App.tsx`](../../src/App.tsx)                                                |

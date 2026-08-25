@@ -84,6 +84,7 @@ describe('useRollHistory', () => {
     );
     act(() => {
       result.current.app.addExpression();
+      result.current.app.addExpression();
     });
     const ids = result.current.app.expressions.map((e) => e.id);
     expect(ids).toHaveLength(2);
@@ -104,14 +105,18 @@ describe('useRollHistory', () => {
       { wrapper },
     );
     act(() => {
-      result.current.hist.roll('seed-4d6kh3', singleOutcome(7));
+      result.current.app.addExpression();
     });
-    expect(result.current.hist.getHistory('seed-4d6kh3')).toEqual([7]);
+    const rowId = result.current.app.expressions[0]!.id;
+    act(() => {
+      result.current.hist.roll(rowId, singleOutcome(7));
+    });
+    expect(result.current.hist.getHistory(rowId)).toEqual([7]);
 
     act(() => {
-      result.current.app.deleteExpression('seed-4d6kh3');
+      result.current.app.deleteExpression(rowId);
     });
-    expect(result.current.hist.getHistory('seed-4d6kh3')).toEqual([]);
-    expect(result.current.hist.lastResult('seed-4d6kh3')).toBeNull();
+    expect(result.current.hist.getHistory(rowId)).toEqual([]);
+    expect(result.current.hist.lastResult(rowId)).toBeNull();
   });
 });

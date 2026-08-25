@@ -103,148 +103,112 @@ export function RollsTable() {
 
   return (
     <Stack gap={3}>
-      {expressions.length === 0 ? (
-        <EmptyState onAdd={addExpression} />
-      ) : (
-        <Box
-          bg="bg.panel"
-          borderWidth="1px"
-          borderColor="border.subtle"
-          borderRadius="md"
-          overflow="hidden"
-        >
-          {/* Tables cannot shrink below min-content; without a scroll fallback
-              the overflow:hidden panel would clip the rightmost columns
-              unreachably at narrow desktop widths. */}
-          <Table.ScrollArea>
-            <Table.Root size="sm" variant="line" striped={false}>
-            <Table.Header>
-              <Table.Row bg="bg.subtle">
-                <Table.ColumnHeader
-                  borderLeftWidth="3px"
-                  borderLeftColor="transparent"
-                >
-                  Name
-                </Table.ColumnHeader>
-                <Table.ColumnHeader>Dice</Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
-                </Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">
-                  {comparison !== null ? (
-                    <HelpTerm tip={tipForId('baseline')}>
-                      vs {comparison.name}
-                    </HelpTerm>
-                  ) : (
-                    <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
-                  )}
-                </Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="end">
-                  <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
-                </Table.ColumnHeader>
-                <Table.ColumnHeader textAlign="center" w="100px">
-                  <ShapeHeaderLabel />
-                </Table.ColumnHeader>
-                {showHit && (
-                  <Table.ColumnHeader textAlign="end">
-                    <HStack as="span" gap={1} justify="end">
-                      <HelpTerm
-                        tip={tipForId(comparison !== null ? 'deltaHit' : 'hit')}
-                      >
-                        Hit %
-                      </HelpTerm>
-                      <RulingSymbol ruling={target.ruling} color="fg.muted" />
-                    </HStack>
-                  </Table.ColumnHeader>
+      <Box
+        bg="bg.panel"
+        borderWidth="1px"
+        borderColor="border.subtle"
+        borderRadius="md"
+        overflow="hidden"
+      >
+        {/* Tables cannot shrink below min-content; without a scroll fallback
+            the overflow:hidden panel would clip the rightmost columns
+            unreachably at narrow desktop widths. */}
+        <Table.ScrollArea>
+          <Table.Root size="sm" variant="line" striped={false}>
+          <Table.Header>
+            <Table.Row bg="bg.subtle">
+              <Table.ColumnHeader
+                borderLeftWidth="3px"
+                borderLeftColor="transparent"
+              >
+                Name
+              </Table.ColumnHeader>
+              <Table.ColumnHeader>Dice</Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">
+                <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">
+                {comparison !== null ? (
+                  <HelpTerm tip={tipForId('baseline')}>
+                    vs {comparison.name}
+                  </HelpTerm>
+                ) : (
+                  <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
                 )}
-                <Table.ColumnHeader textAlign="end" w="160px">
-                  {' '}
-                </Table.ColumnHeader>
-              </Table.Row>
-            </Table.Header>
-            <Table.Body>
-              {expressions.map((expr, idx) => (
-                <RollTableRow
-                  key={expr.id}
-                  expr={expr}
-                  idx={idx}
-                  expanded={expandedId === expr.id}
-                  showHit={showHit}
-                  view={view}
-                  target={target}
-                  poolTarget={poolTarget}
-                  baselineId={baselineId}
-                  comparison={comparison}
-                  setExpandedId={setExpandedId}
-                  setBaselineId={setBaselineId}
-                  deleteExpression={deleteExpression}
-                  renameExpression={renameExpression}
-                  updateExpression={updateExpression}
-                />
-              ))}
-              <Table.Row>
-                <Table.Cell
-                  colSpan={showHit ? 8 : 7}
-                  py={3}
-                  borderLeftWidth="3px"
-                  borderLeftColor="transparent"
-                >
-                  <Tooltip
-                    content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
-                    disabled={!atCap}
-                  >
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      borderStyle="dashed"
-                      width="100%"
-                      onClick={addExpression}
-                      disabled={atCap}
+              </Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end">
+                <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="center" w="100px">
+                <ShapeHeaderLabel />
+              </Table.ColumnHeader>
+              {showHit && (
+                <Table.ColumnHeader textAlign="end">
+                  <HStack as="span" gap={1} justify="end">
+                    <HelpTerm
+                      tip={tipForId(comparison !== null ? 'deltaHit' : 'hit')}
                     >
-                      <Plus size={14} />
-                      Add roll
-                    </Button>
-                  </Tooltip>
-                </Table.Cell>
-              </Table.Row>
-            </Table.Body>
-            </Table.Root>
-          </Table.ScrollArea>
-        </Box>
-      )}
+                      Hit %
+                    </HelpTerm>
+                    <RulingSymbol ruling={target.ruling} color="fg.muted" />
+                  </HStack>
+                </Table.ColumnHeader>
+              )}
+              <Table.ColumnHeader textAlign="end" w="160px">
+                {' '}
+              </Table.ColumnHeader>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {expressions.map((expr, idx) => (
+              <RollTableRow
+                key={expr.id}
+                expr={expr}
+                idx={idx}
+                expanded={expandedId === expr.id}
+                showHit={showHit}
+                view={view}
+                target={target}
+                poolTarget={poolTarget}
+                baselineId={baselineId}
+                comparison={comparison}
+                setExpandedId={setExpandedId}
+                setBaselineId={setBaselineId}
+                deleteExpression={deleteExpression}
+                renameExpression={renameExpression}
+                updateExpression={updateExpression}
+              />
+            ))}
+            <Table.Row>
+              <Table.Cell
+                colSpan={showHit ? 8 : 7}
+                py={3}
+                borderLeftWidth="3px"
+                borderLeftColor="transparent"
+              >
+                <Tooltip
+                  content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+                  disabled={!atCap}
+                >
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    borderStyle="dashed"
+                    width="100%"
+                    onClick={addExpression}
+                    disabled={atCap}
+                  >
+                    <Plus size={14} />
+                    Add roll
+                  </Button>
+                </Tooltip>
+              </Table.Cell>
+            </Table.Row>
+          </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
+      </Box>
     </Stack>
-  );
-}
-
-interface EmptyStateProps {
-  onAdd: () => void;
-}
-
-function EmptyState({ onAdd }: EmptyStateProps) {
-  return (
-    <Box
-      bg="bg.panel"
-      borderWidth="1px"
-      borderStyle="dashed"
-      borderColor="border.subtle"
-      borderRadius="md"
-      p={{ base: 6, md: 10 }}
-      textAlign="center"
-    >
-      <Stack gap={3} align="center">
-        <Text fontSize="md" fontWeight="medium">
-          No rolls yet.
-        </Text>
-        <Text fontSize="sm" color="fg.muted" maxW="320px">
-          Add a roll to start comparing distributions. Try a weapon attack, a
-          save DC check, or an ability score generator.
-        </Text>
-        <Button colorPalette="blue" onClick={onAdd}>
-          <Plus size={16} />
-          Add roll
-        </Button>
-      </Stack>
-    </Box>
   );
 }
 
