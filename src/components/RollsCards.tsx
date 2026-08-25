@@ -103,69 +103,42 @@ export function RollsCards() {
   );
 
   return (
-    <Stack gap={3}>
-      {expressions.length === 0 ? (
-        <Box
-          p={6}
-          borderWidth="1px"
+    <Stack gap={2}>
+      {expressions.map((expr, idx) => (
+        <RollCard
+          key={expr.id}
+          expr={expr}
+          idx={idx}
+          expanded={expandedId === expr.id}
+          showHit={showHit}
+          view={view}
+          target={target}
+          poolTarget={poolTarget}
+          baselineId={baselineId}
+          comparison={comparison}
+          setExpandedId={setExpandedId}
+          setBaselineId={setBaselineId}
+          deleteExpression={deleteExpression}
+          renameExpression={renameExpression}
+          updateExpression={updateExpression}
+        />
+      ))}
+      <Tooltip
+        content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+        disabled={!atCap}
+      >
+        <Button
+          size="sm"
+          variant="outline"
           borderStyle="dashed"
-          borderColor="border.subtle"
-          borderRadius="md"
-          bg="bg.panel"
-          textAlign="center"
+          width="100%"
+          onClick={addExpression}
+          disabled={atCap}
         >
-          <Stack gap={3} align="center">
-            <Text fontSize="sm" fontWeight="medium">
-              No rolls yet.
-            </Text>
-            <Text fontSize="xs" color="fg.muted" maxW="280px">
-              Add a roll to start comparing distributions.
-            </Text>
-            <Button colorPalette="blue" size="sm" onClick={addExpression}>
-              <Plus size={14} />
-              Add roll
-            </Button>
-          </Stack>
-        </Box>
-      ) : (
-        <Stack gap={2}>
-          {expressions.map((expr, idx) => (
-            <RollCard
-              key={expr.id}
-              expr={expr}
-              idx={idx}
-              expanded={expandedId === expr.id}
-              showHit={showHit}
-              view={view}
-              target={target}
-              poolTarget={poolTarget}
-              baselineId={baselineId}
-              comparison={comparison}
-              setExpandedId={setExpandedId}
-              setBaselineId={setBaselineId}
-              deleteExpression={deleteExpression}
-              renameExpression={renameExpression}
-              updateExpression={updateExpression}
-            />
-          ))}
-          <Tooltip
-            content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
-            disabled={!atCap}
-          >
-            <Button
-              size="sm"
-              variant="outline"
-              borderStyle="dashed"
-              width="100%"
-              onClick={addExpression}
-              disabled={atCap}
-            >
-              <Plus size={14} />
-              Add roll
-            </Button>
-          </Tooltip>
-        </Stack>
-      )}
+          <Plus size={14} />
+          Add roll
+        </Button>
+      </Tooltip>
     </Stack>
   );
 }

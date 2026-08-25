@@ -56,7 +56,7 @@ afterEach(() => {
 
 describe('BaselineCaption', () => {
   it('renders nothing while there are fewer than two rolls', () => {
-    // The default seed table has a single roll.
+    // A fresh mount starts with zero rolls, which is below the two-roll gate.
     renderCaption();
     expect(screen.queryByText(/Pin a roll/)).toBeNull();
   });

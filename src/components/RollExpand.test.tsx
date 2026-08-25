@@ -64,9 +64,46 @@ function resetCounts() {
   for (const k of Object.keys(renderCounts)) delete renderCounts[k];
 }
 
-// Hydration silently replaces the seed with the initial sum expression if any
-// pool row fails validatePersistedState, so the seeded pool row must carry a
-// valid successThreshold and parts free of keep/explode.
+// A fresh mount now starts with zero rolls, so every test hydrates the row it
+// addresses. This is the 4d6kh3 (adv) sum shape the app used to seed.
+function seedSumExpressionInStorage() {
+  const state: PersistedState = {
+    version: 3,
+    expressions: [
+      {
+        id: SEED_EXPR_ID,
+        name: '4d6kh3 + 2 (adv)',
+        parts: [
+          {
+            id: SEED_PART_ID,
+            count: 4,
+            sides: 6,
+            keep: { type: 'highest', n: 3 },
+          },
+        ],
+        flatModifier: 2,
+        rollMode: 'advantage',
+        mode: 'sum',
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [], ruling: 'gte' },
+      view: 'table',
+      poolTarget: 1,
+      baselineId: null,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+// Hydration silently drops the whole payload back to the empty initial state
+// if any pool row fails validatePersistedState, so the seeded pool row must
+// carry a valid successThreshold and parts free of keep/explode.
 function seedPoolExpressionInStorage() {
   const state: PersistedState = {
     version: 3,
@@ -114,8 +151,9 @@ afterEach(() => {
 
 describe('RollExpand part-edit isolation', () => {
   it('a Count commit on one part does not re-render the sibling part editor', () => {
+    seedSumExpressionInStorage();
     renderEditor();
-    // Seed expression has one part; add a second via the real button.
+    // Seeded expression has one part; add a second via the real button.
     fireEvent.click(screen.getByRole('button', { name: /add part/i }));
     const otherId = secondPartId();
 
@@ -134,6 +172,7 @@ describe('RollExpand part-edit isolation', () => {
   });
 
   it('an unrelated RollExpand re-render (roll-mode toggle) re-renders no part editors', () => {
+    seedSumExpressionInStorage();
     renderEditor();
     fireEvent.click(screen.getByRole('button', { name: /add part/i }));
     const otherId = secondPartId();
@@ -150,6 +189,7 @@ describe('RollExpand part-edit isolation', () => {
   });
 
   it('keeps editing the correct part after a sibling is added (no stale binding)', () => {
+    seedSumExpressionInStorage();
     renderEditor();
     fireEvent.click(screen.getByRole('button', { name: /add part/i }));
     const otherId = secondPartId();
@@ -192,6 +232,7 @@ describe('RollExpand roll-mode buttons in pool mode', () => {
   });
 
   it('does not mark the roll-mode buttons disabled on a sum expression', () => {
+    seedSumExpressionInStorage();
     renderEditor();
 
     for (const name of ['Normal', 'Advantage', 'Disadvantage'] as const) {
@@ -202,7 +243,8 @@ describe('RollExpand roll-mode buttons in pool mode', () => {
   });
 
   it('clicking a roll-mode button on a sum expression moves the pressed state', () => {
-    // The initial seed expression is sum mode with rollMode 'advantage'.
+    // The seeded expression is sum mode with rollMode 'advantage'.
+    seedSumExpressionInStorage();
     renderEditor();
 
     fireEvent.click(rollModeButton('Normal'));

@@ -13,6 +13,13 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+describe('AppContext first run', () => {
+  it('starts with zero expressions when storage is empty', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    expect(result.current.expressions).toEqual([]);
+  });
+});
+
 describe('AppContext setTarget', () => {
   it('starts with no target values', () => {
     const { result } = renderHook(() => useApp(), { wrapper });

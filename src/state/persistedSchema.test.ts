@@ -57,6 +57,12 @@ describe('validatePersistedState', () => {
     expect(validatePersistedState({ ...validPayload, version: '2' })).toBeNull();
   });
 
+  it('accepts an empty expressions array (the first-run shape)', () => {
+    const result = validatePersistedState({ ...validPayload, expressions: [] });
+    expect(result).not.toBeNull();
+    expect(result!.expressions).toEqual([]);
+  });
+
   it('rejects when expressions is not an array', () => {
     expect(
       validatePersistedState({ ...validPayload, expressions: 'oops' }),

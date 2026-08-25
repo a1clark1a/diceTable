@@ -60,6 +60,10 @@
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/state/AppContext.tsx",
+        "src/presets/starterRolls.ts",
+        "src/components/presets/StartExamplesPanel.tsx",
+        "src/components/presets/PresetCardGrid.tsx",
+        "src/components/presets/ExamplesDialog.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
       ]
