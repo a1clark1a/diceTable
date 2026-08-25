@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
 import { useApp } from '../state/useApp';
@@ -256,5 +256,65 @@ describe('WorkshopHeader', () => {
     renderHeader();
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add roll/i })).toBeNull();
+  });
+
+  it('disables the Add button at the 100-roll cap', () => {
+    seedRows(Array.from({ length: 100 }, () => 'normal' as const));
+    renderHeader();
+    expect(screen.getByTestId('row-count')).toHaveTextContent('100');
+    expect(screen.getByRole('button', { name: /add roll/i })).toBeDisabled();
+  });
+});
+
+describe('WorkshopHeader clear all', () => {
+  // The dialog machine opens a beat after the trigger click, so every test
+  // waits on the alertdialog role appearing rather than querying synchronously.
+  async function openClearDialog() {
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    return await screen.findByRole('alertdialog');
+  }
+
+  it('opens a confirmation dialog naming the roll count', async () => {
+    seedRows(['normal', 'normal']);
+    renderHeader();
+    await openClearDialog();
+
+    expect(screen.getByText('Clear the table?')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clear 2 rolls' }),
+    ).toBeInTheDocument();
+  });
+
+  it('Cancel closes the dialog and keeps every roll', async () => {
+    seedRows(['normal', 'normal']);
+    renderHeader();
+    await openClearDialog();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.getByTestId('row-count')).toHaveTextContent('2');
+    await waitFor(() =>
+      expect(screen.queryByRole('alertdialog')).toBeNull(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Clear all' }),
+    ).toBeInTheDocument();
+  });
+
+  it('confirming empties the table and hides the Clear button', async () => {
+    seedRows(['normal', 'normal', 'normal']);
+    renderHeader();
+    await openClearDialog();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear 3 rolls' }));
+
+    expect(screen.getByTestId('row-count')).toHaveTextContent('0');
+    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
+  });
+
+  it('labels the Clear button "Clear" below the desktop breakpoint', () => {
+    mockViewport(false);
+    seedRows(['normal']);
+    renderHeader();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Clear all' })).toBeNull();
   });
 });
