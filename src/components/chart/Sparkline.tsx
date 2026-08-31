@@ -7,12 +7,14 @@ import type {
   TargetState,
 } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
+import { canMiss, isTotalsMode } from '../../engine/expression';
 import { useApp } from '../../state/useApp';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
 import { buildMonotonePath } from './monotonePath';
 import { effectiveChartView } from './effectiveView';
+import { missProbability, rowPeak } from './zeroSpike';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
   pmf: { text: 'PMF', tip: tipForId('pmf') },
@@ -70,6 +72,7 @@ interface HitZone {
 interface SparklineGeometry {
   topPoints: Point[];
   hitZones: HitZone[];
+  cappedIndex: number;
   modeIndex: number;
   matchMask: boolean[];
   stepWidth: number;
@@ -85,6 +88,7 @@ const PMF_FILL_SCALE = 0.84;
 const EMPTY_GEOM: SparklineGeometry = {
   topPoints: [],
   hitZones: [],
+  cappedIndex: -1,
   modeIndex: -1,
   matchMask: [],
   stepWidth: 0,
@@ -134,6 +138,7 @@ function buildGeometry(
   target: TargetState | undefined,
   width: number,
   height: number,
+  canMiss: boolean,
 ): SparklineGeometry {
   if (dist.size === 0) return EMPTY_GEOM;
   const keys = sortedKeys(dist);
@@ -151,11 +156,17 @@ function buildGeometry(
   const heightAt = new Array<number>(span);
   const tipAt = new Array<string>(span);
 
+  let cappedIndex = -1;
+
   if (resolvedView === 'pmf' || resolvedView === 'target') {
-    let maxP = 0;
-    for (const p of dist.values()) {
-      if (p > maxP) maxP = p;
-    }
+    // A check row's miss bar is left out of the scale for the same reason the
+    // big chart leaves it out: it would squash the row's own shape flat. The
+    // bar is drawn cut off instead, and the hover tip keeps the true number.
+    const rawPeak = rowPeak(dist, canMiss);
+    const miss = missProbability(dist, canMiss);
+    // With only its own row to scale against, a row that only ever misses
+    // keeps the miss bar as the scale instead of rendering nothing.
+    const maxP = rawPeak > 0 ? rawPeak : miss;
     if (maxP === 0) return EMPTY_GEOM;
     // PMF heights are normalized to the row's own max, so a flat (uniform)
     // distribution would otherwise fill the whole box. Leaving headroom keeps
@@ -164,8 +175,9 @@ function buildGeometry(
     for (let i = 0; i < span; i++) {
       const xValue = min + i;
       const p = dist.get(xValue) ?? 0;
-      heightAt[i] = (p / maxP) * filledHeight;
+      heightAt[i] = Math.min(p / maxP, 1) * filledHeight;
       tipAt[i] = `${xValue}: ${formatPct(p)}`;
+      if (canMiss && xValue === 0 && miss > maxP) cappedIndex = i;
     }
   } else if (resolvedView === 'cdf') {
     let cum = 0;
@@ -223,6 +235,7 @@ function buildGeometry(
   return {
     topPoints,
     hitZones,
+    cappedIndex,
     modeIndex,
     matchMask,
     stepWidth,
@@ -260,8 +273,8 @@ export const Sparkline = memo(function Sparkline({
   ariaLabel,
 }: SparklineProps) {
   const geom = useMemo(
-    () => buildGeometry(dist, view, target, width, height),
-    [dist, view, target, width, height],
+    () => buildGeometry(dist, view, target, width, height, canMiss({ mode })),
+    [dist, view, target, width, height, mode],
   );
 
   if (geom.empty) return null;
@@ -269,6 +282,7 @@ export const Sparkline = memo(function Sparkline({
   const {
     topPoints,
     hitZones,
+    cappedIndex,
     modeIndex,
     matchMask,
     stepWidth,
@@ -281,7 +295,7 @@ export const Sparkline = memo(function Sparkline({
   // Pool distributions count discrete successes, so the filled views render
   // one bar per count (a ladder) instead of a continuous stepped area. The
   // cumulative views keep the shared curve rendering.
-  const isPoolLadder = mode === 'pool' && isFilledView;
+  const isPoolLadder = !isTotalsMode({ mode }) && isFilledView;
   const hasMatchOverlay =
     effectiveView === 'target' && matchMask.some((m) => m);
 
@@ -309,6 +323,8 @@ export const Sparkline = memo(function Sparkline({
       : '';
 
   // The tallest ladder bar already marks the mode; the tick would double it.
+  const cappedPoint =
+    isFilledView && cappedIndex >= 0 ? topPoints[cappedIndex] : undefined;
   const showModeTick = isFilledView && !isPoolLadder && modeIndex >= 0;
   const modePoint = showModeTick ? topPoints[modeIndex] : undefined;
   const modeCx = modePoint ? modePoint.x + stepWidth / 2 : 0;
@@ -376,6 +392,30 @@ export const Sparkline = memo(function Sparkline({
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
         />
+      )}
+      {cappedPoint && (
+        <>
+          {/* A dashed line alone reads as a solid top at 36px. Clearing a band
+              under it leaves visible sky between the bar and its ceiling, which
+              is what makes the cut legible at row scale. */}
+          <rect
+            x={cappedPoint.x}
+            y={cappedPoint.y}
+            width={stepWidth}
+            height={Math.max(2, height * 0.09)}
+            fill="var(--chakra-colors-bg-panel)"
+          />
+          <line
+            x1={cappedPoint.x}
+            x2={cappedPoint.x + stepWidth}
+            y1={cappedPoint.y}
+            y2={cappedPoint.y}
+            stroke={color}
+            strokeWidth={1.5}
+            strokeDasharray="1.5 1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </>
       )}
       {modePoint && (
         <line

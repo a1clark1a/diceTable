@@ -9,10 +9,12 @@ import { Plus } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useApp, type PartPatch } from '../state/useApp';
 import type { DicePart, Expression, ExpressionMode, RollMode } from '../types';
+import { CheckEditor } from './editor/CheckEditor';
 import { DicePartRow } from './editor/DicePartRow';
+import { KeepAcrossPanel } from './editor/KeepAcrossPanel';
+import { Panel } from './editor/controls';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { Tooltip } from './ui/tooltip';
-import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 
 const ROLL_MODES: { value: RollMode; label: string; tip: string }[] = [
@@ -29,6 +31,7 @@ interface PartRowProps {
   exprId: string;
   part: DicePart;
   mode: ExpressionMode;
+  keepAcrossActive: boolean;
   canRemove: boolean;
   updatePart: (exprId: string, partId: string, patch: PartPatch) => void;
   removePart: (exprId: string, partId: string) => void;
@@ -43,6 +46,7 @@ const PartRow = memo(function PartRow({
   exprId,
   part,
   mode,
+  keepAcrossActive,
   canRemove,
   updatePart,
   removePart,
@@ -60,6 +64,7 @@ const PartRow = memo(function PartRow({
     <DicePartRow
       part={part}
       mode={mode}
+      keepAcrossActive={keepAcrossActive}
       onChange={onChange}
       onRemove={onRemove}
       canRemove={canRemove}
@@ -70,6 +75,7 @@ const PartRow = memo(function PartRow({
 export function RollExpand({ expression }: RollExpandProps) {
   const { addPart, removePart, updatePart, updateExpression } = useApp();
   const isPool = expression.mode === 'pool';
+  const check = expression.mode === 'check' ? expression.check : undefined;
 
   return (
     <Box bg="bg.subtle" p={{ base: 3, md: 4 }}>
@@ -105,64 +111,51 @@ export function RollExpand({ expression }: RollExpandProps) {
           </Box>
         </Box>
 
-        <Box
-          bg="bg.panel"
-          borderWidth="1px"
-          borderColor="border.subtle"
-          borderRadius="md"
-          p={3}
-        >
-          <Text
-            fontSize="xs"
-            fontWeight="semibold"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            mb={2}
-          >
-            Dice parts
-          </Text>
-          <Stack gap={2}>
-            {expression.parts.map((part) => (
-              <PartRow
-                key={part.id}
-                exprId={expression.id}
-                part={part}
-                mode={expression.mode}
-                canRemove={expression.parts.length > 1}
-                updatePart={updatePart}
-                removePart={removePart}
-              />
-            ))}
-          </Stack>
-          <Button
-            size="sm"
-            variant="outline"
-            mt={3}
-            onClick={() => addPart(expression.id)}
-          >
-            <Plus size={14} />
-            Add part
-          </Button>
-        </Box>
+        {check ? (
+          <CheckEditor
+            expression={expression}
+            check={check}
+            updateExpression={updateExpression}
+            updatePart={updatePart}
+            addPart={addPart}
+            removePart={removePart}
+          />
+        ) : (
+          <>
+          <Panel label="Dice parts">
+            <Stack gap={2}>
+              {expression.parts.map((part) => (
+                <PartRow
+                  key={part.id}
+                  exprId={expression.id}
+                  part={part}
+                  mode={expression.mode}
+                  keepAcrossActive={expression.keepAcross !== undefined}
+                  canRemove={expression.parts.length > 1}
+                  updatePart={updatePart}
+                  removePart={removePart}
+                />
+              ))}
+            </Stack>
+            <Button
+              size="sm"
+              variant="outline"
+              mt={3}
+              onClick={() => addPart(expression.id)}
+            >
+              <Plus size={14} />
+              Add part
+            </Button>
+          </Panel>
 
-        <Box
-          bg="bg.panel"
-          borderWidth="1px"
-          borderColor="border.subtle"
-          borderRadius="md"
-          p={3}
-        >
-          <Box
-            fontSize="xs"
-            fontWeight="semibold"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            mb={2}
-          >
-            <HelpTerm tip={tipForId('rollMode')}>Roll mode</HelpTerm>
-          </Box>
+          <KeepAcrossPanel
+            expression={expression}
+            updateExpression={updateExpression}
+          />
+          </>
+        )}
+
+        <Panel label="Roll mode" tip={tipForId('rollMode')}>
           <HStack
             gap={0}
             bg="bg.subtle"
@@ -203,7 +196,7 @@ export function RollExpand({ expression }: RollExpandProps) {
               );
             })}
           </HStack>
-        </Box>
+        </Panel>
       </Stack>
     </Box>
   );

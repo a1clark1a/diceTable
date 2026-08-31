@@ -26,8 +26,10 @@ import {
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
+  CheckBadge,
+  CheckSucceedsChip,
   PoolBadge,
-  PoolModeToggle,
+  ExpressionModeToggle,
   PoolThresholdEditor,
 } from './editor/PoolControls';
 import { RollExpand } from './RollExpand';
@@ -245,9 +247,10 @@ const RollTableRow = memo(function RollTableRow({
   renameExpression,
   updateExpression,
 }: RollTableRowProps) {
-  const { stats, tooComplex } = getRowData(expr);
+  const { stats, tooComplex, checkChances } = getRowData(expr);
   const color = rowColor(idx);
   const isPool = expr.mode === 'pool';
+  const isCheck = expr.mode === 'check';
   const hits = useMemo(
     () =>
       !isPool && showHit && stats.hasDist
@@ -340,16 +343,18 @@ const RollTableRow = memo(function RollTableRow({
         _hover={{ bg: 'bg.subtle' }}
       >
         {/* Transparent border on sum rows keeps every row's left edge aligned;
-            pool rows tint it as their identity band. The pool band wins over
-            the baseline band so a pinned pool row never hides its scale cue. */}
+            pool and check rows tint it as their identity band. A mode band wins
+            over the baseline band so a pinned row never hides its scale cue. */}
         <Table.Cell
           borderLeftWidth="3px"
           borderLeftColor={
             isPool
               ? 'purple.solid'
-              : baselineAccent
-                ? 'blue.solid'
-                : 'transparent'
+              : isCheck
+                ? 'orange.solid'
+                : baselineAccent
+                  ? 'blue.solid'
+                  : 'transparent'
           }
         >
           <Stack gap={1} align="flex-start">
@@ -379,6 +384,7 @@ const RollTableRow = memo(function RollTableRow({
                 </Tooltip>
               )}
               {isPool && <PoolBadge />}
+              {isCheck && <CheckBadge />}
             </HStack>
             {verdict !== null && (
               <Text
@@ -411,18 +417,22 @@ const RollTableRow = memo(function RollTableRow({
               )}
             </Box>
             <HStack gap={1} flexWrap="wrap">
-              <PoolModeToggle mode={expr.mode} onSelect={onModeChange} />
+              <ExpressionModeToggle mode={expr.mode} onSelect={onModeChange} />
               {isPool && expr.successThreshold && (
                 <PoolThresholdEditor
                   threshold={expr.successThreshold}
                   onChange={onThresholdChange}
                 />
               )}
+              {isCheck && <CheckSucceedsChip chances={checkChances} />}
             </HStack>
           </Stack>
         </Table.Cell>
         <Table.Cell textAlign="end">
-          <Tooltip content={tipForId('poolAutoSuccess')} disabled={!isPool}>
+          <Tooltip
+            content={tipForId(isPool ? 'poolAutoSuccess' : 'checkModifier')}
+            disabled={!isPool && !isCheck}
+          >
             <Input
               size="sm"
               type="text"

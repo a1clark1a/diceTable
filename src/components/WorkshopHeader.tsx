@@ -10,6 +10,7 @@ import {
 } from '@chakra-ui/react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useApp } from '../state/useApp';
+import { isTotalsMode } from '../engine/expression';
 import { MAX_EXPRESSIONS, type RollMode, type WorkshopView } from '../types';
 import {
   WorkshopViewSwitcher,
@@ -63,11 +64,12 @@ export function WorkshopHeader({
 
   const atCap = expressions.length >= MAX_EXPRESSIONS;
 
-  // Pool rows ignore rollMode entirely (they count successes), so only sum rows
-  // decide "mixed". An all-pool table falls back to the stored modes so a
-  // definite chip shows instead of a permanently mixed label.
+  // Pool rows ignore rollMode entirely (they count successes), so only rows that
+  // read it decide "mixed" - sum rows and check rows, where it applies to the
+  // check roll. An all-pool table falls back to the stored modes so a definite
+  // chip shows instead of a permanently mixed label.
   const sumModes = new Set(
-    expressions.filter((e) => e.mode === 'sum').map((e) => e.rollMode),
+    expressions.filter(isTotalsMode).map((e) => e.rollMode),
   );
   const mixed = sumModes.size > 1;
   const firstSumMode = sumModes.values().next().value ?? null;

@@ -2,7 +2,12 @@ import {
   MAX_EXPRESSIONS,
   MAX_TARGETS,
   type ChartView,
+  type CheckEffect,
+  type CheckSpec,
+  type CritEffect,
+  type CritRule,
   type DicePart,
+  type EffectScale,
   type Expression,
   type ExpressionMode,
   type ExplodeRule,
@@ -15,23 +20,26 @@ import {
   type TargetState,
   type WorkshopView,
 } from '../types';
+import { isSingleDieCheck } from '../engine/critEffect';
 
 // The inner schema version, deliberately decoupled from the useLocalStorage
 // envelope version in AppContext. The envelope gate rejects any version it does
 // not recognise before validation ever runs, so bumping both together would wipe
 // every saved table instead of migrating it.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
-const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3];
+const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4];
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
-const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool'];
+const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool', 'check'];
 const THRESHOLD_DIRECTIONS: readonly SuccessThreshold['direction'][] = ['gte', 'lte'];
 const CHART_VIEWS: readonly ChartView[] = ['pmf', 'cdf', 'ccdf', 'target'];
 const WORKSHOP_VIEWS: readonly WorkshopView[] = ['table', 'target', 'rolloff', 'matrix'];
 const TARGET_RULINGS: readonly TargetRuling[] = ['gte', 'gt', 'lte', 'lt', 'eq'];
 const KEEP_TYPES: readonly KeepRule['type'][] = ['highest', 'lowest'];
 const REROLL_MODES: readonly RerollRule['mode'][] = ['once', 'always'];
+const EFFECT_SCALES: readonly EffectScale[] = ['none', 'half', 'full'];
+const CRIT_EFFECTS: readonly CritEffect[] = ['doubleDice', 'extraDie', 'maxPlusRoll'];
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -107,6 +115,73 @@ function validatePart(v: unknown): DicePart | null {
   return part;
 }
 
+function validateCritRule(v: unknown): CritRule | null {
+  if (!isRecord(v)) return null;
+  if (!isOneOf(v.effect, CRIT_EFFECTS)) return null;
+  // An empty face list is a critical that can never happen: a rule the math
+  // would ignore, which is the one thing the stored shape must never hold.
+  if (!isIntArray(v.onFaces) || v.onFaces.length === 0) return null;
+  if (v.onFaces.some((f) => f < 1)) return null;
+  return { onFaces: [...v.onFaces], effect: v.effect };
+}
+
+function validateCheckEffect(v: unknown): CheckEffect | null {
+  if (!isRecord(v)) return null;
+  if (!Array.isArray(v.parts) || v.parts.length === 0) return null;
+  if (typeof v.flatModifier !== 'number' || !Number.isFinite(v.flatModifier)) {
+    return null;
+  }
+
+  const parts: DicePart[] = [];
+  for (const rawPart of v.parts) {
+    const part = validatePart(rawPart);
+    if (part === null) return null;
+    parts.push(part);
+  }
+
+  const effect: CheckEffect = { parts, flatModifier: v.flatModifier };
+
+  if (v.keepAcross !== undefined) {
+    const keepAcross = validateKeep(v.keepAcross);
+    if (keepAcross === null) return null;
+    if (parts.some((p) => p.keep !== undefined)) return null;
+    effect.keepAcross = keepAcross;
+  }
+
+  return effect;
+}
+
+function validateCheckSpec(v: unknown, checkParts: readonly DicePart[]): CheckSpec | null {
+  if (!isRecord(v)) return null;
+
+  const threshold = validateSuccessThreshold(v.threshold);
+  if (threshold === null) return null;
+
+  const effect = validateCheckEffect(v.effect);
+  if (effect === null) return null;
+
+  if (!isOneOf(v.onSuccess, EFFECT_SCALES)) return null;
+  if (!isOneOf(v.onFailure, EFFECT_SCALES)) return null;
+
+  const spec: CheckSpec = {
+    threshold,
+    effect,
+    onSuccess: v.onSuccess,
+    onFailure: v.onFailure,
+  };
+
+  if (v.crit !== undefined) {
+    const crit = validateCritRule(v.crit);
+    if (crit === null) return null;
+    // A critical is read off the face one die shows, so there is no face to read
+    // on a check rolling more than one die.
+    if (!isSingleDieCheck(checkParts)) return null;
+    spec.crit = crit;
+  }
+
+  return spec;
+}
+
 export function validateExpression(v: unknown): Expression | null {
   if (!isRecord(v)) return null;
   if (!isNonEmptyString(v.id)) return null;
@@ -150,6 +225,28 @@ export function validateExpression(v: unknown): Expression | null {
     const threshold = validateSuccessThreshold(v.successThreshold);
     if (threshold === null) return null;
     expression.successThreshold = threshold;
+  }
+
+  if (v.keepAcross !== undefined) {
+    const keepAcross = validateKeep(v.keepAcross);
+    if (keepAcross === null) return null;
+    // Counting successes never reads keepAcross, and keeping across parts
+    // replaces the per-part rule rather than stacking with it. Either pairing
+    // would store a rule the math ignores, so both are corruption.
+    if (mode !== 'sum') return null;
+    if (parts.some((p) => p.keep !== undefined)) return null;
+    expression.keepAcross = keepAcross;
+  }
+
+  // A check row without a check has no effect to apply, and a check on any other
+  // row is a rule nothing reads. Both are corruption rather than something to
+  // patch up, so the row is rejected either way.
+  if (mode === 'check') {
+    const check = validateCheckSpec(v.check, parts);
+    if (check === null) return null;
+    expression.check = check;
+  } else if (v.check !== undefined) {
+    return null;
   }
 
   return expression;

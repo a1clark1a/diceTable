@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type {
   ChartView,
+  CheckSpec,
   Expression,
   ExpressionMode,
   ExplodeRule,
@@ -19,6 +20,8 @@ export type ExpressionPatch = {
   rollMode?: RollMode;
   mode?: ExpressionMode;
   successThreshold?: SuccessThreshold | undefined;
+  keepAcross?: KeepRule | undefined;
+  check?: CheckSpec | undefined;
 };
 
 export type PartPatch = {

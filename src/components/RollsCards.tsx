@@ -27,8 +27,10 @@ import {
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
+  CheckBadge,
+  CheckSucceedsChip,
   PoolBadge,
-  PoolModeToggle,
+  ExpressionModeToggle,
   PoolThresholdEditor,
 } from './editor/PoolControls';
 import { RollExpand } from './RollExpand';
@@ -176,9 +178,10 @@ const RollCard = memo(function RollCard({
   renameExpression,
   updateExpression,
 }: RollCardProps) {
-  const { stats, tooComplex } = getRowData(expr);
+  const { stats, tooComplex, checkChances } = getRowData(expr);
   const color = rowColor(idx);
   const isPool = expr.mode === 'pool';
+  const isCheck = expr.mode === 'check';
   const hits = useMemo(
     () =>
       !isPool && showHit && stats.hasDist
@@ -272,16 +275,18 @@ const RollCard = memo(function RollCard({
       borderColor="border.subtle"
       borderRadius="md"
       overflow="hidden"
-      // Inset shadow instead of a thicker border so pool cards' content stays
-      // aligned with sum cards in the stack (a 3px border would inset it 2px).
-      // The pool band wins over the baseline band so a pinned pool card never
+      // Inset shadow instead of a thicker border so pool and check cards' content
+      // stays aligned with sum cards in the stack (a 3px border would inset it
+      // 2px). A mode band wins over the baseline band so a pinned card never
       // hides its scale cue.
       boxShadow={
         isPool
           ? 'inset 3px 0 0 {colors.purple.solid}'
-          : baselineAccent
-            ? 'inset 3px 0 0 {colors.blue.solid}'
-            : undefined
+          : isCheck
+            ? 'inset 3px 0 0 {colors.orange.solid}'
+            : baselineAccent
+              ? 'inset 3px 0 0 {colors.blue.solid}'
+              : undefined
       }
     >
       <Box p={3}>
@@ -352,6 +357,7 @@ const RollCard = memo(function RollCard({
             </Tooltip>
           )}
           {isPool && <PoolBadge />}
+          {isCheck && <CheckBadge />}
           <Text
             fontFamily="mono"
             fontSize="xs"
@@ -377,15 +383,20 @@ const RollCard = memo(function RollCard({
         </HStack>
 
         <HStack gap={1} mt={1.5} flexWrap="wrap" align="center">
-          <PoolModeToggle mode={expr.mode} onSelect={onModeChange} />
+          <ExpressionModeToggle mode={expr.mode} onSelect={onModeChange} />
           {isPool && expr.successThreshold && (
             <PoolThresholdEditor
               threshold={expr.successThreshold}
               onChange={onThresholdChange}
             />
           )}
+          {isCheck && <CheckSucceedsChip chances={checkChances} />}
           <HStack gap={1} align="center" ml="auto">
-            <HelpTerm tip={tipForId(isPool ? 'poolAutoSuccess' : 'mod')}>
+            <HelpTerm
+              tip={tipForId(
+                isPool ? 'poolAutoSuccess' : isCheck ? 'checkModifier' : 'mod',
+              )}
+            >
               <Text as="span" fontSize="xs" color="fg.muted">
                 Mod
               </Text>

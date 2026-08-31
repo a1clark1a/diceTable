@@ -130,12 +130,64 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     details:
       'Auto-successes shift the count after the dice are read: +2 auto means two free successes on top of whatever you rolled, and −2 takes two away. They don’t change any die’s chance of succeeding. Penalties can’t push a result below zero; all of that would-be-negative chance lands on exactly zero successes.',
   },
+  {
+    id: 'keep-across',
+    term: 'Keep across parts',
+    alt: 'keep highest 1',
+    group: 'notation',
+    plain:
+      'Rolls every part, then keeps only the best or worst dice instead of adding them all up. Works across dice of different sizes.',
+    details:
+      'Keep highest or lowest inside one part only compares dice of the same size, so 1d8 and 1d6 could never be weighed against each other. Keeping across parts lifts the rule to the whole roll: 1d8 + 1d6 · keep highest 1 is the trait-and-wild-die roll, and only the better of the two counts. Turning it on switches off the per-part keep rules, because the two describe the same choice twice.',
+  },
+  {
+    id: 'check',
+    term: 'Check',
+    alt: 'Sum / Pool / Check toggle',
+    group: 'notation',
+    plain:
+      'A roll that first tries to clear a number, then applies an effect depending on how it went. The row shows the effect, misses included.',
+    details:
+      'A check row is two rolls in one: the dice in the Dice cell are the check itself, and the effect carries its own dice and modifier. 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4". Because misses are part of the picture, the row’s average is the average per attempt rather than the average when it lands, which is the number worth balancing against.',
+  },
+  {
+    id: 'check-threshold',
+    term: 'Succeeds when',
+    alt: '≥15 / ≤4',
+    group: 'notation',
+    plain:
+      'The number a check has to clear. The roll and its modifier are compared to it, at or above (≥) or at or below (≤).',
+    details:
+      'The threshold is the armor class, save DC, or target number of whatever you are modelling, and the direction flips for roll-under systems. The editor shows the chance of clearing it as you change either side, so you can tune the bar and the modifier against each other without doing any arithmetic.',
+  },
+  {
+    id: 'effect-scale',
+    term: 'Effect scale',
+    alt: 'nothing / half / full',
+    group: 'notation',
+    plain:
+      'How much of the effect lands on each outcome. Half rounds down.',
+    details:
+      'Two settings, one for a success and one for a failure, cover most if-then mechanics. Full on a success and nothing on a failure is an attack. Half on a success and full on a failure is a save-for-half spell, where clearing the bar means taking less rather than dealing more. Rounding is always down, so half of a 7 is 3.',
+  },
+  {
+    id: 'critical',
+    term: 'Critical',
+    alt: 'crit 20 ×dice',
+    group: 'notation',
+    plain:
+      'Faces that always succeed and hit harder: roll double the dice, roll one extra die, or add the highest the dice can show.',
+    details:
+      'A critical is read off the face the die shows, not off the total, which is why it needs a check of exactly one die. That also means advantage raises the chance of one: with crit on 20, rolling twice and taking the higher crits 9.75% of the time instead of 5%. A critical always counts as a success even when its face would have missed the threshold.',
+  },
 
   {
     id: 'advantage',
     term: 'Advantage',
     group: 'roll-modes',
     plain: 'Roll the whole expression twice and take the higher result.',
+    details:
+      'On a check roll, advantage applies to the check itself and never to the effect, so it raises how often the roll clears the bar (and how often it crits) without changing what lands.',
   },
   {
     id: 'disadvantage',
@@ -218,7 +270,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     group: 'distributions',
     plain: 'How likely each exact result is. (Probability Mass Function.)',
     details:
-      'On a PMF chart the height of each bar is P(X = k), the chance of rolling exactly k. Bars never overlap and the heights across one row add up to 100%. Read it for shape: where the peak sits (most likely result), how wide the spread is (consistency), and whether the curve leans left or right (skew).',
+      'On a PMF chart the height of each bar is P(X = k), the chance of rolling exactly k. Bars never overlap and the heights across one row add up to 100%. Read it for shape: where the peak sits (most likely result), how wide the spread is (consistency), and whether the curve leans left or right (skew). A check roll that fails often piles that chance onto a single result, so its bar at zero is cut off and labelled with the real number rather than flattening every other curve.',
   },
   {
     id: 'cdf',
@@ -372,6 +424,34 @@ const uiTips: Record<string, string> = {
     'Added straight to the number of successes. It doesn’t change each die’s chance. A roll never goes below zero successes.',
   keepDisabledInPool:
     'Keep highest or lowest applies when dice add into a total. Switch this roll back to Sum to use it.',
+  keepAcross:
+    'Rolls every part, then keeps only the best or worst dice instead of adding them all up. Works across dice of different sizes, like a d8 beside a d6.',
+  keepAcrossCount:
+    'How many dice survive. The rest are dropped before anything is added together.',
+  keepAcrossDirection:
+    'Keep the highest dice to pull the average up, or the lowest to push it down.',
+  checkMode:
+    'Roll against a number, then apply an effect depending on how it went. The row shows the effect, counting the times you miss.',
+  checkThreshold:
+    'The roll clears the bar at this number or better. Everything at or past it counts as a success.',
+  checkModifier:
+    'Added to the check roll before it is compared to the bar. The effect has its own modifier.',
+  effectScale:
+    'How much of the effect lands on this outcome: all of it, half of it (rounded down), or none of it.',
+  checkEffect:
+    'What lands when the check goes your way. It rolls its own dice and carries its own modifier.',
+  crit:
+    'A face that always succeeds and hits harder. Pick which faces count and what the extra is.',
+  critEffect:
+    'What a critical adds: roll double the dice, roll one more die, or add the highest the dice could show.',
+  critNeedsOneDie:
+    'A critical is read off the face one die shows, so it needs a check of exactly one die.',
+  checkSucceeds:
+    'How often this roll clears its bar, criticals included.',
+  keepDisabledByKeepAcross:
+    'This roll already keeps dice across all its parts. Turn that off below to keep dice inside one part instead.',
+  keepAcrossDisabledInPool:
+    'Keeping dice applies when dice add into a total. Switch this roll back to Sum to use it.',
   explodeDisabledInPool:
     'Explode adds bonus rolls into a total. Switch this roll back to Sum to use it.',
   rollModeIgnoredInPool:
@@ -398,6 +478,8 @@ const uiTips: Record<string, string> = {
     'Ready-made example rolls. Adding one appends it to your table.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
+  shareImage:
+    'Make a picture of the comparison to paste into a chat. Copying takes the link along as text.',
   import:
     'Bring rolls in from a share link, JSON, or a file. Choose to add to the table or replace it.',
 };

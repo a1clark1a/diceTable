@@ -146,10 +146,10 @@ export function singleDieDistribution(part: DicePart): Distribution {
   return dist;
 }
 
-function meetsThreshold(face: number, threshold: SuccessThreshold): boolean {
+export function meetsThreshold(value: number, threshold: SuccessThreshold): boolean {
   return threshold.direction === 'gte'
-    ? face >= threshold.value
-    : face <= threshold.value;
+    ? value >= threshold.value
+    : value <= threshold.value;
 }
 
 // Counting successes asks a different question of the same die: not "what did it

@@ -57,6 +57,17 @@ export function shiftClampedAtZero(dist: Distribution, offset: number): Distribu
   return result;
 }
 
+// Half damage rounds down, and two outcomes one apart round onto the same
+// value, so the mass has to accumulate the way shiftClampedAtZero does.
+export function halveFloor(dist: Distribution): Distribution {
+  const result = new Map<number, number>();
+  for (const [k, p] of dist) {
+    const halved = Math.floor(k / 2);
+    result.set(halved, (result.get(halved) ?? 0) + p);
+  }
+  return result;
+}
+
 export function convolve(a: Distribution, b: Distribution): Distribution {
   if (a.size === 0 || b.size === 0) return emptyDistribution();
   const result = new Map<number, number>();

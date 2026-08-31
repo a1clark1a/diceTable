@@ -24,11 +24,35 @@ export interface DicePart {
   explode?: ExplodeRule;
 }
 
-export type ExpressionMode = 'sum' | 'pool';
+export type ExpressionMode = 'sum' | 'pool' | 'check';
 
 export interface SuccessThreshold {
   direction: 'gte' | 'lte';
   value: number;
+}
+
+/** How much of the effect lands on a given outcome. Half rounds down. */
+export type EffectScale = 'none' | 'half' | 'full';
+
+export type CritEffect = 'doubleDice' | 'extraDie' | 'maxPlusRoll';
+
+export interface CritRule {
+  onFaces: number[];
+  effect: CritEffect;
+}
+
+export interface CheckEffect {
+  parts: DicePart[];
+  flatModifier: number;
+  keepAcross?: KeepRule;
+}
+
+export interface CheckSpec {
+  threshold: SuccessThreshold;
+  effect: CheckEffect;
+  onSuccess: EffectScale;
+  onFailure: EffectScale;
+  crit?: CritRule;
 }
 
 export interface Expression {
@@ -39,6 +63,17 @@ export interface Expression {
   rollMode: RollMode;
   mode: ExpressionMode;
   successThreshold?: SuccessThreshold;
+  /**
+   * Keeps the best or worst n dice across every part instead of adding the parts
+   * together. Mutually exclusive with the per-part `keep` rule.
+   */
+  keepAcross?: KeepRule;
+  /**
+   * Turns the row into "roll a check, then apply an effect". On a check row
+   * `parts`, `flatModifier` and `rollMode` describe the check roll; the effect
+   * carries its own dice and modifier.
+   */
+  check?: CheckSpec;
 }
 
 export type Distribution = Map<number, number>;
@@ -58,7 +93,7 @@ export interface TargetState {
 }
 
 export interface PersistedState {
-  version: 3;
+  version: 4;
   expressions: Expression[];
   ui: {
     expandedId: string | null;

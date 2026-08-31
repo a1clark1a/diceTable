@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo, useState, type Ref } from 'react';
 import { Box, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
+import { isTotalsMode } from '../../engine/expression';
 import { useApp } from '../../state/useApp';
 import { useDistributions } from '../../state/useDistributions';
 import type {
@@ -12,6 +13,7 @@ import type {
 import { rowColor } from './palette';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
+import { ShareImagePopover } from '../share/ShareImagePopover';
 import { tipForId } from '../../docs/glossary';
 import type { ChartUnit } from './OverlayChartImpl';
 
@@ -184,12 +186,15 @@ export function OverlayChart({ ref }: OverlayChartProps) {
     return map;
   }, [expressions]);
 
+  // Check rows total up like sum rows, so they belong on the Totals panel; only
+  // pool rows change the scale. Matching the legend split below keeps a row from
+  // appearing in the key without a curve to point at.
   const sumExprs = useMemo(
-    () => expressions.filter((e) => e.mode === 'sum'),
+    () => expressions.filter(isTotalsMode),
     [expressions],
   );
   const poolExprs = useMemo(
-    () => expressions.filter((e) => e.mode === 'pool'),
+    () => expressions.filter((e) => !isTotalsMode(e)),
     [expressions],
   );
 
@@ -205,8 +210,8 @@ export function OverlayChart({ ref }: OverlayChartProps) {
         name: expr.name,
         color: rowColor(idx),
       };
-      if (expr.mode === 'pool') pool.push(entry);
-      else sum.push(entry);
+      if (isTotalsMode(expr)) sum.push(entry);
+      else pool.push(entry);
     });
     return { sum, pool };
   }, [overLimit, expressions, dists]);
@@ -226,15 +231,18 @@ export function OverlayChart({ ref }: OverlayChartProps) {
 
   return (
     <Stack ref={ref} gap={2} scrollMarginTop={{ base: '64px', md: '72px' }}>
-      <Text
-        fontSize="xs"
-        fontWeight="semibold"
-        color="fg.muted"
-        textTransform="uppercase"
-        letterSpacing="wider"
-      >
-        Comparison
-      </Text>
+      <HStack justify="space-between" align="center" gap={3}>
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          color="fg.muted"
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
+          Comparison
+        </Text>
+        {hasValidSeries && !overLimit && <ShareImagePopover />}
+      </HStack>
       <Box
         bg="bg.panel"
         borderWidth="1px"
