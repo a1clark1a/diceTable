@@ -5,6 +5,7 @@ import {
   formatDelta,
   formatPercentCompact,
   formatPercentDelta,
+  formatWholePercent,
   targetLabelFits,
 } from './format';
 
@@ -17,6 +18,66 @@ describe('formatPercentCompact', () => {
   it('keeps decimals for values that need them', () => {
     expect(formatPercentCompact(0.125)).toBe('12.5%');
     expect(formatPercentCompact(0.3333)).toBe('33.3%');
+  });
+});
+
+describe('formatWholePercent', () => {
+  it('keeps exactly-certain values exact', () => {
+    expect(formatWholePercent(0)).toBe('0%');
+    expect(formatWholePercent(1)).toBe('100%');
+  });
+
+  it('clamps values outside the unit interval to the exact ends', () => {
+    expect(formatWholePercent(-0.2)).toBe('0%');
+    expect(formatWholePercent(1.2)).toBe('100%');
+  });
+
+  it('hedges a near-zero chance instead of rounding it away', () => {
+    expect(formatWholePercent(0.0049)).toBe('<1%');
+  });
+
+  it('hedges a near-certain chance instead of claiming certainty', () => {
+    expect(formatWholePercent(0.995)).toBe('>99%');
+    expect(formatWholePercent(0.9999)).toBe('>99%');
+  });
+
+  it('rounds ordinary chances to the nearest whole percent', () => {
+    expect(formatWholePercent(0.005)).toBe('1%');
+    expect(formatWholePercent(0.3549)).toBe('35%');
+    expect(formatWholePercent(0.125)).toBe('13%');
+    expect(formatWholePercent(0.9949)).toBe('99%');
+  });
+});
+
+describe('formatWholePercent boundary storm', () => {
+  it.each([
+    [0, '0%'],
+    [-0.1, '0%'],
+    [Number.EPSILON, '<1%'],
+    [0.0049999, '<1%'],
+    [0.005, '1%'],
+    [0.0051, '1%'],
+    [0.5, '50%'],
+    [0.9449, '94%'],
+    [0.945, '95%'],
+    [0.9949999, '99%'],
+    [0.995, '>99%'],
+    [0.9999, '>99%'],
+    [1, '100%'],
+    [1 + Number.EPSILON, '100%'],
+    [1.5, '100%'],
+  ])('formats a chance of %d as %s', (value, expected) => {
+    expect(formatWholePercent(value)).toBe(expected);
+  });
+
+  it('never claims impossibility or certainty for a chance strictly inside the unit interval', () => {
+    const interior: number[] = [Number.EPSILON, 1e-300, 0.0049999999, 0.9950000001, 0.9999999999999999];
+    for (let k = 1; k <= 9999; k += 1) interior.push(k / 10000);
+    for (const value of interior) {
+      const formatted = formatWholePercent(value);
+      expect(formatted).not.toBe('0%');
+      expect(formatted).not.toBe('100%');
+    }
   });
 });
 

@@ -187,3 +187,58 @@ describe('ExpressionDiceText pool mode', () => {
     expect(container.textContent).not.toContain('count');
   });
 });
+
+describe('ExpressionDiceText keepAcross', () => {
+  const twoParts = [
+    { id: 'p1', count: 1, sides: 8 },
+    { id: 'p2', count: 1, sides: 6 },
+  ];
+
+  it('appends the rule after the dice body', () => {
+    const { container } = renderDiceText(
+      makeExpression({ parts: twoParts, keepAcross: { type: 'highest', n: 1 } }),
+    );
+    expect(container.textContent).toContain('1d8 + 1d6');
+    expect(container.textContent).toContain('keep highest 1');
+  });
+
+  it('renders the lowest direction and count verbatim', () => {
+    const { container } = renderDiceText(
+      makeExpression({ parts: twoParts, keepAcross: { type: 'lowest', n: 2 } }),
+    );
+    expect(container.textContent).toContain('keep lowest 2');
+  });
+
+  it('separates the rule with a middot', () => {
+    const { container } = renderDiceText(
+      makeExpression({ parts: twoParts, keepAcross: { type: 'highest', n: 1 } }),
+    );
+    expect(container.textContent).toContain('·');
+  });
+
+  it('keeps the flat modifier ahead of the rule', () => {
+    const { container } = renderDiceText(
+      makeExpression({
+        parts: twoParts,
+        flatModifier: 2,
+        keepAcross: { type: 'highest', n: 1 },
+      }),
+    );
+    const text = container.textContent ?? '';
+    expect(text.indexOf('+ 2')).toBeLessThan(text.indexOf('keep highest'));
+  });
+
+  it('describes the rule for screen readers', () => {
+    renderDiceText(
+      makeExpression({ parts: twoParts, keepAcross: { type: 'highest', n: 1 } }),
+    );
+    expect(
+      screen.getByLabelText('keep the 1 highest dice across every part'),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing when the row has no rule', () => {
+    const { container } = renderDiceText(makeExpression({ parts: twoParts }));
+    expect(container.textContent).not.toContain('keep');
+  });
+});

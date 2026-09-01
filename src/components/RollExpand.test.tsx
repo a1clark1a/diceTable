@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import type { DicePart, PersistedState } from '../types';
+import { SCHEMA_VERSION } from '../state/persistedSchema';
 import type { PartPatch } from '../state/useApp';
 
 // Counting stub for the editor leaf. The fix under test stabilizes the
@@ -68,7 +69,7 @@ function resetCounts() {
 // addresses. This is the 4d6kh3 (adv) sum shape the app used to seed.
 function seedSumExpressionInStorage() {
   const state: PersistedState = {
-    version: 3,
+    version: SCHEMA_VERSION,
     expressions: [
       {
         id: SEED_EXPR_ID,
@@ -106,7 +107,7 @@ function seedSumExpressionInStorage() {
 // carry a valid successThreshold and parts free of keep/explode.
 function seedPoolExpressionInStorage() {
   const state: PersistedState = {
-    version: 3,
+    version: SCHEMA_VERSION,
     expressions: [
       {
         id: SEED_EXPR_ID,

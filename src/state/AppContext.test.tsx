@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
@@ -619,5 +619,126 @@ describe('AppContext baseline lifecycle', () => {
     expect(
       result.current.expressions.filter((e) => e.id === 'e0'),
     ).toHaveLength(1);
+  });
+});
+
+// keepAcross and a per-part keep must never coexist: validatePersistedState
+// rejects a row carrying both, and a rejected envelope drops the whole table
+// back to empty on the next load. These cover the invariant at the mutation
+// boundary, not just in the UI that hides the chip.
+describe('AppContext keepAcross', () => {
+  function seedRow(result: { current: ReturnType<typeof useApp> }): string {
+    act(() => {
+      result.current.addExpression();
+    });
+    return result.current.expressions[0]!.id;
+  }
+
+  it('sets the rule on a row', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'highest',
+      n: 1,
+    });
+  });
+
+  it('clears the rule when the patch passes undefined', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: undefined });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toBeUndefined();
+  });
+
+  it('leaves the rule alone when the patch does not mention it', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'lowest', n: 2 } });
+    });
+    act(() => {
+      result.current.updateExpression(id, { flatModifier: 4 });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'lowest',
+      n: 2,
+    });
+  });
+
+  it('strips every per-part keep when the rule turns on', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    const partId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.updatePart(id, partId, { keep: { type: 'highest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.parts[0]!.keep).toBeDefined();
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.parts[0]!.keep).toBeUndefined();
+  });
+
+  // The editor disables the per-part Keep chip while the across-parts rule is
+  // on, so a keep patch arriving anyway is a bypass; the normalize step lets
+  // the across-parts rule win, the same direction the UI shows.
+  it('refuses a per-part keep while the across-parts rule is on', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    const partId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    act(() => {
+      result.current.updatePart(id, partId, { keep: { type: 'lowest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'highest',
+      n: 1,
+    });
+    expect(result.current.expressions[0]!.parts[0]!.keep).toBeUndefined();
+  });
+
+  it('drops the rule when the row switches to counting successes', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    act(() => {
+      result.current.updateExpression(id, { mode: 'pool' });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toBeUndefined();
+  });
+
+  it('survives a reload rather than dropping the table', () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'lowest', n: 2 } });
+    });
+    // Writes are debounced, and unmount clears the pending timer instead of
+    // flushing it, so the write has to land before the provider goes away.
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    unmount();
+    vi.useRealTimers();
+
+    const second = renderHook(() => useApp(), { wrapper });
+    expect(second.result.current.expressions).toHaveLength(1);
+    expect(second.result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'lowest',
+      n: 2,
+    });
   });
 });

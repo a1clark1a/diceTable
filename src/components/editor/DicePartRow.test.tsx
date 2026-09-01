@@ -24,6 +24,7 @@ function renderRow() {
       <DicePartRow
         part={basePart()}
         mode="sum"
+        keepAcrossActive={false}
         onChange={vi.fn()}
         onRemove={vi.fn()}
         canRemove
@@ -38,6 +39,7 @@ function renderWith(part: DicePart, onChange = vi.fn()) {
       <DicePartRow
         part={part}
         mode="sum"
+        keepAcrossActive={false}
         onChange={onChange}
         onRemove={vi.fn()}
         canRemove
@@ -58,6 +60,27 @@ describe('DicePartRow FacePicker', () => {
     );
     expect(pressed.length).toBe(1);
     expect(pressed[0]!.getAttribute('aria-label')).toBe('Face 1');
+  });
+});
+
+// Typed input has to land inside the same bounds the +/- buttons enforce: an
+// out-of-range commit would be rejected by the schema validator on the next
+// load, and one rejected row drops the whole saved table.
+describe('DicePartRow count stepper clamping', () => {
+  it('clamps a typed 0 up to the minimum of 1', () => {
+    const { onChange } = renderWith(basePart());
+    const input = screen.getByLabelText('Count');
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith({ count: 1 });
+  });
+
+  it('clamps a cleared field up to the minimum of 1', () => {
+    const { onChange } = renderWith(basePart());
+    const input = screen.getByLabelText('Count');
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).toHaveBeenCalledWith({ count: 1 });
   });
 });
 
@@ -103,6 +126,7 @@ describe('DicePartRow KeepRuleEditor', () => {
         <DicePartRow
           part={partWithKeep(2)}
           mode="sum"
+          keepAcrossActive={false}
           onChange={vi.fn()}
           onRemove={vi.fn()}
           canRemove
@@ -114,6 +138,7 @@ describe('DicePartRow KeepRuleEditor', () => {
         <DicePartRow
           part={{ id: 'p1', count: 4, sides: 6 }}
           mode="sum"
+          keepAcrossActive={false}
           onChange={vi.fn()}
           onRemove={vi.fn()}
           canRemove
@@ -126,6 +151,7 @@ describe('DicePartRow KeepRuleEditor', () => {
         <DicePartRow
           part={partWithKeep(5)}
           mode="sum"
+          keepAcrossActive={false}
           onChange={vi.fn()}
           onRemove={vi.fn()}
           canRemove
@@ -186,6 +212,7 @@ describe('DicePartRow pool-mode chip disabling', () => {
         <DicePartRow
           part={part}
           mode={mode}
+          keepAcrossActive={false}
           onChange={onChange}
           onRemove={vi.fn()}
           canRemove

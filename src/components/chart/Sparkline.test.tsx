@@ -36,6 +36,25 @@ describe('Sparkline', () => {
     expect(container.querySelector('svg')).toBeNull();
   });
 
+  it('renders a check row whose only outcome is a miss at full height, uncapped', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={new Map([[0, 1]])}
+          color="#000"
+          view="pmf"
+          mode="check"
+        />
+      </Plain>,
+    );
+    expect(container.querySelector('svg')).not.toBeNull();
+    // With nothing else in the row to scale against, the miss bar IS the
+    // scale, so the cut-off treatment must not appear.
+    expect(
+      container.querySelector('line[stroke-dasharray="1.5 1.5"]'),
+    ).toBeNull();
+  });
+
   it('renders a stepped area path in PMF view', () => {
     const { container } = render(
       <Plain>

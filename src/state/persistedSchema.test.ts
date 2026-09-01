@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { validatePersistedState } from './persistedSchema';
+import {
+  SCHEMA_VERSION,
+  validateExpression,
+  validatePersistedState,
+} from './persistedSchema';
 import type { PersistedState } from '../types';
 
 const validPayload: PersistedState = {
-  version: 3,
+  version: SCHEMA_VERSION,
   expressions: [
     {
       id: 'expr-1',
@@ -303,5 +307,76 @@ describe('validatePersistedState', () => {
     expect(result!.expressions).toHaveLength(100);
     expect(result!.expressions[0]!.id).toBe('expr-0');
     expect(result!.expressions[99]!.id).toBe('expr-99');
+  });
+});
+
+describe('validatePersistedState — keepAcross', () => {
+  const sumRow = validPayload.expressions[0]!;
+  const withKeepAcross = (
+    keepAcross: unknown,
+    over: Record<string, unknown> = {},
+  ): unknown => ({
+    ...sumRow,
+    parts: [{ id: 'p1', count: 1, sides: 8 }],
+    keepAcross,
+    ...over,
+  });
+
+  it('keeps a valid rule on a sum row', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      expressions: [withKeepAcross({ type: 'highest', n: 1 })],
+    });
+    expect(result!.expressions[0]!.keepAcross).toEqual({ type: 'highest', n: 1 });
+  });
+
+  it('normalises an older payload up to the current schema version', () => {
+    const result = validatePersistedState({ ...validPayload, version: 3 });
+    expect(result!.version).toBe(SCHEMA_VERSION);
+  });
+
+  it('accepts a payload from before the rule existed', () => {
+    const result = validatePersistedState({ ...validPayload, version: 2 });
+    expect(result).not.toBeNull();
+    expect(result!.expressions[0]!.keepAcross).toBeUndefined();
+  });
+
+  it('rejects a row carrying both keepAcross and a per-part keep', () => {
+    expect(
+      validateExpression(
+        withKeepAcross({ type: 'highest', n: 1 }, {
+          parts: [{ id: 'p1', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('rejects keepAcross on a row that counts successes', () => {
+    expect(
+      validateExpression(
+        withKeepAcross({ type: 'highest', n: 1 }, {
+          mode: 'pool',
+          successThreshold: { direction: 'gte', value: 5 },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('rejects an unknown keep direction', () => {
+    expect(validateExpression(withKeepAcross({ type: 'sideways', n: 1 }))).toBeNull();
+  });
+
+  it('rejects a count below one', () => {
+    expect(validateExpression(withKeepAcross({ type: 'highest', n: 0 }))).toBeNull();
+    expect(validateExpression(withKeepAcross({ type: 'highest', n: -3 }))).toBeNull();
+  });
+
+  it('rejects a fractional count', () => {
+    expect(validateExpression(withKeepAcross({ type: 'highest', n: 1.5 }))).toBeNull();
+  });
+
+  it('rejects a non-object rule', () => {
+    expect(validateExpression(withKeepAcross('highest'))).toBeNull();
+    expect(validateExpression(withKeepAcross(null))).toBeNull();
   });
 });

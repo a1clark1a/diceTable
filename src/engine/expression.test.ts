@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Expression } from '../types';
 import { totalMass } from './distribution';
-import { applyRollMode, expressionDistribution } from './expression';
+import { expressionDistribution } from './expression';
+import { applyRollMode } from './roll';
 import { partDistribution } from './parts';
 import { mean } from './stats';
 
