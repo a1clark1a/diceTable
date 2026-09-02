@@ -6,8 +6,13 @@ import type {
   Expression,
 } from '../types';
 import { critApplies, critEffectParts, isSingleDieCheck } from './critEffect';
-import { emptyDistribution, halveFloor, shift } from './distribution';
-import { meetsThreshold, singleDieDistribution } from './parts';
+import {
+  emptyDistribution,
+  halveFloor,
+  shift,
+  uniformDistribution,
+} from './distribution';
+import { applyReroll, explodeFrom, meetsThreshold } from './parts';
 import { applyRollMode, sumPartsDistribution } from './roll';
 
 export interface CheckOutcomeChances {
@@ -39,39 +44,79 @@ export function checkOutcomeChances(expr: Expression): CheckOutcomeChances {
 
   if (isSingleDieCheck(expr.parts)) {
     const part = expr.parts[0]!;
+    if (!Number.isInteger(part.sides) || part.sides < 2) return NO_CHANCES;
     const critFaces = critApplies(spec, expr.parts)
       ? new Set(spec.crit?.onFaces)
       : null;
 
-    // The check die only classifies the outcome, and a crit face is already at
-    // least a success no matter what its exploded total would be, so exploding
-    // it cannot change the classification. applyExplode moves all of a face's
-    // mass onto higher totals, so a face that both crits and explodes would
-    // never crit; stripping crit faces from the explode rule keeps their
-    // natural-face mass, which is exactly "crit on the natural face". Non-crit
-    // explode faces keep exploding: their totals decide against the threshold.
-    const die =
-      critFaces !== null && part.explode !== undefined
-        ? {
-            ...part,
-            explode: {
-              ...part.explode,
-              onFaces: part.explode.onFaces.filter((f) => !critFaces.has(f)),
-            },
-          }
-        : part;
+    // A crit is read off the face the die shows, so classification has to
+    // happen before explosion folds faces into chain totals: a face that both
+    // crits and explodes would otherwise never crit (all its mass moves onto
+    // higher totals), and a chain from a non-crit face whose total lands on a
+    // crit face's number would crit without the die ever showing that face.
+    // Split on the natural face after rerolls, then explode only the plain
+    // side; totals decide against the threshold, the split decides what crit.
+    let natural = uniformDistribution(part.sides);
+    if (part.reroll) natural = applyReroll(natural, part.reroll);
+    if (natural.size === 0) return NO_CHANCES;
 
-    let faces = singleDieDistribution(die);
-    if (expr.rollMode !== 'normal') faces = applyRollMode(faces, expr.rollMode);
-    if (faces.size === 0) return NO_CHANCES;
+    const critSide = new Map<number, number>();
+    let plainSide: Distribution = natural;
+    if (critFaces !== null) {
+      plainSide = new Map<number, number>();
+      for (const [face, p] of natural) {
+        if (critFaces.has(face)) critSide.set(face, p);
+        else plainSide.set(face, p);
+      }
+    }
+    if (part.explode && plainSide.size > 0) {
+      // Chain dice are full draws: one can land on a crit face's number (a
+      // plain value there, since only the first die crits) and one landing on
+      // an exploding face keeps chaining, crit face or not.
+      plainSide = explodeFrom(plainSide, natural, part.explode);
+      if (plainSide.size === 0) return NO_CHANCES;
+    }
+
+    let critWeight = (_t: number, mass: number): number => mass;
+    let plainWeight = critWeight;
+    if (expr.rollMode !== 'normal') {
+      // Advantage and disadvantage over two independent draws, computed with
+      // order statistics on the merged total distribution. A tie in totals
+      // between a crit and a plain result goes to the crit under advantage (a
+      // player keeps the die showing the crit face) and to the plain result
+      // under disadvantage (the rule forces the worse of the two).
+      const combined = new Map<number, number>();
+      for (const [t, p] of critSide) combined.set(t, (combined.get(t) ?? 0) + p);
+      for (const [t, p] of plainSide) combined.set(t, (combined.get(t) ?? 0) + p);
+      const below = new Map<number, number>();
+      let cum = 0;
+      for (const t of [...combined.keys()].sort((a, b) => a - b)) {
+        below.set(t, cum);
+        cum += combined.get(t)!;
+      }
+      if (expr.rollMode === 'advantage') {
+        critWeight = (t, mass) =>
+          mass * (2 * (below.get(t)! + combined.get(t)!) - mass);
+        plainWeight = (t, mass) => mass * (2 * below.get(t)! + mass);
+      } else {
+        const above = (t: number): number =>
+          Math.max(0, 1 - below.get(t)! - combined.get(t)!);
+        critWeight = (t, mass) => mass * (2 * above(t) + mass);
+        plainWeight = (t, mass) => {
+          const critTie = combined.get(t)! - mass;
+          return mass * (2 * (above(t) + critTie) + mass);
+        };
+      }
+    }
 
     let success = 0;
     let critChance = 0;
     let failure = 0;
-    for (const [face, p] of faces) {
-      if (critFaces?.has(face)) critChance += p;
-      else if (meetsThreshold(face + modifier, spec.threshold)) success += p;
-      else failure += p;
+    for (const [t, p] of critSide) critChance += critWeight(t, p);
+    for (const [t, p] of plainSide) {
+      const w = plainWeight(t, p);
+      if (meetsThreshold(t + modifier, spec.threshold)) success += w;
+      else failure += w;
     }
     return { success, crit: critChance, failure };
   }

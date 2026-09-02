@@ -107,6 +107,23 @@ describe('copyImageWithLink', () => {
     expect(write).toHaveBeenCalledTimes(1);
   });
 
+  // Chrome before 97 throws at construction when a flavour is a pending
+  // promise, which is exactly what the share hook hands over.
+  it('reports failure when the browser refuses to build the clipboard item', async () => {
+    vi.stubGlobal(
+      'ClipboardItem',
+      class {
+        constructor() {
+          throw new TypeError('Failed to construct ClipboardItem');
+        }
+      },
+    );
+    const write = vi.fn().mockResolvedValue(undefined);
+    patchNavigator('clipboard', { write });
+    expect(await copyImageWithLink(Promise.resolve(pngBlob()), LINK)).toBe(false);
+    expect(write).not.toHaveBeenCalled();
+  });
+
   it('reports success once the browser takes the write', async () => {
     stubClipboardItem();
     const write = vi.fn().mockResolvedValue(undefined);
@@ -155,15 +172,15 @@ describe('copyImageWithLink', () => {
 
   it('writes exactly one item to the clipboard', async () => {
     const captured = stubClipboardItem();
-    const write = vi.fn().mockResolvedValue(undefined);
+    const write = vi.fn<(items: readonly unknown[]) => Promise<void>>().mockResolvedValue(undefined);
     patchNavigator('clipboard', { write });
 
     await copyImageWithLink(pngBlob(), LINK);
 
     expect(write).toHaveBeenCalledTimes(1);
-    const items = write.mock.calls[0]?.[0] as unknown[];
+    const items = write.mock.calls[0]?.[0];
     expect(items).toHaveLength(1);
-    expect(items[0]).toBe(captured[0]);
+    expect(items?.[0]).toBe(captured[0]);
   });
 });
 
@@ -201,18 +218,18 @@ describe('canShareImage', () => {
   });
 
   it('asks about a png file under the given name', async () => {
-    const canShare = vi.fn().mockReturnValue(true);
+    const canShare = vi.fn<(data: ShareData) => boolean>().mockReturnValue(true);
     patchNavigator('share', vi.fn());
     patchNavigator('canShare', canShare);
     const blob = pngBlob();
 
     canShareImage(blob, 'dicetable-2024-01-05.png');
 
-    const data = canShare.mock.calls[0]?.[0] as { files: File[] };
-    expect(data.files).toHaveLength(1);
-    expect(data.files[0]!.name).toBe('dicetable-2024-01-05.png');
-    expect(data.files[0]!.type).toBe('image/png');
-    expect(await data.files[0]!.text()).toBe(await blob.text());
+    const data = canShare.mock.calls[0]?.[0];
+    expect(data?.files).toHaveLength(1);
+    expect(data?.files?.[0]?.name).toBe('dicetable-2024-01-05.png');
+    expect(data?.files?.[0]?.type).toBe('image/png');
+    expect(await data?.files?.[0]?.text()).toBe(await blob.text());
   });
 });
 
@@ -222,18 +239,18 @@ describe('shareImage', () => {
   });
 
   it('hands the share sheet the file and the link together', async () => {
-    const share = vi.fn().mockResolvedValue(undefined);
+    const share = vi.fn<(data: ShareData) => Promise<void>>().mockResolvedValue(undefined);
     patchNavigator('share', share);
 
     const blob = pngBlob();
 
     expect(await shareImage(blob, 'dicetable.png', LINK)).toBe('shared');
-    const data = share.mock.calls[0]?.[0] as { files: File[]; text: string };
-    expect(data.files).toHaveLength(1);
-    expect(data.files[0]!.name).toBe('dicetable.png');
-    expect(data.files[0]!.type).toBe('image/png');
-    expect(await data.files[0]!.text()).toBe(await blob.text());
-    expect(data.text).toBe(LINK);
+    const data = share.mock.calls[0]?.[0];
+    expect(data?.files).toHaveLength(1);
+    expect(data?.files?.[0]?.name).toBe('dicetable.png');
+    expect(data?.files?.[0]?.type).toBe('image/png');
+    expect(await data?.files?.[0]?.text()).toBe(await blob.text());
+    expect(data?.text).toBe(LINK);
   });
 
   it('reports cancelled when the share sheet is dismissed', async () => {

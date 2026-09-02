@@ -50,6 +50,11 @@ const AXIS_FOOT = 26;
 const LIST_GAP = 22;
 const LIST_LINE = 46;
 const FOOTER_HEIGHT = 34;
+// The footer aside can carry both left-out notes at once ("N pool rolls are
+// not in this picture. N rolls left out (too complex)"), which reaches 70
+// code points with two-digit counts; the budget has to hold the pair whole.
+// At 11px the aside still ends well clear of the credit on the left.
+const NOTE_CHARS = 90;
 
 const SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
@@ -258,7 +263,7 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const note = (options.note ?? '').trim();
   if (note.length > 0) {
     parts.push(
-      `<text x="${CARD_WIDTH - PADDING}" y="${height - PADDING + 6}" text-anchor="end" font-family="${SANS}" font-size="11" fill="${palette.muted}">${escapeXml(truncate(note, 60))}</text>`,
+      `<text x="${CARD_WIDTH - PADDING}" y="${height - PADDING + 6}" text-anchor="end" font-family="${SANS}" font-size="11" fill="${palette.muted}">${escapeXml(truncate(note, NOTE_CHARS))}</text>`,
     );
   }
 

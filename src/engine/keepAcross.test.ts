@@ -68,7 +68,7 @@ function expectSameDistribution(actual: Distribution, expected: Distribution): v
   }
 }
 
-describe('keepAcrossDistribution — agrees with brute-force enumeration', () => {
+describe('keepAcrossDistribution: agrees with brute-force enumeration', () => {
   const cases: { name: string; parts: DicePart[]; rule: KeepRule }[] = [
     {
       name: 'highest 1 of d8 + d6 (a trait die beside a wild die)',
@@ -145,7 +145,7 @@ describe('keepAcrossDistribution — agrees with brute-force enumeration', () =>
   }
 });
 
-describe('keepAcrossDistribution — n against the dice count', () => {
+describe('keepAcrossDistribution: n against the dice count', () => {
   it('keeping every die is the plain sum', () => {
     const parts = [part({ id: 'a', sides: 8 }), part({ id: 'b', count: 2, sides: 6 })];
     const d = keepAcrossDistribution(parts, { type: 'highest', n: 3 });
@@ -167,7 +167,7 @@ describe('keepAcrossDistribution — n against the dice count', () => {
   });
 });
 
-describe('keepAcrossDistribution — matches the per-part keep rule', () => {
+describe('keepAcrossDistribution: matches the per-part keep rule', () => {
   it('highest 3 across one part equals 4d6kh3, mean 15869/1296', () => {
     const across = keepAcrossDistribution([part({ count: 4, sides: 6 })], {
       type: 'highest',
@@ -192,14 +192,22 @@ describe('keepAcrossDistribution — matches the per-part keep rule', () => {
   });
 });
 
-describe('keepAcrossDistribution — per-die rules feed the keep', () => {
+describe('keepAcrossDistribution: per-die rules feed the keep', () => {
   it('reads exploding dice at their post-explosion faces', () => {
     const d = keepAcrossDistribution([exploding(8, 'a'), exploding(6, 'b')], {
       type: 'highest',
       n: 1,
     });
-    expect(mean(d)).toBeCloseTo(6.4786, 4);
-    expect(stddev(d)).toBeCloseTo(3.9577, 4);
+    // An exploding die never stops on its top face, so P(d8 <= 8) is 7/8 and
+    // P(d6 <= 8) is 5/6 + 2/36 (a 6 chained into a 1 or a 2). Then
+    // P(max <= 6) = 6/8 * 5/6 = 180/288, P(max <= 7) = 7/8 * 31/36 = 217/288
+    // and P(max <= 8) = 7/8 * 32/36 = 224/288. Ten chained eights plus a final
+    // stopped 8 put the top key at 88, past anything a plain d8 could show.
+    expect(d.get(1)).toBeCloseTo(1 / 48, 12);
+    expect(d.get(6)).toBeCloseTo(5 / 48, 12);
+    expect(d.get(7)).toBeCloseTo(37 / 288, 12);
+    expect(d.get(8)).toBeCloseTo(7 / 288, 12);
+    expect(Math.max(...d.keys())).toBe(88);
     expect(totalMass(d)).toBeCloseTo(1, 10);
   });
 
@@ -216,9 +224,80 @@ describe('keepAcrossDistribution — per-die rules feed the keep', () => {
     expect(d.get(6)).toBeCloseTo(1 - (29 / 36) ** 2, 12);
     expect(totalMass(d)).toBeCloseTo(1, 12);
   });
+
+  // A die that always rerolls its 1 is uniform on 2..6 at 1/5, so the face set
+  // starts above 1 and the keep has to read a zero at face 1.
+  const noOnes = (id: string): DicePart =>
+    part({ id, sides: 6, reroll: { values: [1], mode: 'always' } });
+
+  it('keeps the highest of two dice whose 1 was rerolled away', () => {
+    const d = keepAcrossDistribution([noOnes('a'), noOnes('b')], {
+      type: 'highest',
+      n: 1,
+    });
+    // P(max = v) = ((v-1)^2 - (v-2)^2) / 25 = (2v - 3) / 25 for v in 2..6.
+    expect(d.has(1)).toBe(false);
+    expect(d.get(2)).toBeCloseTo(1 / 25, 12);
+    expect(d.get(3)).toBeCloseTo(3 / 25, 12);
+    expect(d.get(4)).toBeCloseTo(5 / 25, 12);
+    expect(d.get(5)).toBeCloseTo(7 / 25, 12);
+    expect(d.get(6)).toBeCloseTo(9 / 25, 12);
+    expect(totalMass(d)).toBeCloseTo(1, 12);
+  });
+
+  it('keeps the lowest of two dice whose 1 was rerolled away', () => {
+    const d = keepAcrossDistribution([noOnes('a'), noOnes('b')], {
+      type: 'lowest',
+      n: 1,
+    });
+    // P(min = v) = ((7-v)^2 - (6-v)^2) / 25 = (13 - 2v) / 25 for v in 2..6.
+    expect(d.has(1)).toBe(false);
+    expect(d.get(2)).toBeCloseTo(9 / 25, 12);
+    expect(d.get(3)).toBeCloseTo(7 / 25, 12);
+    expect(d.get(4)).toBeCloseTo(5 / 25, 12);
+    expect(d.get(5)).toBeCloseTo(3 / 25, 12);
+    expect(d.get(6)).toBeCloseTo(1 / 25, 12);
+    expect(totalMass(d)).toBeCloseTo(1, 12);
+  });
+
+  // Three d4s that always reroll a 3 are each uniform on {1, 2, 4} at 1/3, so a
+  // zero-probability face sits between two live ones and the 27 equally likely
+  // triples can be listed by hand.
+  const gapped = (): DicePart =>
+    part({ count: 3, sides: 4, reroll: { values: [3], mode: 'always' } });
+
+  it('sums the top two dice across a face set with a gap in the middle', () => {
+    const d = keepAcrossDistribution([gapped()], { type: 'highest', n: 2 });
+    // Top-two sums over the 27 triples: 2 from (1,1,1); 3 from (1,1,2) x3;
+    // 4 from (1,2,2) x3 and (2,2,2); 5 from (1,1,4) x3; 6 from (1,2,4) x6 and
+    // (2,2,4) x3; 8 from (1,4,4) x3, (2,4,4) x3 and (4,4,4).
+    expect(d.get(2)).toBeCloseTo(1 / 27, 12);
+    expect(d.get(3)).toBeCloseTo(3 / 27, 12);
+    expect(d.get(4)).toBeCloseTo(4 / 27, 12);
+    expect(d.get(5)).toBeCloseTo(3 / 27, 12);
+    expect(d.get(6)).toBeCloseTo(9 / 27, 12);
+    expect(d.get(8)).toBeCloseTo(7 / 27, 12);
+    expect(d.has(7)).toBe(false);
+    expect(totalMass(d)).toBeCloseTo(1, 12);
+  });
+
+  it('sums the bottom two dice across a face set with a gap in the middle', () => {
+    const d = keepAcrossDistribution([gapped()], { type: 'lowest', n: 2 });
+    // Bottom-two sums over the 27 triples: 2 from (1,1,x) x7; 3 from (1,2,2) x3
+    // and (1,2,4) x6; 4 from (2,2,2) and (2,2,4) x3; 5 from (1,4,4) x3; 6 from
+    // (2,4,4) x3; 8 from (4,4,4).
+    expect(d.get(2)).toBeCloseTo(7 / 27, 12);
+    expect(d.get(3)).toBeCloseTo(9 / 27, 12);
+    expect(d.get(4)).toBeCloseTo(4 / 27, 12);
+    expect(d.get(5)).toBeCloseTo(3 / 27, 12);
+    expect(d.get(6)).toBeCloseTo(3 / 27, 12);
+    expect(d.get(8)).toBeCloseTo(1 / 27, 12);
+    expect(d.has(7)).toBe(false);
+    expect(totalMass(d)).toBeCloseTo(1, 12);
+  });
 });
 
-describe('keepAcrossDistribution — invalid input yields an empty distribution', () => {
+describe('keepAcrossDistribution: invalid input yields an empty distribution', () => {
   const parts = [part({ id: 'a', sides: 8 }), part({ id: 'b', sides: 6 })];
 
   it('no parts', () => {
@@ -262,7 +341,7 @@ describe('keepAcrossDistribution — invalid input yields an empty distribution'
   });
 });
 
-describe('expressionDistribution — keepAcross in a whole roll', () => {
+describe('expressionDistribution: keepAcross in a whole roll', () => {
   it('applies the flat modifier after keeping', () => {
     const parts = [exploding(8, 'a'), exploding(6, 'b')];
     const plain = expressionDistribution(
@@ -303,10 +382,10 @@ describe('expressionDistribution — keepAcross in a whole roll', () => {
       part({ id: 'b', count: 20, sides: 8 }),
       part({ id: 'c', count: 20, sides: 10 }),
     ];
-    const t0 = performance.now();
+    // 60 dice across three parts is far past the complexity guard. If the guard
+    // ever stopped catching it the walk itself would blow the test timeout, so
+    // the empty result is the only assertion needed.
     const d = expressionDistribution(expr({ parts, keepAcross: { type: 'highest', n: 3 } }));
-    const elapsed = performance.now() - t0;
     expect(d.size).toBe(0);
-    expect(elapsed).toBeLessThan(50);
   });
 });

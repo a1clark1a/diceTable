@@ -310,3 +310,110 @@ describe('single-die checks — hand-computed anchors', () => {
     expect(c.failure).toBeCloseTo(4 / 6, 12);
   });
 });
+
+// A crit is read off the face the die shows. An explosion chain from a plain
+// face can total the same number as a crit face; that total is a value, not a
+// crit, and under advantage or disadvantage a tied total resolves by which die
+// the player keeps (the crit under advantage, the plain result under
+// disadvantage).
+describe('checkOutcomeChances — crits classify on the natural face', () => {
+  const collisionDie = (): DicePart =>
+    part(1, 6, { explode: { onFaces: [2], depthCap: 1 } });
+  const collisionSpec: Partial<CheckSpec> = {
+    threshold: { direction: 'gte', value: 4 },
+    crit: { onFaces: [3], effect: 'doubleDice' },
+  };
+
+  it('a chain total landing on a crit face number is not a crit', () => {
+    const c = checkOutcomeChances(checkExpr([collisionDie()], collisionSpec));
+    expect(c.crit).toBeCloseTo(1 / 6, 12);
+    expect(c.success).toBeCloseTo(23 / 36, 12);
+    expect(c.failure).toBeCloseTo(7 / 36, 12);
+  });
+
+  it('chain dice keep exploding through a crit face that also explodes', () => {
+    const c = checkOutcomeChances(
+      checkExpr(
+        [part(1, 6, { explode: { onFaces: [2, 3], depthCap: 2 } })],
+        { ...collisionSpec },
+      ),
+    );
+    expect(c.crit).toBeCloseTo(1 / 6, 12);
+    expect(c.success).toBeCloseTo(23 / 36, 12);
+    expect(c.failure).toBeCloseTo(7 / 36, 12);
+  });
+
+  // Every outcome of the collision die, written as data: total, whether the
+  // natural face was the crit face, probability. Rolled by hand, not derived
+  // from the engine.
+  type Tagged = readonly [total: number, crit: boolean, p: number];
+  const COLLISION_OUTCOMES: readonly Tagged[] = [
+    [3, true, 1 / 6],
+    [1, false, 1 / 6],
+    [4, false, 7 / 36],
+    [5, false, 7 / 36],
+    [6, false, 7 / 36],
+    [3, false, 1 / 36],
+    [7, false, 1 / 36],
+    [8, false, 1 / 36],
+  ];
+
+  function referee(
+    entries: readonly Tagged[],
+    advantage: boolean,
+    meets: (t: number) => boolean,
+  ): { success: number; crit: number; failure: number } {
+    let success = 0;
+    let crit = 0;
+    let failure = 0;
+    for (const [ta, ca, pa] of entries) {
+      for (const [tb, cb, pb] of entries) {
+        const p = pa * pb;
+        let keptTotal: number;
+        let keptCrit: boolean;
+        if (ta !== tb) {
+          const keepA = advantage ? ta > tb : ta < tb;
+          keptTotal = keepA ? ta : tb;
+          keptCrit = keepA ? ca : cb;
+        } else {
+          keptTotal = ta;
+          keptCrit = advantage ? ca || cb : ca && cb;
+        }
+        if (keptCrit) crit += p;
+        else if (meets(keptTotal)) success += p;
+        else failure += p;
+      }
+    }
+    return { success, crit, failure };
+  }
+
+  it.each([['advantage', true] as const, ['disadvantage', false] as const])(
+    'matches a brute-force two-draw enumeration under %s',
+    (mode, advantage) => {
+      const expected = referee(COLLISION_OUTCOMES, advantage, (t) => t >= 4);
+      const actual = checkOutcomeChances(
+        checkExpr([collisionDie()], collisionSpec, mode),
+      );
+      expect(actual.crit).toBeCloseTo(expected.crit, 12);
+      expect(actual.success).toBeCloseTo(expected.success, 12);
+      expect(actual.failure).toBeCloseTo(expected.failure, 12);
+      expect(actual.success + actual.crit + actual.failure).toBeCloseTo(1, 12);
+    },
+  );
+
+  it('the referee reproduces the plain d20 advantage crit as a sanity check', () => {
+    const plainD20: Tagged[] = [];
+    for (let f = 1; f <= 20; f++) plainD20.push([f, f === 20, 1 / 20]);
+    const expected = referee(plainD20, true, (t) => t >= 15);
+    expect(expected.crit).toBeCloseTo(1 - (19 / 20) ** 2, 12);
+    const actual = checkOutcomeChances(
+      checkExpr([part(1, 20)], {
+        threshold: { direction: 'gte', value: 15 },
+        crit: { onFaces: [20], effect: 'doubleDice' },
+      }, 'advantage'),
+    );
+    expect(actual.crit).toBeCloseTo(expected.crit, 12);
+    expect(actual.success).toBeCloseTo(expected.success, 12);
+    expect(actual.failure).toBeCloseTo(expected.failure, 12);
+  });
+});

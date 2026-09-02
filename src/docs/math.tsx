@@ -190,8 +190,10 @@ P_always(X = k) = 0                              for k ∈ R`,
         A total of 7 means rolling a 6, then a 1:{' '}
         <Code>1/6 · 1/6 ≈ 0.028</Code>.
         <br />
-        Reaching 12 takes a 6, then a 6, then whatever the chain cap forces:{' '}
-        <Code>1/36</Code>.
+        Reaching 13 takes a 6, then a 6, then a 1:{' '}
+        <Code>1/6 · 1/6 · 1/6 = 1/216</Code>. Totals like 12 never appear at
+        all, because every 6 in the chain keeps rolling. Each multiple of 6 is
+        a gap on the chart.
       </Text>
     ),
     snippet: `// recursive: P_explode = non-exploding tail + (exploding face) ⊛ P_explode
@@ -201,7 +203,7 @@ explode(P, F, depth):
     P_keep = { k : P(k)  for k ≠ F }   // non-exploding outcomes
     P_pop  = { k : P(F)  for k = F }   // the exploding face
     P_next = explode(P, F, depth − 1)
-    return P_keep ⊕ ( P_pop ⊛ shift_by_F(P_next) )
+    return P_keep ⊕ ( P_pop ⊛ P_next )   // P_pop sits at F, so ⊛ already shifts by F
 
 // ⊕ = pointwise sum, ⊛ = convolution`,
   },

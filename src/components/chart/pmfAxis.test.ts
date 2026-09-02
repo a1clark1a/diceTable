@@ -134,6 +134,29 @@ describe('buildPmfYAxis', () => {
     expect(buildPmfYAxis(1)).toEqual({ domainMax: 1, ticks: [0, 0.25, 0.5, 0.75, 1] });
   });
 
+  it('keeps the axis at 1 for a certain result whose peak drifted just above 1', () => {
+    // Float summation can leave a certain outcome a couple of ulps over 1. That
+    // pushes peak / 4 past the largest nice step, so the ladder search comes up
+    // empty and the fallback step has to land on 1, not on a spare 1.25 rung.
+    const overCertain = 1 + 2 * Number.EPSILON;
+    expect(overCertain).toBeGreaterThan(1);
+
+    expect(buildPmfYAxis(overCertain)).toEqual({
+      domainMax: 1,
+      ticks: [0, 0.25, 0.5, 0.75, 1],
+    });
+  });
+
+  it('rounds a peak that genuinely clears a rung up to the next one', () => {
+    // 0.30000001 / 4 = 0.0750000025 picks the 10% step; 3.00000010 is past the
+    // 1e-9 snap tolerance, so the top rung has to be 0.4 rather than clipping
+    // the bar at 0.3.
+    expect(buildPmfYAxis(0.3 + 1e-8)).toEqual({
+      domainMax: 0.4,
+      ticks: [0, 0.1, 0.2, 0.3, 0.4],
+    });
+  });
+
   it('falls back to a tenth for a peak of 0', () => {
     expect(buildPmfYAxis(0)).toEqual({ domainMax: 0.1, ticks: [0, 0.05, 0.1] });
   });

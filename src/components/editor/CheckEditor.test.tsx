@@ -536,40 +536,9 @@ describe('CheckEditor multi-part check roll', () => {
   });
 });
 
-// The stepper commits typed input through the same [min, max] its buttons
-// respect; an unclamped commit would persist a value the schema validator
-// rejects, and one rejected row drops the user's whole saved table on reload.
-describe('CheckEditor stepper clamping', () => {
-  it('clamps a typed 0 in the Succeeds when field up to 1', () => {
-    startCheckRow();
-    const input = screen.getByLabelText('Success threshold');
-    fireEvent.change(input, { target: { value: '0' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(input).toHaveValue('1');
-    expect(current?.check?.threshold.value).toBe(1);
-  });
-
-  it('clamps a cleared Succeeds when field up to 1', () => {
-    startCheckRow();
-    const input = screen.getByLabelText('Success threshold');
-    fireEvent.change(input, { target: { value: '' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(input).toHaveValue('1');
-    expect(current?.check?.threshold.value).toBe(1);
-  });
-
-  it('clamps garbage in a count field up to 1', () => {
-    startCheckRow();
-    const input = checkDieControl('Count');
-    fireEvent.change(input, { target: { value: 'abc' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(input).toHaveValue('1');
-    expect(current?.parts[0]?.count).toBe(1);
-  });
-});
+// Typed-garbage clamping on the threshold and count steppers of a check row is
+// covered by the battery in controls.stress.test.tsx, which also re-validates
+// the persisted envelope after every commit.
 
 describe('CheckEditor keep across the effect parts', () => {
   it('clears a per-part keep when keeping across parts is turned on', () => {
@@ -708,5 +677,205 @@ describe('CheckEditor success readout', () => {
     commit(screen.getByLabelText('Success threshold'), 21);
 
     expect(screen.getByText('5%')).toBeInTheDocument();
+  });
+});
+
+// The Check modifier is the one stepper on this row with a negative floor; a
+// wrong floor (0, or none) would either block penalties or persist a value the
+// schema validator rejects, wiping the table on reload.
+describe('CheckEditor check modifier floor', () => {
+  it('clamps a typed -100 up to the floor of -99', () => {
+    startCheckRow();
+    const input = screen.getByLabelText('Check modifier');
+    fireEvent.change(input, { target: { value: '-100' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(input).toHaveValue('-99');
+    expect(current?.flatModifier).toBe(-99);
+  });
+
+  it('reads 0% once the penalty puts the bar out of reach', () => {
+    startCheckRow();
+    const input = screen.getByLabelText('Check modifier');
+    fireEvent.change(input, { target: { value: '-100' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // The best the die can do is 20 - 99 = -79, well short of 10.
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.queryByText('55%')).not.toBeInTheDocument();
+  });
+});
+
+describe('CheckEditor critical odds line', () => {
+  it('reflects every selected face in the Crits on line', () => {
+    startCheckRow();
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Face 19' }));
+
+    // Two faces of twenty: 2/20 = 10%.
+    expect(current?.check?.crit?.onFaces).toEqual([19, 20]);
+    expect(screen.getByText('Crits on 10% of rolls.')).toBeInTheDocument();
+  });
+
+  it('folds both critical faces into the summary strip', () => {
+    startCheckRow();
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Face 19' }));
+
+    // Faces 10 to 18 succeed plainly (9/20) and 19, 20 crit (2/20): 11/20.
+    expect(
+      screen.getByText(
+        'Succeeds 55% of the time, crits 10%. On a success: full. On a failure: nothing.',
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+// A d100 has too many faces for the picker, so seeding on the top face is the
+// only way a percentile check ever gets its critical.
+describe('CheckEditor critical on a d100 check die', () => {
+  it('seeds the critical on face 100', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd100' })[0]!);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    expect(current?.check?.crit).toEqual({ onFaces: [100], effect: 'doubleDice' });
+  });
+
+  it('replaces the face grid with the too-many-faces message', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd100' })[0]!);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    expect(
+      screen.getByText(
+        'd100 has too many faces to list here. Pick a die with 30 sides or fewer.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Face 100' })).not.toBeInTheDocument();
+  });
+
+  it('reads the critical as 1% and the check as 91%', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd100' })[0]!);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    // Faces 10 to 99 succeed plainly (90/100) and face 100 crits (1/100).
+    expect(screen.getByText('Crits on 1% of rolls.')).toBeInTheDocument();
+    expect(screen.getByText('91%')).toBeInTheDocument();
+  });
+});
+
+// The odds are dropped, not zeroed, when the effect is too heavy to enumerate;
+// a confident 0% on a row whose math never ran is the trust break the
+// full-convolution rule exists to prevent.
+describe('CheckEditor when the effect is too complex', () => {
+  function makeTooComplex() {
+    startCheckRow();
+    // 30d6 keep highest 1: binomial(30 + 6 - 1, 5) = 324632 leaves, past the
+    // 100000 guard. The check die carries its own Keep chip, so the effect's is
+    // the second.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Keep' })[1]!);
+    commit(effectDieControl('Count'), 30);
+  }
+
+  it('says the odds are too complex instead of claiming a percentage', () => {
+    makeTooComplex();
+    expect(screen.getByText('(too complex)')).toBeInTheDocument();
+    expect(screen.queryByText('55%')).not.toBeInTheDocument();
+  });
+
+  it('says so in the summary strip as well', () => {
+    makeTooComplex();
+    expect(
+      screen.getByText(
+        'Too complex to compute the odds. On a success: full. On a failure: nothing.',
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+// The editor promises that advantage and disadvantage apply to the check roll
+// and not to the effect; the mean is what tells those two apart.
+describe('CheckEditor roll mode on the check', () => {
+  it('reads a tiny but real chance as <1% rather than 0% under disadvantage', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd100' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Disadvantage' }));
+    commit(screen.getByLabelText('Success threshold'), 100);
+
+    // Both draws must show 100: (1/100)^2 = 0.0001.
+    expect(screen.getByText('<1%')).toBeInTheDocument();
+    expect(screen.queryByText('0%')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Succeeds <1% of the time. On a success: full. On a failure: nothing.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('weights the effect by the disadvantaged odds', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd100' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Disadvantage' }));
+    commit(screen.getByLabelText('Success threshold'), 100);
+
+    // 0.0001 of the time a d6 lands (mean 3.5): 0.00035.
+    expect(mean(dist())).toBeCloseTo(0.00035, 12);
+  });
+
+  it('raises the check odds under advantage', () => {
+    startCheckRow();
+    fireEvent.click(screen.getByRole('button', { name: 'Advantage' }));
+
+    // A single d20 misses 10 on 9/20 = 0.45; two tries miss on 0.45^2 = 0.2025,
+    // so 79.75% succeeds and rounds to 80%.
+    expect(screen.getByText('80%')).toBeInTheDocument();
+  });
+
+  it('leaves the effect dice untouched by advantage', () => {
+    startCheckRow();
+    fireEvent.click(screen.getByRole('button', { name: 'Advantage' }));
+
+    // 0.7975 * 3.5 = 2.79125. Had advantage leaked into the d6 its mean would
+    // be 4.4722, not 3.5, and the row would read 3.5666.
+    expect(mean(dist())).toBeCloseTo(2.79125, 12);
+    expect(max(dist())).toBe(6);
+  });
+});
+
+describe('CheckEditor critical adding the highest the dice can show', () => {
+  it('stores the max-plus-roll rule without touching the faces', () => {
+    startCheckRow();
+    commit(effectDieControl('Count'), 2);
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'What a critical does' }),
+      { target: { value: 'maxPlusRoll' } },
+    );
+
+    expect(current?.check?.crit).toEqual({ onFaces: [20], effect: 'maxPlusRoll' });
+  });
+
+  // With the bar at 21 only the critical face pays out, so the mean is the crit
+  // arm alone: 2d6 shifted by its own maximum of 12 has mean 19, and 1/20 of
+  // 19 is 0.95. Double dice would give 0.7 and an extra die 0.525.
+  it('pays the maximum plus a fresh roll on a critical', () => {
+    startCheckRow();
+    commit(effectDieControl('Count'), 2);
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+    commit(screen.getByLabelText('Success threshold'), 21);
+
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'What a critical does' }),
+      { target: { value: 'maxPlusRoll' } },
+    );
+
+    expect(max(dist())).toBe(24);
+    expect(mean(dist())).toBeCloseTo(0.95, 12);
   });
 });

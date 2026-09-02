@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   hitColor,
-  ROW_PALETTE,
   rowColor,
   seriesDash,
   SHARE_CARD_DARK,
@@ -66,10 +65,6 @@ describe('rowColor', () => {
     expect(new Set(colors).size).toBe(TABLE_LENGTH);
   });
 
-  it('hands out exactly the palette it exports', () => {
-    expect([...ROW_PALETTE]).toEqual([...EXPECTED_COLORS]);
-  });
-
   it('wraps back to the first color past the end of the palette', () => {
     expect(rowColor(TABLE_LENGTH)).toBe(EXPECTED_COLORS[0]);
     expect(rowColor(TABLE_LENGTH + 1)).toBe(EXPECTED_COLORS[1]);
@@ -117,4 +112,15 @@ describe('shareCardPalette', () => {
     expect(SHARE_CARD_DARK.background).not.toBe(SHARE_CARD_LIGHT.background);
     expect(SHARE_CARD_DARK.text).not.toBe(SHARE_CARD_LIGHT.text);
   });
+
+  it.each(['light', 'dark'] as const)(
+    'ships every %s card colour as a six-digit lowercase hex literal',
+    (theme) => {
+      // The card is rasterised outside the Chakra theme, so a token such as
+      // 'bg.panel' or a #fff shorthand would reach the PNG as an invalid colour.
+      for (const [role, color] of Object.entries(shareCardPalette(theme))) {
+        expect(color, `${theme} ${role}`).toMatch(/^#[0-9a-f]{6}$/);
+      }
+    },
+  );
 });

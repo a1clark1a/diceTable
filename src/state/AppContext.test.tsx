@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
+import { validateExpression, validatePersistedState } from './persistedSchema';
 import type { Expression, RollMode } from '../types';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -11,6 +12,9 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 afterEach(() => {
   window.localStorage.clear();
+  // A reload test fakes timers to land the debounced write; restoring here
+  // keeps a failure inside that test from leaking fake timers into the rest.
+  vi.useRealTimers();
 });
 
 describe('AppContext first run', () => {
@@ -740,5 +744,319 @@ describe('AppContext keepAcross', () => {
       type: 'lowest',
       n: 2,
     });
+  });
+});
+
+// Imports bypass updateExpressionInList, so the two entry points carry their
+// own repair pass; a shared table with an unshowable crit face must land here
+// the same way it would after a hydration.
+describe('AppContext import repair', () => {
+  function importedCheckRow(onFaces: number[]): Expression {
+    return {
+      id: 'i0',
+      name: 'Imported',
+      parts: [{ id: 'p0', count: 1, sides: 6 }],
+      flatModifier: 0,
+      rollMode: 'normal',
+      mode: 'check',
+      check: {
+        threshold: { direction: 'gte', value: 10 },
+        effect: { parts: [{ id: 'fx', count: 1, sides: 6 }], flatModifier: 0 },
+        onSuccess: 'full',
+        onFailure: 'none',
+        crit: { onFaces, effect: 'doubleDice' },
+      },
+    };
+  }
+
+  function afterReload(expr: Expression): Expression | null {
+    return validateExpression(JSON.parse(JSON.stringify(expr)) as unknown);
+  }
+
+  it('replaceExpressions clamps a crit face the d6 cannot show', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.replaceExpressions([importedCheckRow([5, 20])]);
+    });
+    const landed = result.current.expressions[0]!;
+    expect(landed.check?.crit).toEqual({ onFaces: [5], effect: 'doubleDice' });
+    expect(afterReload(landed)).not.toBeNull();
+  });
+
+  it('replaceExpressions drops the crit when no face survives but keeps the rest of the spec', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.replaceExpressions([importedCheckRow([19, 20])]);
+    });
+    const landed = result.current.expressions[0]!;
+    expect(landed.check?.crit).toBeUndefined();
+    expect(landed.check?.threshold).toEqual({ direction: 'gte', value: 10 });
+    expect(landed.check?.onSuccess).toBe('full');
+    expect(afterReload(landed)).not.toBeNull();
+  });
+
+  it('addExpressions clamps a crit face the d6 cannot show', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.addExpressions([importedCheckRow([5, 20])]);
+    });
+    expect(result.current.expressions).toHaveLength(1);
+    const landed = result.current.expressions[0]!;
+    expect(landed.check?.crit).toEqual({ onFaces: [5], effect: 'doubleDice' });
+    expect(afterReload(landed)).not.toBeNull();
+  });
+
+  // A hand-edited share file can carry both keeps on one sum row; the
+  // validator rejects that pairing outright, so letting it land would wipe the
+  // table on the next reload.
+  it('replaceExpressions lets the across-parts keep win over a per-part keep on an imported sum row', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.replaceExpressions([
+        sumRow({
+          parts: [
+            { id: 'p0', count: 4, sides: 6, keep: { type: 'highest', n: 3 } },
+            { id: 'p1', count: 1, sides: 8 },
+          ],
+          keepAcross: { type: 'highest', n: 2 },
+        }),
+      ]);
+    });
+    const landed = result.current.expressions[0]!;
+    expect(landed.keepAcross).toEqual({ type: 'highest', n: 2 });
+    expect(landed.parts[0]!.keep).toBeUndefined();
+    expect(landed.parts[0]).toMatchObject({ count: 4, sides: 6 });
+    expect(afterReload(landed)).not.toBeNull();
+  });
+});
+
+describe('AppContext row lifecycle', () => {
+  function addRow(result: { current: ReturnType<typeof useApp> }) {
+    act(() => {
+      result.current.addExpression();
+    });
+  }
+
+  it('names added rows with the lowest free suffix', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    addRow(result);
+    addRow(result);
+    expect(result.current.expressions.map((e) => e.name)).toEqual([
+      'New roll',
+      'New roll 2',
+      'New roll 3',
+    ]);
+  });
+
+  it('reuses the suffix a deleted row left free instead of counting on', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    addRow(result);
+    addRow(result);
+    const second = result.current.expressions.find((e) => e.name === 'New roll 2')!;
+    act(() => {
+      result.current.deleteExpression(second.id);
+    });
+    addRow(result);
+    expect(result.current.expressions.map((e) => e.name)).toEqual([
+      'New roll',
+      'New roll 3',
+      'New roll 2',
+    ]);
+  });
+
+  it('expands the newest row after each add', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    expect(result.current.expandedId).toBe(result.current.expressions[0]!.id);
+    addRow(result);
+    expect(result.current.expandedId).toBe(result.current.expressions[1]!.id);
+  });
+
+  it('renameExpression trims surrounding whitespace', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '  Fireball ');
+    });
+    expect(result.current.expressions[0]!.name).toBe('Fireball');
+  });
+
+  it('renameExpression substitutes Untitled for a whitespace-only name', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '   ');
+    });
+    expect(result.current.expressions[0]!.name).toBe('Untitled');
+  });
+
+  it('renameExpression substitutes Untitled for an empty name', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '');
+    });
+    expect(result.current.expressions[0]!.name).toBe('Untitled');
+  });
+
+  it('renameExpression leaves the dice, modifier and mode alone', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '  Fireball ');
+    });
+    act(() => {
+      result.current.renameExpression(id, '');
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.parts).toHaveLength(1);
+    expect(row.parts[0]!.sides).toBe(20);
+    expect(row.flatModifier).toBe(0);
+    expect(row.mode).toBe('sum');
+  });
+
+  it('duplicateExpression inserts the copy directly after its source', () => {
+    seedRows([
+      sumRow({ parts: [{ id: 'p0', count: 2, sides: 6 }] }),
+      sumRow({ id: 'e1', name: 'Row 1', parts: [{ id: 'p1', count: 1, sides: 6 }] }),
+    ]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    expect(result.current.expressions.map((e) => e.name)).toEqual([
+      'Row 0',
+      'Row 0 (copy)',
+      'Row 1',
+    ]);
+  });
+
+  it('duplicateExpression gives the copy fresh row and part ids but the same dice', () => {
+    seedRows([sumRow({ parts: [{ id: 'p0', count: 2, sides: 6 }] })]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    const copy = result.current.expressions[1]!;
+    expect(copy.id).not.toBe('e0');
+    expect(copy.parts[0]!.id).not.toBe('p0');
+    expect(copy.parts[0]).toMatchObject({ count: 2, sides: 6 });
+    expect(result.current.expressions[0]!.name).toBe('Row 0');
+  });
+
+  it('duplicateExpression expands the copy', () => {
+    seedRows([sumRow()]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    expect(result.current.expandedId).toBe(result.current.expressions[1]!.id);
+  });
+
+  it('deleting a different row leaves the expanded row expanded', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setExpandedId('e0');
+    });
+    act(() => {
+      result.current.deleteExpression('e1');
+    });
+    expect(result.current.expandedId).toBe('e0');
+    expect(result.current.expressions.map((e) => e.id)).toEqual(['e0']);
+  });
+
+  // A stale expandedId is persisted, and RollExpand would look up a missing
+  // row on the next reload.
+  it('deleting the expanded row collapses the expansion', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setExpandedId('e0');
+    });
+    act(() => {
+      result.current.deleteExpression('e0');
+    });
+    expect(result.current.expandedId).toBeNull();
+    expect(result.current.expressions.map((e) => e.id)).toEqual(['e1']);
+  });
+
+  it('addPart appends a fresh d20 with its own id', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    const firstPartId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.addPart(id);
+    });
+    const parts = result.current.expressions[0]!.parts;
+    expect(parts).toHaveLength(2);
+    expect(parts[1]).toMatchObject({ count: 1, sides: 20 });
+    expect(parts[1]!.id).toMatch(/^part-/);
+    expect(parts[1]!.id).not.toBe(firstPartId);
+  });
+
+  function setupRulesOnFirstPart() {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    const partId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.updatePart(id, partId, {
+        reroll: { values: [1], mode: 'once' },
+        explode: { onFaces: [20], depthCap: 3 },
+      });
+    });
+    return { result, id, partId };
+  }
+
+  it('updatePart removes the reroll key when the patch passes undefined', () => {
+    const { result, id, partId } = setupRulesOnFirstPart();
+    act(() => {
+      result.current.updatePart(id, partId, { reroll: undefined });
+    });
+    const part = result.current.expressions[0]!.parts[0]!;
+    expect('reroll' in part).toBe(false);
+    expect(part.explode).toEqual({ onFaces: [20], depthCap: 3 });
+  });
+
+  it('updatePart removes the explode key when the patch passes undefined', () => {
+    const { result, id, partId } = setupRulesOnFirstPart();
+    act(() => {
+      result.current.updatePart(id, partId, { reroll: undefined });
+    });
+    act(() => {
+      result.current.updatePart(id, partId, { explode: undefined });
+    });
+    const part = result.current.expressions[0]!.parts[0]!;
+    expect('explode' in part).toBe(false);
+    expect(Object.keys(part).sort()).toEqual(['count', 'id', 'sides']);
+  });
+
+  it('leaves the table valid for the next reload after both rules are cleared', () => {
+    const { result, id, partId } = setupRulesOnFirstPart();
+    act(() => {
+      result.current.updatePart(id, partId, { reroll: undefined, explode: undefined });
+    });
+    const persisted = {
+      version: 4,
+      expressions: result.current.expressions,
+      ui: {
+        expandedId: result.current.expandedId,
+        chartView: result.current.chartView,
+        target: result.current.target,
+        view: result.current.view,
+        poolTarget: result.current.poolTarget,
+        baselineId: result.current.baselineId,
+      },
+    };
+    const round = JSON.parse(JSON.stringify(persisted)) as unknown;
+    expect(validatePersistedState(round)).not.toBeNull();
   });
 });

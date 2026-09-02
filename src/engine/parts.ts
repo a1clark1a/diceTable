@@ -81,6 +81,45 @@ export function applyExplode(base: Distribution, rule: ExplodeRule): Distributio
   return result;
 }
 
+// The check die crits on the face it shows, never on a chain total, so its
+// explosion needs the first draw and the continuation draws to come from
+// different distributions: `first` carries the (possibly restricted) outer face
+// mass, while every further die in a chain is a full `continuation` draw that
+// keeps exploding on the rule's faces. With first === continuation this is
+// exactly applyExplode.
+export function explodeFrom(
+  first: Distribution,
+  continuation: Distribution,
+  rule: ExplodeRule,
+): Distribution {
+  if (first.size === 0) return emptyDistribution();
+  const cap = Number.isInteger(rule.depthCap) && rule.depthCap >= 0
+    ? rule.depthCap
+    : DEFAULT_EXPLODE_CAP;
+  const onSet = new Set(rule.onFaces);
+  let pExplode = 0;
+  for (const [k, p] of first) {
+    if (onSet.has(k)) pExplode += p;
+  }
+  if (cap === 0 || pExplode <= 0) return new Map(first);
+
+  const tail = applyExplode(continuation, { ...rule, depthCap: cap - 1 });
+  if (tail.size === 0) return emptyDistribution();
+
+  const result = new Map<number, number>();
+  for (const [face, pf] of first) {
+    if (onSet.has(face)) {
+      for (const [k, pk] of tail) {
+        const total = face + k;
+        result.set(total, (result.get(total) ?? 0) + pf * pk);
+      }
+    } else {
+      result.set(face, (result.get(face) ?? 0) + pf);
+    }
+  }
+  return result;
+}
+
 function applyKeep(singleDie: Distribution, count: number, rule: KeepRule): Distribution {
   const n = rule.n;
   if (!Number.isInteger(n) || n < 1 || n > count) return emptyDistribution();

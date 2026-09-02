@@ -94,7 +94,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
   {
     id: 'pool',
     term: 'Dice pool',
-    alt: 'Sum / Pool toggle',
+    alt: 'Sum / Pool / Check toggle',
     group: 'notation',
     plain:
       'A roll scored by counting how many dice clear a threshold, instead of adding the faces into one total.',

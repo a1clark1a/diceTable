@@ -38,7 +38,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 2,
     title: 'Read dice notation',
     plain:
-      'DiceTable uses standard tabletop shorthand. Tap any token to edit it inline. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the Sum / Pool toggle under the dice and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher".',
+      'DiceTable uses standard tabletop shorthand. Tap any token to edit it inline. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the Sum / Pool / Check toggle under the dice to Pool and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher". Check is the third setting, for rolls that decide whether something happens: 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4".',
     body: (
       <Stack gap={2}>
         <Text>
@@ -96,7 +96,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
             “beat the DC” questions).
           </List.Item>
           <List.Item>
-            <strong>TARGET</strong>. Appears once you set a target (Step 7);
+            <strong>TARGET</strong>. Appears once you set a target (Step 8);
             shows a hit-rate bar per row.
           </List.Item>
         </List.Root>
@@ -285,7 +285,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           <List.Item>
             <strong>Target hit</strong>. Every roll against every target at
             once, as a sortable grid, curves, or bars (needs a target from
-            Step 7).
+            Step 8).
           </List.Item>
           <List.Item>
             <strong>Roll-off</strong>. If every roll rolled once, each one’s

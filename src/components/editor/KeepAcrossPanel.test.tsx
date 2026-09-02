@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { KeepAcrossPanel } from './KeepAcrossPanel';
+import type { ExpressionPatch } from '../../state/useApp';
 import type { Expression } from '../../types';
 
 const Provider = ({ children }: { children: React.ReactNode }) => (
@@ -25,7 +26,7 @@ function makeExpression(overrides: Partial<Expression> = {}): Expression {
 }
 
 function renderPanel(overrides: Partial<Expression> = {}) {
-  const updateExpression = vi.fn();
+  const updateExpression = vi.fn<(id: string, patch: ExpressionPatch) => void>();
   render(
     <Provider>
       <KeepAcrossPanel
@@ -96,10 +97,17 @@ describe('KeepAcrossPanel when the rule is on', () => {
     expect(chip()).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('turns the rule off again', () => {
+  // The reducer only clears the rule when the key is present in the patch, so
+  // an equality matcher (which treats a missing key and an undefined one the
+  // same) cannot tell "turn it off" apart from "leave it alone".
+  it('turns the rule off again with the key present in the patch', () => {
     const { updateExpression } = renderPanel(active);
     fireEvent.click(chip());
-    expect(updateExpression).toHaveBeenCalledWith('e1', { keepAcross: undefined });
+    expect(updateExpression).toHaveBeenCalledTimes(1);
+    const [id, patch] = updateExpression.mock.calls[0] ?? [];
+    expect(id).toBe('e1');
+    expect(Object.keys(patch ?? {})).toEqual(['keepAcross']);
+    expect(patch?.keepAcross).toBeUndefined();
   });
 
   it('switches direction without losing the count', () => {
@@ -223,5 +231,30 @@ describe('KeepAcrossPanel on a roll that counts successes', () => {
   it('keeps the chip focusable so its reason stays reachable', () => {
     renderPanel(pool);
     expect(chip()).not.toHaveAttribute('disabled');
+  });
+});
+
+// Shrinking a part after the rule is on leaves the count above the dice total
+// (4d6 + 1d8, keep across, then set the d6 count to 1); nothing clamps it on
+// the way in, and the validator only asks for n >= 1, so the state persists.
+describe('KeepAcrossPanel with a count left above the dice total', () => {
+  const stale = { keepAcross: { type: 'highest', n: 4 } } as const;
+
+  it('shows the stale count against the dice actually in play', () => {
+    renderPanel(stale);
+    expect(screen.getByLabelText('Dice to keep across parts')).toHaveValue('4');
+    expect(screen.getByText('of 2 dice')).toBeInTheDocument();
+  });
+
+  it('clamps a typed count down to the dice available', () => {
+    const { updateExpression } = renderPanel(stale);
+    const input = screen.getByLabelText('Dice to keep across parts');
+    fireEvent.change(input, { target: { value: '3' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(updateExpression).toHaveBeenCalledWith('e1', {
+      keepAcross: { type: 'highest', n: 2 },
+    });
+    expect(input).toHaveValue('2');
   });
 });

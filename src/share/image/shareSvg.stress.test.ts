@@ -4,10 +4,10 @@ import { uniformDistribution } from '../../engine/distribution';
 import { rowColor } from '../../components/chart/palette';
 
 // The card's text budgets, in code points and including the ellipsis: 28 for a
-// row name, 70 for the title, 60 for the footer note, 72 for a notation.
+// row name, 70 for the title, 90 for the footer note, 72 for a notation.
 const NAME_BUDGET = 28;
 const TITLE_BUDGET = 70;
-const NOTE_BUDGET = 60;
+const NOTE_BUDGET = 90;
 const NOTATION_BUDGET = 72;
 
 // Seven code points: four people joined by three zero-width joiners.
@@ -180,9 +180,9 @@ describe('buildShareSvg hostile titles and notes', () => {
   });
 
   it('cuts the note by code points with an emoji walked across its boundary', () => {
-    // 64 code points total against the 60-point budget.
-    for (let pos = 56; pos <= 62; pos++) {
-      const note = `${'a'.repeat(pos)}😀${'a'.repeat(63 - pos)}`;
+    // 94 code points total against the 90-point budget.
+    for (let pos = 86; pos <= 92; pos++) {
+      const note = `${'a'.repeat(pos)}😀${'a'.repeat(93 - pos)}`;
       const { svg } = buildShareSvg({
         rows: [namedRow('Row')],
         view: 'pmf',
@@ -233,8 +233,9 @@ describe('buildShareSvg hostile mega mix', () => {
       (m) => unescapeFromSvg(m[1] ?? ''),
     );
     expect(contents.length).toBeGreaterThan(0);
+    const widest = Math.max(NAME_BUDGET, TITLE_BUDGET, NOTE_BUDGET, NOTATION_BUDGET);
     for (const content of contents) {
-      expect(Array.from(content).length, content).toBeLessThanOrEqual(NOTATION_BUDGET);
+      expect(Array.from(content).length, content).toBeLessThanOrEqual(widest);
     }
   });
 });

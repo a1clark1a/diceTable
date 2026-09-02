@@ -507,19 +507,28 @@ describe('buildShareSvg footer note', () => {
     expect(countOf(image.svg, 'text-anchor="end" font-family="system-ui')).toBe(0);
   });
 
-  it('cuts a note longer than sixty characters down to an ellipsis', () => {
+  it('cuts a note longer than ninety characters down to an ellipsis', () => {
     const image = buildShareSvg({
       rows,
       view: 'pmf',
       theme: 'light',
-      note: 'c'.repeat(70),
+      note: 'c'.repeat(100),
     });
-    expect(image.svg).toContain(`>${'c'.repeat(59)}…</text>`);
-    expect(image.svg).not.toContain('c'.repeat(60));
+    expect(image.svg).toContain(`>${'c'.repeat(89)}…</text>`);
+    expect(image.svg).not.toContain('c'.repeat(90));
   });
 
-  it('leaves a note of exactly sixty characters whole', () => {
-    const note = 'c'.repeat(60);
+  it('leaves a note of exactly ninety characters whole', () => {
+    const note = 'c'.repeat(90);
+    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note });
+    expect(image.svg).toContain(`>${note}</text>`);
+    expect(image.svg).not.toContain('…');
+  });
+
+  // Both left-out notes at once, with two-digit counts: the longest aside the
+  // hook can produce (37 + 2 + 31 code points) must survive whole.
+  it('keeps the pool and too-complex notes whole when both are present', () => {
+    const note = '99 pool rolls are not in this picture. 99 rolls left out (too complex)';
     const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note });
     expect(image.svg).toContain(`>${note}</text>`);
     expect(image.svg).not.toContain('…');

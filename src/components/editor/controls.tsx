@@ -49,10 +49,15 @@ export function NumberStepper({
     parse: parseClamped,
     format: formatInteger,
   });
+  // The committed value can already sit outside [min, max] when the bounds
+  // move under it (a keep-across count after a part shrinks), so a step clamps
+  // toward the range instead of refusing: the buttons must always be able to
+  // bring the field back, not go dead exactly when it needs repair.
   const step = (delta: number) => {
-    const next = value + delta;
-    if (next < min || (max !== undefined && next > max)) return;
-    onCommit(next);
+    let next = value + delta;
+    if (next < min) next = min;
+    if (max !== undefined && next > max) next = max;
+    if (next !== value) onCommit(next);
   };
   return (
     <HStack
