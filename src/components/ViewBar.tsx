@@ -2,7 +2,7 @@ import { useCallback, useMemo, type RefObject } from 'react';
 import { Box, Button, HStack, IconButton, Text } from '@chakra-ui/react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useApp } from '../state/useApp';
-import { effectiveChartView } from './chart/effectiveView';
+import { effectiveChartView, targetViewAvailable } from './chart/effectiveView';
 import type { ChartView } from '../types';
 import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
@@ -19,9 +19,9 @@ const VIEW_OPTIONS: { value: ChartView; label: string; tip: string }[] = [
 ];
 
 export function ViewBar({ chartRef }: ViewBarProps) {
-  const { chartView, setChartView, target } = useApp();
-  const hasTarget = target.values.length > 0;
-  const effectiveView = effectiveChartView(chartView, target);
+  const { chartView, setChartView, target, expressions } = useApp();
+  const hasTarget = targetViewAvailable(target, expressions);
+  const effectiveView = effectiveChartView(chartView, hasTarget);
 
   const visibleViews = useMemo(
     () => VIEW_OPTIONS.filter((v) => v.value !== 'target' || hasTarget),

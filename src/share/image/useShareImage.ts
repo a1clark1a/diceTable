@@ -105,7 +105,9 @@ export function useShareImage(): ShareImageActions {
       return rasterize(
         buildShareSvg({
           rows,
-          view: effectiveChartView(chartView, target),
+          // Only totals rows are drawn, so the target view resolves against
+          // the numeric target list alone.
+          view: effectiveChartView(chartView, target.values.length > 0),
           theme: colorMode === 'dark' ? 'dark' : 'light',
           title,
           scale: IMAGE_SCALE,

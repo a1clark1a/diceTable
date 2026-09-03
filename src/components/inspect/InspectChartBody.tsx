@@ -21,6 +21,9 @@ import { useApp } from '../../state/useApp';
 interface InspectChartBodyProps {
   dist: Distribution;
   color: string;
+  // The row's own target: pool rows measure the pool target, not the numeric
+  // target list that describes sums.
+  target: TargetState;
 }
 
 interface ChartDatum {
@@ -127,9 +130,16 @@ function tooltipLabel(view: ChartView, x: number | string): string {
   }
 }
 
-export default function InspectChartBody({ dist, color }: InspectChartBodyProps) {
-  const { chartView, target } = useApp();
-  const effectiveView = effectiveChartView(chartView, target);
+export default function InspectChartBody({
+  dist,
+  color,
+  target,
+}: InspectChartBodyProps) {
+  const { chartView } = useApp();
+  const effectiveView = effectiveChartView(
+    chartView,
+    target.values.length > 0,
+  );
 
   const data = useMemo(
     () => buildChartData(dist, effectiveView, target),

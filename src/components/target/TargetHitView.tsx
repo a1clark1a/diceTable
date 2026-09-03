@@ -6,11 +6,13 @@ import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
-import type { TargetState } from '../../types';
+import type { TargetRuling } from '../../types';
 import {
   rowHitChance,
   rowShowsUnderTarget,
+  targetColumns,
   toTargetRows,
+  type TargetColumn,
   type TargetRow,
 } from './targetHitRows';
 import { TargetBars } from './TargetBars';
@@ -56,6 +58,10 @@ export function TargetHitView() {
     [rows, effectiveFilter],
   );
   const sumRows = useMemo(() => rows.filter((r) => !r.isPool), [rows]);
+  const columns = useMemo(
+    () => targetColumns(target, poolTarget, hasPools),
+    [target, poolTarget, hasPools],
+  );
 
   const cycleSort = useCallback((index: number) => {
     setSort((cur) => {
@@ -66,14 +72,10 @@ export function TargetHitView() {
   }, []);
   const clearSort = useCallback(() => setSort(null), []);
 
-  if (target.values.length === 0) {
-    return (
-      <Text fontSize="sm" color="fg.muted" px={1}>
-        Add a target above to see how likely each roll is to hit it.
-      </Text>
-    );
-  }
-
+  // Order matters: a table with nothing chartable needs to hear about its
+  // rolls, not its targets. Asking for a target first would tell a table whose
+  // only pool row has unusable dice to add a numeric target that pool rows
+  // ignore, while the toolbar next to it offers the pool target.
   if (rows.length === 0) {
     return (
       <Text fontSize="sm" color="fg.muted" px={1}>
@@ -82,11 +84,20 @@ export function TargetHitView() {
     );
   }
 
+  if (columns.length === 0) {
+    return (
+      <Text fontSize="sm" color="fg.muted" px={1}>
+        Add a target above to see how likely each roll is to hit it.
+      </Text>
+    );
+  }
+
   // Removing a target can strand the sort on a column that no longer exists.
   const activeSort =
-    sort !== null && sort.index < target.values.length ? sort : null;
+    sort !== null && sort.index < columns.length ? sort : null;
 
-  const showPoolFootnote = filteredRows.some((r) => r.isPool);
+  const poolOnlyColumn = columns[0]?.pool === true;
+  const showPoolFootnote = !poolOnlyColumn && filteredRows.some((r) => r.isPool);
   const hint =
     subView === 'grid'
       ? `Click a target column to sort. Green is reliable, red is a long shot.${
@@ -94,7 +105,9 @@ export function TargetHitView() {
         }`
       : subView === 'curves'
         ? 'Read any target off the lines. Dashed lines mark your current targets. Sum rolls only.'
-        : 'One panel per target, best for a handful of rolls.';
+        : poolOnlyColumn
+          ? 'One panel per target. Pool rolls answer the pool target.'
+          : 'One panel per target, best for a handful of rolls.';
 
   return (
     <Stack gap={3}>
@@ -160,7 +173,8 @@ export function TargetHitView() {
       {subView === 'grid' && (
         <TargetGrid
           rows={filteredRows}
-          target={target}
+          columns={columns}
+          ruling={target.ruling}
           poolTarget={poolTarget}
           sort={activeSort}
           onCycleSort={cycleSort}
@@ -169,10 +183,21 @@ export function TargetHitView() {
       )}
       {subView === 'curves' && <TargetCurves rows={sumRows} target={target} />}
       {subView === 'bars' && (
-        <TargetBars rows={filteredRows} target={target} poolTarget={poolTarget} />
+        <TargetBars
+          rows={filteredRows}
+          columns={columns}
+          ruling={target.ruling}
+          poolTarget={poolTarget}
+        />
       )}
     </Stack>
   );
+}
+
+// A pool column never coexists with numeric ones, so the prefix is enough to
+// keep the two kinds of key apart.
+function columnKey(column: TargetColumn): string {
+  return `${column.pool ? 'pool' : 'num'}-${column.value}`;
 }
 
 function bucketBg(p: number): string {
@@ -183,7 +208,8 @@ function bucketBg(p: number): string {
 
 interface TargetGridProps {
   rows: TargetRow[];
-  target: TargetState;
+  columns: TargetColumn[];
+  ruling: TargetRuling;
   poolTarget: number;
   sort: GridSort | null;
   onCycleSort: (index: number) => void;
@@ -192,7 +218,8 @@ interface TargetGridProps {
 
 function TargetGrid({
   rows,
-  target,
+  columns,
+  ruling,
   poolTarget,
   sort,
   onCycleSort,
@@ -202,8 +229,8 @@ function TargetGrid({
   const sortedRows = useMemo(() => {
     const scored = rows.map((row) => ({
       row,
-      hits: target.values.map((tv) =>
-        rowHitChance(row, tv, target.ruling, poolTarget),
+      hits: columns.map((column) =>
+        rowHitChance(row, column, ruling, poolTarget),
       ),
     }));
     if (sort !== null) {
@@ -213,9 +240,9 @@ function TargetGrid({
       );
     }
     return scored;
-  }, [rows, target, poolTarget, sort]);
+  }, [rows, columns, ruling, poolTarget, sort]);
 
-  const symbol = RULING_SYMBOL[target.ruling];
+  const symbol = RULING_SYMBOL[ruling];
 
   return (
     <Box
@@ -236,11 +263,11 @@ function TargetGrid({
                   </Button>
                 </Tooltip>
               </Table.ColumnHeader>
-              {target.values.map((tv, index) => {
+              {columns.map((column, index) => {
                 const isSorted = sort !== null && sort.index === index;
                 return (
                   <Table.ColumnHeader
-                    key={tv}
+                    key={columnKey(column)}
                     textAlign="end"
                     aria-sort={
                       isSorted
@@ -250,14 +277,21 @@ function TargetGrid({
                         : undefined
                     }
                   >
-                    <Tooltip content={tipForId('targetGridSort')}>
+                    <Tooltip
+                      content={tipForId(
+                        column.pool ? 'poolTarget' : 'targetGridSort',
+                      )}
+                    >
                       <Button
                         size="xs"
                         variant="ghost"
                         fontFamily="mono"
+                        color={column.pool ? 'purple.fg' : undefined}
                         onClick={() => onCycleSort(index)}
                       >
-                        {symbol} {tv}
+                        {column.pool
+                          ? `≥${column.value} successes`
+                          : `${symbol} ${column.value}`}
                         {isSorted ? (sort.dir === 'desc' ? ' ▾' : ' ▴') : ''}
                       </Button>
                     </Tooltip>
@@ -281,14 +315,14 @@ function TargetGrid({
                     <Text fontSize="sm">{row.name}</Text>
                   </HStack>
                 </Table.Cell>
-                {target.values.map((tv, index) => {
-                  if (!rowShowsUnderTarget(row, index)) {
-                    return <Table.Cell key={tv} py={1.5} />;
+                {columns.map((column, index) => {
+                  if (!rowShowsUnderTarget(row, column, index)) {
+                    return <Table.Cell key={columnKey(column)} py={1.5} />;
                   }
                   const p = hits[index] ?? 0;
                   return (
                     <Table.Cell
-                      key={tv}
+                      key={columnKey(column)}
                       py={1.5}
                       textAlign="end"
                       bg={bucketBg(p)}
@@ -302,7 +336,7 @@ function TargetGrid({
                         fontWeight={p >= 0.66 ? 'semibold' : undefined}
                       >
                         {formatPercent(p)}
-                        {row.isPool ? '*' : ''}
+                        {row.isPool && !column.pool ? '*' : ''}
                       </Text>
                     </Table.Cell>
                   );

@@ -43,6 +43,40 @@ const POOL = {
   mode: 'pool',
   successThreshold: { direction: 'gte', value: 4 },
 };
+// Big pool 3d6 (success on 4+, per-die p = 0.5): P(≥2 successes) = 4/8 = 50.0%
+const BIG_POOL = {
+  id: 'p2',
+  name: 'Big pool',
+  parts: [{ id: 'bpp', count: 3, sides: 6 }],
+  flatModifier: 0,
+  rollMode: 'normal',
+  mode: 'pool',
+  successThreshold: { direction: 'gte', value: 4 },
+};
+// Huge pool 4d6 (success on 4+, per-die p = 0.5):
+// P(≥2 successes) = 1 - (1 + 4)/16 = 11/16 = 68.8%
+const HUGE_POOL = {
+  id: 'p3',
+  name: 'Huge pool',
+  parts: [{ id: 'hpp', count: 4, sides: 6 }],
+  flatModifier: 0,
+  rollMode: 'normal',
+  mode: 'pool',
+  successThreshold: { direction: 'gte', value: 4 },
+};
+
+// A pool of 500 dice. poolComplexity is 500 * 500 = 250,000, past the engine's
+// MAX_COMPLEXITY of 1e5, so toTargetRows drops the row as unchartable. It is
+// still mode 'pool', which is what the toolbar and the Hit % column go by.
+const OVERSIZED_POOL = {
+  id: 'p4',
+  name: 'Oversized pool',
+  parts: [{ id: 'opp', count: 500, sides: 6 }],
+  flatModifier: 0,
+  rollMode: 'normal',
+  mode: 'pool',
+  successThreshold: { direction: 'gte', value: 4 },
+};
 
 function seedState(opts: {
   expressions: unknown[];
@@ -105,6 +139,41 @@ describe('TargetHitView empty states', () => {
     expect(
       screen.getByText(
         'Add a roll with valid dice to see hit chances against your targets.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('blames the dice, not the missing target, when the only pool row is unchartable', () => {
+    seedState({ expressions: [OVERSIZED_POOL], targetValues: [] });
+    renderView();
+    expect(
+      screen.getByText(
+        'Add a roll with valid dice to see hit chances against your targets.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Add a target above to see how likely each roll is to hit it.',
+      ),
+    ).toBeNull();
+  });
+
+  it('asks an empty table for a roll rather than for a target', () => {
+    seedState({ expressions: [], targetValues: [] });
+    renderView();
+    expect(
+      screen.getByText(
+        'Add a roll with valid dice to see hit chances against your targets.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('still asks for a target once a chartable roll exists', () => {
+    seedState({ expressions: [ALPHA, OVERSIZED_POOL], targetValues: [] });
+    renderView();
+    expect(
+      screen.getByText(
+        'Add a target above to see how likely each roll is to hit it.',
       ),
     ).toBeInTheDocument();
   });
@@ -264,5 +333,114 @@ describe('TargetHitView curves wiring', () => {
         'Curves compare rolls that add into a total. Switch a roll to Sum to see it here.',
       ),
     ).toBeInTheDocument();
+  });
+});
+
+describe('TargetHitView pool-only columns', () => {
+  function cellsFor(name: string): HTMLElement[] {
+    const row = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent?.includes(name));
+    return within(row!).getAllByRole('cell');
+  }
+
+  it('measures a pool table against the pool target when no numeric target is set', () => {
+    seedState({ expressions: [POOL], targetValues: [], poolTarget: 2 });
+    renderView();
+
+    expect(
+      screen.queryByText(
+        'Add a target above to see how likely each roll is to hit it.',
+      ),
+    ).toBeNull();
+    expect(
+      screen.getByRole('columnheader', { name: /≥2 successes/ }),
+    ).toBeInTheDocument();
+    // Name plus the pool target, and no numeric column invented alongside it.
+    expect(screen.getAllByRole('columnheader')).toHaveLength(2);
+  });
+
+  it('shows the pool row hit chance under the pool column', () => {
+    seedState({ expressions: [POOL], targetValues: [], poolTarget: 2 });
+    renderView();
+    expect(cellsFor('Pool row')[1]).toHaveTextContent(/^25\.0%$/);
+  });
+
+  it('re-reads the column and the percent when the pool target asks for fewer successes', () => {
+    seedState({ expressions: [POOL], targetValues: [], poolTarget: 1 });
+    renderView();
+
+    expect(
+      screen.getByRole('columnheader', { name: /≥1 successes/ }),
+    ).toBeInTheDocument();
+    expect(cellsFor('Pool row')[1]).toHaveTextContent(/^75\.0%$/);
+  });
+
+  it('leaves every sum row blank under a pool column', () => {
+    seedState({
+      expressions: [ALPHA, BETA, POOL],
+      targetValues: [],
+      poolTarget: 2,
+    });
+    renderView();
+    expect(gridRowNames()).toEqual(['Alpha', 'Beta', 'Pool row']);
+
+    const hits = screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => within(row).getAllByRole('cell')[1]?.textContent ?? '');
+    expect(hits).toEqual(['', '', '25.0%']);
+  });
+
+  it('drops the pool star and its footnote when the only column is the pool target', () => {
+    seedState({ expressions: [ALPHA, POOL], targetValues: [], poolTarget: 2 });
+    renderView();
+
+    expect(cellsFor('Pool row')[1]).toHaveTextContent(/^25\.0%$/);
+    expect(
+      screen.getByText(
+        'Click a target column to sort. Green is reliable, red is a long shot.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/pool rows use the pool target/)).toBeNull();
+  });
+
+  it('labels the bars panel with the pool target when it is the only column', () => {
+    seedState({ expressions: [POOL], targetValues: [], poolTarget: 2 });
+    renderView();
+    fireEvent.click(screen.getByRole('button', { name: 'Bars' }));
+
+    expect(screen.getByText('Pool target ≥2 successes')).toBeInTheDocument();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('cycles the sort from the pool column header', () => {
+    // Seeded out of hit order (50.0%, 25.0%, 68.8%) so each of the three sort
+    // states reads as a different row order, not just a different aria-sort.
+    seedState({
+      expressions: [BIG_POOL, POOL, HUGE_POOL],
+      targetValues: [],
+      poolTarget: 2,
+    });
+    renderView();
+    expect(gridRowNames()).toEqual(['Big pool', 'Pool row', 'Huge pool']);
+
+    fireEvent.click(screen.getByRole('button', { name: /successes/ }));
+    expect(gridRowNames()).toEqual(['Huge pool', 'Big pool', 'Pool row']);
+    expect(
+      screen.getByRole('columnheader', { name: /successes/ }),
+    ).toHaveAttribute('aria-sort', 'descending');
+
+    fireEvent.click(screen.getByRole('button', { name: /successes/ }));
+    expect(gridRowNames()).toEqual(['Pool row', 'Big pool', 'Huge pool']);
+    expect(
+      screen.getByRole('columnheader', { name: /successes/ }),
+    ).toHaveAttribute('aria-sort', 'ascending');
+
+    fireEvent.click(screen.getByRole('button', { name: /successes/ }));
+    expect(gridRowNames()).toEqual(['Big pool', 'Pool row', 'Huge pool']);
+    expect(
+      screen.getByRole('columnheader', { name: /successes/ }),
+    ).not.toHaveAttribute('aria-sort');
   });
 });

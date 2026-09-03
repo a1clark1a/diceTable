@@ -139,25 +139,44 @@ describe('TargetToolbar', () => {
   });
 });
 
+type SeedRowKind = 'pool' | 'sum';
+
 interface PoolSeedOptions {
   targetValues?: number[];
   poolTarget?: number;
+  rows?: readonly SeedRowKind[];
 }
 
-function seedPoolRow({ targetValues = [], poolTarget = 1 }: PoolSeedOptions = {}) {
+function seedExpression(kind: SeedRowKind) {
+  if (kind === 'pool') {
+    return {
+      id: 'pool1',
+      name: 'Pool row',
+      parts: [{ id: 'pp1', count: 2, sides: 6 }],
+      flatModifier: 0,
+      rollMode: 'normal',
+      mode: 'pool',
+      successThreshold: { direction: 'gte', value: 4 },
+    };
+  }
+  return {
+    id: 'sum1',
+    name: 'Sum row',
+    parts: [{ id: 'sp1', count: 2, sides: 6 }],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'sum',
+  };
+}
+
+function seedPoolRow({
+  targetValues = [],
+  poolTarget = 1,
+  rows = ['pool'],
+}: PoolSeedOptions = {}) {
   const state = {
     version: 3,
-    expressions: [
-      {
-        id: 'pool1',
-        name: 'Pool row',
-        parts: [{ id: 'pp1', count: 2, sides: 6 }],
-        flatModifier: 0,
-        rollMode: 'normal',
-        mode: 'pool',
-        successThreshold: { direction: 'gte', value: 4 },
-      },
-    ],
+    expressions: rows.map(seedExpression),
     ui: {
       expandedId: null,
       chartView: 'pmf',
@@ -184,6 +203,15 @@ function getPoolInput(): HTMLInputElement {
   ) as HTMLInputElement;
 }
 
+// Matches whichever guidance sentence the toolbar is currently showing, so a
+// test can read the hint back without naming the one it expects.
+const HINT_PATTERN =
+  /^(Add a target to show Hit % per row\.|Add a target to show Hit % for sum rows\.|Pool rows use the pool target below\.|Add another target or clear to hide Hit %\.|Up to \d+ targets\. Remove one to add another\.)$/;
+
+function hintText(): string {
+  return screen.getByText(HINT_PATTERN).textContent ?? '';
+}
+
 describe('TargetToolbar pool target row', () => {
   it('does not render when a target is set but no pool row exists', () => {
     renderToolbar();
@@ -191,13 +219,13 @@ describe('TargetToolbar pool target row', () => {
     expect(queryPoolInput()).toBeNull();
   });
 
-  it('does not render when a pool row exists but no target is set', () => {
+  it('renders on a pool row with no numeric target, the only target it uses', () => {
     seedPoolRow();
     renderToolbar();
-    expect(queryPoolInput()).toBeNull();
+    expect(queryPoolInput()).not.toBeNull();
   });
 
-  it('appears when a target is added and disappears when the target is removed', () => {
+  it('stays put as numeric targets are added and removed around it', () => {
     seedPoolRow();
     renderToolbar();
     addValue('13');
@@ -205,7 +233,7 @@ describe('TargetToolbar pool target row', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Remove target ≥ 13' }),
     );
-    expect(queryPoolInput()).toBeNull();
+    expect(getPoolInput()).toBeInTheDocument();
   });
 
   it('shows the persisted pool target value', () => {
@@ -253,5 +281,66 @@ describe('TargetToolbar pool target row', () => {
     expect(input.value).toBe('9');
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(input.value).toBe('4');
+  });
+
+  it('commits a typed pool target when no numeric target is set', () => {
+    seedPoolRow({ poolTarget: 1 });
+    renderToolbar();
+    const input = getPoolInput();
+    fireEvent.change(input, { target: { value: '2' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(input.value).toBe('2');
+    // Escape snaps back to the committed value, so a surviving '2' proves the
+    // row is live with no numeric target rather than decorative.
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input.value).toBe('2');
+  });
+
+  it('asks for a target for the sum rows when a table holds both kinds', () => {
+    seedPoolRow({ rows: ['pool', 'sum'] });
+    renderToolbar();
+    expect(
+      screen.getByText('Add a target to show Hit % for sum rows.'),
+    ).toBeInTheDocument();
+  });
+
+  it('asks a sum-only table for a target but a pool-only table for neither', () => {
+    seedPoolRow({ rows: ['sum'] });
+    const sumOnly = renderToolbar();
+    const sumHint = hintText();
+    sumOnly.unmount();
+    window.localStorage.clear();
+
+    seedPoolRow({ rows: ['pool'] });
+    renderToolbar();
+    const poolHint = hintText();
+
+    expect(sumHint).toBe('Add a target to show Hit % per row.');
+    expect(poolHint).toBe('Pool rows use the pool target below.');
+    expect(sumHint).not.toBe(poolHint);
+  });
+
+  it('points a pool-only table at the pool target instead of a numeric one', () => {
+    seedPoolRow({ rows: ['pool'] });
+    renderToolbar();
+    expect(
+      screen.getByText('Pool rows use the pool target below.'),
+    ).toBeInTheDocument();
+  });
+
+  it('swaps the pool wording out and back as the last numeric target comes and goes', () => {
+    seedPoolRow({ rows: ['pool'] });
+    renderToolbar();
+    addValue('4');
+    expect(
+      screen.getByText('Add another target or clear to hide Hit %.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Pool rows use the pool target below.'),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove target ≥ 4' }));
+    expect(
+      screen.getByText('Pool rows use the pool target below.'),
+    ).toBeInTheDocument();
   });
 });

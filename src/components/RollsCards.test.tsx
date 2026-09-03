@@ -6,31 +6,37 @@ import { RollHistoryProvider } from '../state/RollHistoryContext';
 import { RollsCards } from './RollsCards';
 import { TargetToolbar } from './TargetToolbar';
 
-function seedState(opts: { targetValues: number[]; poolTarget: number }) {
+function seedState(opts: {
+  targetValues: number[];
+  poolTarget: number;
+  /** Drops the sum card so the list holds nothing but the pool roll. */
+  poolOnly?: boolean;
+  /** Seeded chart view; each card resolves its own Shape label from it. */
+  chartView?: 'pmf' | 'target';
+}) {
+  const sumRow = {
+    id: 'sum1',
+    name: 'Sum row',
+    parts: [{ id: 'sp1', count: 2, sides: 6 }],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'sum',
+  };
+  const poolRow = {
+    id: 'pool1',
+    name: 'Pool row',
+    parts: [{ id: 'pp1', count: 2, sides: 6 }],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'pool',
+    successThreshold: { direction: 'gte', value: 4 },
+  };
   const state = {
     version: 3,
-    expressions: [
-      {
-        id: 'sum1',
-        name: 'Sum row',
-        parts: [{ id: 'sp1', count: 2, sides: 6 }],
-        flatModifier: 0,
-        rollMode: 'normal',
-        mode: 'sum',
-      },
-      {
-        id: 'pool1',
-        name: 'Pool row',
-        parts: [{ id: 'pp1', count: 2, sides: 6 }],
-        flatModifier: 0,
-        rollMode: 'normal',
-        mode: 'pool',
-        successThreshold: { direction: 'gte', value: 4 },
-      },
-    ],
+    expressions: opts.poolOnly === true ? [poolRow] : [sumRow, poolRow],
     ui: {
       expandedId: null,
-      chartView: 'pmf',
+      chartView: opts.chartView ?? 'pmf',
       target: { values: opts.targetValues, ruling: 'gte' },
       view: 'table',
       poolTarget: opts.poolTarget,
@@ -68,6 +74,21 @@ function hitPillAround(valueText: string): HTMLElement {
   if (el === null) throw new Error(`no Hit % pill found around ${valueText}`);
   return el;
 }
+
+// The card that owns a named roll: the smallest ancestor of the name field
+// that also holds the card's stats grid, identified by its "Range" pill.
+function cardFor(rollName: string): HTMLElement {
+  let el: HTMLElement | null = screen.getByDisplayValue(rollName);
+  while (el !== null && !(el.textContent ?? '').includes('Range')) {
+    el = el.parentElement;
+  }
+  if (el === null) throw new Error(`no card found for ${rollName}`);
+  return el;
+}
+
+// A rendered hit chance, e.g. "25.0%". The "Hit %" pill label is not a value
+// and never matches, so a card holding one of these is showing a real chance.
+const HIT_VALUE = /^\d+\.\d%$/;
 
 afterEach(() => {
   window.localStorage.clear();
@@ -117,18 +138,65 @@ describe('RollsCards pool Hit %', () => {
     expect(screen.queryByText('25.0%')).toBeNull();
   });
 
-  it('renders no Hit % pill on either card when no targets are set', () => {
+  it('keeps the pool Hit % pill when no numeric target is set', () => {
     seedState({ targetValues: [], poolTarget: 2 });
     renderCards();
 
-    expect(screen.queryAllByText('Hit %')).toHaveLength(0);
+    const poolLabel = screen.getByText('≥2');
+    const poolValueRow = poolLabel.closest('div')!;
+    expect(within(poolValueRow).getByText('25.0%')).toBeInTheDocument();
+    // The sum card keeps its pill in the grid but has no target to measure.
+    expect(screen.queryByText('16.7%')).toBeNull();
+  });
+
+  it('keeps the Hit % pill on a card list of only pool rolls with no numeric target', () => {
+    seedState({ targetValues: [], poolTarget: 2, poolOnly: true });
+    renderCards();
+
+    expect(screen.getByText('Hit %')).toBeInTheDocument();
+    const poolLabel = screen.getByText('≥2');
+    const poolValueRow = poolLabel.closest('div')!;
+    expect(within(poolValueRow).getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('keeps the sum card Hit % pill empty while the pool card keeps its percentage', () => {
+    seedState({ targetValues: [], poolTarget: 2 });
+    renderCards();
+
+    const sumCard = cardFor('Sum row');
+    // The pill stays in the sum card's grid so both cards keep the same
+    // shape, but a sum row with no numeric target has nothing to measure.
+    expect(within(sumCard).getByText('Hit %')).toBeInTheDocument();
+    expect(within(sumCard).queryByText(HIT_VALUE)).toBeNull();
+    expect(within(cardFor('Pool row')).getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('opens the Hit % pill when a sum card is switched to pool with no numeric target', () => {
+    seedTwoSumCards([]);
+    renderCards();
+    expect(screen.queryByText('Hit %')).toBeNull();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Pool' })[0]!);
+
+    // The pill is a list-wide column, so both cards gain it together.
+    expect(screen.getAllByText('Hit %')).toHaveLength(2);
+  });
+
+  it('labels the pool card Shape as Target and the sum card as PMF with no numeric target', () => {
+    seedState({ targetValues: [], poolTarget: 2, chartView: 'target' });
+    renderCards();
+
+    // A pool card measures the pool target, so target view stays available to
+    // it; the sum card has nothing to highlight and falls back to PMF.
+    expect(within(cardFor('Pool row')).getByText('Target')).toBeInTheDocument();
+    expect(within(cardFor('Sum row')).getByText('PMF')).toBeInTheDocument();
   });
 });
 
 // Two sum rows with hand-computed stats: 2d6 → mean 7.00; 1d6+5 → mean 8.50.
 // Deltas vs the 2d6 baseline: avg +1.50, spread −0.71, hit (target 10, gte)
 // 33.3% − 16.7% → +16.7%.
-function seedTwoSumCards() {
+function seedTwoSumCards(targetValues: number[] = [10]) {
   const state = {
     version: 3,
     expressions: [
@@ -152,7 +220,7 @@ function seedTwoSumCards() {
     ui: {
       expandedId: null,
       chartView: 'pmf',
-      target: { values: [10], ruling: 'gte' },
+      target: { values: targetValues, ruling: 'gte' },
       view: 'table',
       poolTarget: 1,
     },
@@ -206,5 +274,44 @@ describe('RollsCards baseline pin round trip', () => {
     expect(
       screen.getByText('Averages 1.5 higher · steadier · hits 17% more often'),
     ).toBeInTheDocument();
+  });
+});
+
+// InspectChartBody pulls in recharts' ResponsiveContainer, which needs a
+// ResizeObserver that jsdom does not provide.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  };
+}
+
+describe('RollsCards inspect modal target', () => {
+  it('opens the pool card inspect chart on the Target view with no numeric target', async () => {
+    seedState({ targetValues: [], poolTarget: 2, chartView: 'target' });
+    renderCards();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Inspect chart for Pool row' }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('Target')).toBeInTheDocument();
+  });
+
+  it('opens the sum card inspect chart on PMF on that same table', async () => {
+    seedState({ targetValues: [], poolTarget: 2, chartView: 'target' });
+    renderCards();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Inspect chart for Sum row' }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    // A sum row has no numeric target to measure, so target view is not
+    // available to it even though the pool card next to it reaches it.
+    expect(await within(dialog).findByText('PMF')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Target')).toBeNull();
   });
 });

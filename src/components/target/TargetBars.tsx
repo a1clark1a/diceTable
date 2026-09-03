@@ -5,40 +5,51 @@ import { tipForId } from '../../docs/glossary';
 import { RulingSymbol } from '../targetRuling';
 import { formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
-import type { TargetState } from '../../types';
+import type { TargetRuling } from '../../types';
 import {
   rowHitChance,
   rowShowsUnderTarget,
+  type TargetColumn,
   type TargetRow,
 } from './targetHitRows';
 
 interface TargetBarsProps {
   rows: TargetRow[];
-  target: TargetState;
+  columns: TargetColumn[];
+  ruling: TargetRuling;
   poolTarget: number;
 }
 
-export function TargetBars({ rows, target, poolTarget }: TargetBarsProps) {
+export function TargetBars({
+  rows,
+  columns,
+  ruling,
+  poolTarget,
+}: TargetBarsProps) {
   const sections = useMemo(
     () =>
-      target.values.map((tv, index) => {
+      columns.map((column, index) => {
         const bars = rows
-          .filter((row) => rowShowsUnderTarget(row, index))
+          .filter((row) => rowShowsUnderTarget(row, column, index))
           .map((row) => ({
             row,
-            p: rowHitChance(row, tv, target.ruling, poolTarget),
+            p: rowHitChance(row, column, ruling, poolTarget),
           }));
         bars.sort((a, b) => b.p - a.p);
-        return { tv, hasPools: bars.some((b) => b.row.isPool), bars };
+        return {
+          column,
+          mixedPools: !column.pool && bars.some((b) => b.row.isPool),
+          bars,
+        };
       }),
-    [rows, target, poolTarget],
+    [rows, columns, ruling, poolTarget],
   );
 
   return (
     <Stack gap={3}>
-      {sections.map(({ tv, hasPools, bars }) => (
+      {sections.map(({ column, mixedPools, bars }) => (
         <Box
-          key={tv}
+          key={column.pool ? 'pool' : column.value}
           bg="bg.panel"
           borderWidth="1px"
           borderColor="border.subtle"
@@ -51,15 +62,17 @@ export function TargetBars({ rows, target, poolTarget }: TargetBarsProps) {
                 as="span"
                 fontSize="2xs"
                 fontWeight="semibold"
-                color="fg.muted"
+                color={column.pool ? 'purple.fg' : 'fg.muted'}
                 textTransform="uppercase"
                 letterSpacing="wider"
               >
-                Target {tv}
-                {hasPools ? ` (pools: ≥${poolTarget} successes)` : ''}
+                {column.pool
+                  ? `Pool target ≥${column.value} successes`
+                  : `Target ${column.value}`}
+                {mixedPools ? ` (pools: ≥${poolTarget} successes)` : ''}
               </Text>
             </HelpTerm>
-            <RulingSymbol ruling={target.ruling} color="fg.muted" />
+            {!column.pool && <RulingSymbol ruling={ruling} color="fg.muted" />}
           </HStack>
           <Stack gap={2.5} mt={3}>
             {bars.map(({ row, p }) => (

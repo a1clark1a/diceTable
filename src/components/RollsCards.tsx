@@ -96,8 +96,10 @@ export function RollsCards() {
     addExpression,
   } = useApp();
 
-  const showHit = target.values.length > 0;
-  const view = effectiveChartView(chartView, target);
+  // Pool rows answer the shared pool target, so the pill earns its place even
+  // with the numeric target list empty.
+  const showHit =
+    target.values.length > 0 || expressions.some((e) => e.mode === 'pool');
   const atCap = expressions.length >= MAX_EXPRESSIONS;
   const comparison = useMemo(
     () => buildBaselineComparison(expressions, baselineId, target, poolTarget),
@@ -113,7 +115,7 @@ export function RollsCards() {
           idx={idx}
           expanded={expandedId === expr.id}
           showHit={showHit}
-          view={view}
+          chartView={chartView}
           target={target}
           poolTarget={poolTarget}
           baselineId={baselineId}
@@ -150,7 +152,7 @@ interface RollCardProps {
   idx: number;
   expanded: boolean;
   showHit: boolean;
-  view: ChartView;
+  chartView: ChartView;
   target: TargetState;
   poolTarget: number;
   baselineId: string | null;
@@ -167,7 +169,7 @@ const RollCard = memo(function RollCard({
   idx,
   expanded,
   showHit,
-  view,
+  chartView,
   target,
   poolTarget,
   baselineId,
@@ -184,7 +186,7 @@ const RollCard = memo(function RollCard({
   const isCheck = expr.mode === 'check';
   const hits = useMemo(
     () =>
-      !isPool && showHit && stats.hasDist
+      !isPool && showHit && stats.hasDist && target.values.length > 0
         ? target.values.map((v) => hitProbability(stats.dist, v, target.ruling))
         : null,
     [isPool, showHit, stats, target],
@@ -199,6 +201,10 @@ const RollCard = memo(function RollCard({
     () => (isPool ? { values: [poolTarget], ruling: 'gte' } : target),
     [isPool, poolTarget, target],
   );
+  const view = effectiveChartView(chartView, sparkTarget.values.length > 0);
+  // Pointing at the Hit % column only helps a row that has one; a sum row
+  // with no numeric target set shows a dash there.
+  const hasHitValue = hits !== null || poolHit !== null;
   const isBaseline = baselineId === expr.id;
   const rowOk = stats.hasDist && !tooComplex;
   const deltasActive = comparison !== null && !isBaseline && rowOk;
@@ -432,6 +438,7 @@ const RollCard = memo(function RollCard({
                   exprName={expr.name}
                   dist={stats.dist}
                   color={color}
+                  target={sparkTarget}
                 >
                   <RowSparkline
                     dist={stats.dist}
@@ -541,7 +548,7 @@ const RollCard = memo(function RollCard({
                       fontFamily="body"
                       css={{ textWrap: 'pretty' }}
                     >
-                      {showHit
+                      {hasHitValue
                         ? 'different scale, compare Hit % instead'
                         : 'different scale from the baseline'}
                     </Text>

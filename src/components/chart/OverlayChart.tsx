@@ -11,6 +11,7 @@ import type {
   TargetState,
 } from '../../types';
 import { rowColor } from './palette';
+import { effectiveChartView } from './effectiveView';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
 import { ShareImagePopover } from '../share/ShareImagePopover';
@@ -174,9 +175,11 @@ export function OverlayChart({ ref }: OverlayChartProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const overLimit = expressions.length > CHART_ROW_LIMIT;
-  const hasTarget = target.values.length > 0;
-  const effectiveView: ChartView =
-    chartView === 'target' && !hasTarget ? 'pmf' : chartView;
+  // Each panel resolves the target view against its own target: the pool
+  // target always exists, so the Successes panel can show it even while the
+  // numeric target list is empty and Totals falls back to PMF.
+  const sumView = effectiveChartView(chartView, target.values.length > 0);
+  const poolView = effectiveChartView(chartView, true);
 
   // Keyed by unfiltered row position so the sum/pool split below cannot shift
   // any series off its table swatch color.
@@ -293,7 +296,7 @@ export function OverlayChart({ ref }: OverlayChartProps) {
                 expressions={sumExprs}
                 dists={dists}
                 colors={colors}
-                effectiveView={effectiveView}
+                effectiveView={sumView}
                 target={target}
                 hoveredId={hoveredId}
                 onHover={setHoveredId}
@@ -310,7 +313,7 @@ export function OverlayChart({ ref }: OverlayChartProps) {
                 expressions={poolExprs}
                 dists={dists}
                 colors={colors}
-                effectiveView={effectiveView}
+                effectiveView={poolView}
                 target={poolTargetState}
                 hoveredId={hoveredId}
                 onHover={setHoveredId}

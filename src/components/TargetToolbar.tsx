@@ -43,7 +43,7 @@ export function TargetToolbar() {
     useApp();
   const [draft, setDraft] = useState('');
   const hasPoolRow = expressions.some((e) => e.mode === 'pool');
-  const showPoolTarget = hasPoolRow && target.values.length > 0;
+  const hasSumRow = expressions.some((e) => e.mode !== 'pool');
 
   const isFull = target.values.length >= MAX_TARGETS;
 
@@ -96,9 +96,13 @@ export function TargetToolbar() {
 
   const hint = isFull
     ? `Up to ${MAX_TARGETS} targets. Remove one to add another.`
-    : target.values.length === 0
-      ? 'Add a target to show Hit % per row.'
-      : 'Add another target or clear to hide Hit %.';
+    : target.values.length > 0
+      ? 'Add another target or clear to hide Hit %.'
+      : hasPoolRow
+        ? hasSumRow
+          ? 'Add a target to show Hit % for sum rows.'
+          : 'Pool rows use the pool target below.'
+        : 'Add a target to show Hit % per row.';
 
   return (
     <Stack gap={2}>
@@ -176,7 +180,7 @@ export function TargetToolbar() {
           {hint}
         </Text>
       </HStack>
-      {showPoolTarget && (
+      {hasPoolRow && (
         <PoolTargetRow poolTarget={poolTarget} setPoolTarget={setPoolTarget} />
       )}
     </Stack>

@@ -27,8 +27,8 @@ export interface BaselineComparison {
   maxSigmaDelta: number;
   /**
    * Largest absolute Hit % delta across every comparing row (hit chances stay
-   * comparable across scales, so cross-scale rows count too). Zero when no
-   * targets are set.
+   * comparable across scales, so cross-scale rows count too). Zero when the
+   * baseline has no hit chance to compare against.
    */
   maxHitDelta: number;
 }
@@ -47,12 +47,11 @@ export function buildBaselineComparison(
   if (!stats.hasDist || tooComplex) return null;
 
   const isPool = baseline.mode === 'pool';
-  const hits =
-    target.values.length === 0
+  const hits = isPool
+    ? [hitProbability(stats.dist, poolTarget, 'gte')]
+    : target.values.length === 0
       ? null
-      : isPool
-        ? [hitProbability(stats.dist, poolTarget, 'gte')]
-        : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
+      : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
 
   let maxMeanDelta = 0;
   let maxSigmaDelta = 0;

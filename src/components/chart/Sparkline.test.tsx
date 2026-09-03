@@ -351,18 +351,36 @@ describe('Sparkline pool ladder', () => {
 });
 
 describe('ShapeHeaderLabel', () => {
-  function seed(chartView: string, targetValue: number | null = null) {
+  function seed(
+    chartView: string,
+    targetValue: number | null = null,
+    mode: 'sum' | 'pool' | 'mixed' = 'sum',
+  ) {
+    const sumRow = {
+      id: 'e1',
+      name: 'Test',
+      parts: [{ id: 'p1', count: 1, sides: 6 }],
+      flatModifier: 0,
+      rollMode: 'normal',
+    };
+    const poolRow = {
+      id: 'e2',
+      name: 'Pool',
+      parts: [{ id: 'p2', count: 2, sides: 6 }],
+      flatModifier: 0,
+      rollMode: 'normal',
+      mode: 'pool',
+      successThreshold: { direction: 'gte', value: 4 },
+    };
+    const rows =
+      mode === 'sum'
+        ? [sumRow]
+        : mode === 'pool'
+          ? [poolRow]
+          : [sumRow, poolRow];
     const state = {
       version: 2,
-      expressions: [
-        {
-          id: 'e1',
-          name: 'Test',
-          parts: [{ id: 'p1', count: 1, sides: 6 }],
-          flatModifier: 0,
-          rollMode: 'normal',
-        },
-      ],
+      expressions: rows,
       ui: {
         expandedId: null,
         chartView,
@@ -426,5 +444,25 @@ describe('ShapeHeaderLabel', () => {
       </AllProviders>,
     );
     expect(screen.getByText('PMF')).toBeInTheDocument();
+  });
+
+  it('shows Target when chartView is target and a pool row is present with no target value set', () => {
+    seed('target', null, 'pool');
+    render(
+      <AllProviders>
+        <ShapeHeaderLabel />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Target')).toBeInTheDocument();
+  });
+
+  it('shows Target when chartView is target and a sum row and a pool row share the table with no target value set', () => {
+    seed('target', null, 'mixed');
+    render(
+      <AllProviders>
+        <ShapeHeaderLabel />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Target')).toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
 import { buildMonotonePath } from './monotonePath';
-import { effectiveChartView } from './effectiveView';
+import { effectiveChartView, targetViewAvailable } from './effectiveView';
 import { missProbability, rowPeak } from './zeroSpike';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
@@ -24,8 +24,11 @@ const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
 };
 
 export function ShapeHeaderLabel() {
-  const { chartView, target } = useApp();
-  const view = effectiveChartView(chartView, target);
+  const { chartView, target, expressions } = useApp();
+  const view = effectiveChartView(
+    chartView,
+    targetViewAvailable(target, expressions),
+  );
   const { text, tip } = VIEW_LABELS[view];
   return <HelpTerm tip={tip}>{text}</HelpTerm>;
 }

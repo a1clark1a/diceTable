@@ -5,6 +5,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
 import { ViewBar } from './ViewBar';
+import type { ChartView, ExpressionMode } from '../types';
 
 const Providers = ({ children }: { children: React.ReactNode }) => (
   <ChakraProvider value={defaultSystem}>
@@ -22,7 +23,14 @@ function Harness() {
   );
 }
 
-function seedTarget(values: number[]) {
+interface SeedOptions {
+  mode?: ExpressionMode;
+  poolTarget?: number;
+  chartView?: ChartView;
+}
+
+function seedTarget(values: number[], opts: SeedOptions = {}) {
+  const pool = opts.mode === 'pool';
   const state = {
     version: 2,
     expressions: [
@@ -32,12 +40,19 @@ function seedTarget(values: number[]) {
         parts: [{ id: 'p1', count: 1, sides: 6 }],
         flatModifier: 0,
         rollMode: 'normal',
+        ...(pool
+          ? {
+              mode: 'pool' as const,
+              successThreshold: { direction: 'gte' as const, value: 4 },
+            }
+          : {}),
       },
     ],
     ui: {
       expandedId: null,
-      chartView: 'pmf',
+      chartView: opts.chartView ?? 'pmf',
       target: { values, ruling: 'gte' as const },
+      poolTarget: opts.poolTarget ?? 1,
     },
   };
   window.localStorage.setItem(
@@ -118,5 +133,60 @@ describe('ViewBar', () => {
     expect(
       screen.getByRole('button', { name: 'Jump to chart' }),
     ).toBeInTheDocument();
+  });
+
+  it('offers the TARGET button for a pool row even when no numeric target is set', () => {
+    seedTarget([], { mode: 'pool' });
+    render(
+      <Providers>
+        <Harness />
+      </Providers>,
+    );
+    expect(screen.getByRole('button', { name: 'TARGET' })).toBeInTheDocument();
+  });
+
+  it('hides the TARGET button when the table holds only sum rows and no numeric target', () => {
+    seedTarget([]);
+    render(
+      <Providers>
+        <Harness />
+      </Providers>,
+    );
+    expect(screen.queryByRole('button', { name: 'TARGET' })).toBeNull();
+  });
+
+  it('keeps TARGET pressed after clicking it on a pool-only table with no numeric target', () => {
+    seedTarget([], { mode: 'pool' });
+    render(
+      <Providers>
+        <Harness />
+      </Providers>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'TARGET' }));
+    expect(screen.getByRole('button', { name: 'TARGET' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('shows TARGET as the active view when a pool-only table is restored in target view', () => {
+    seedTarget([], { mode: 'pool', chartView: 'target' });
+    render(
+      <Providers>
+        <Harness />
+      </Providers>,
+    );
+    expect(screen.getByRole('button', { name: 'TARGET' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   });
 });
