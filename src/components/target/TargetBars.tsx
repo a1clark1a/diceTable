@@ -7,6 +7,7 @@ import { formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
 import type { TargetRuling } from '../../types';
 import {
+  columnKey,
   rowHitChance,
   rowShowsUnderTarget,
   type TargetColumn,
@@ -17,43 +18,32 @@ interface TargetBarsProps {
   rows: TargetRow[];
   columns: TargetColumn[];
   ruling: TargetRuling;
-  poolTarget: number;
 }
 
-export function TargetBars({
-  rows,
-  columns,
-  ruling,
-  poolTarget,
-}: TargetBarsProps) {
+export function TargetBars({ rows, columns, ruling }: TargetBarsProps) {
   const sections = useMemo(
     () =>
-      columns.map((column, index) => {
+      columns.map((column) => {
         const bars = rows
-          .filter((row) => rowShowsUnderTarget(row, column, index))
-          .map((row) => ({
-            row,
-            p: rowHitChance(row, column, ruling, poolTarget),
-          }));
+          .filter((row) => rowShowsUnderTarget(row, column))
+          .map((row) => ({ row, p: rowHitChance(row, column, ruling) }));
         bars.sort((a, b) => b.p - a.p);
-        return {
-          column,
-          mixedPools: !column.pool && bars.some((b) => b.row.isPool),
-          bars,
-        };
+        return { column, bars };
       }),
-    [rows, columns, ruling, poolTarget],
+    [rows, columns, ruling],
   );
 
   return (
     <Stack gap={3}>
-      {sections.map(({ column, mixedPools, bars }) => (
+      {sections.map(({ column, bars }) => (
         <Box
-          key={column.pool ? 'pool' : column.value}
+          key={columnKey(column)}
           bg="bg.panel"
           borderWidth="1px"
           borderColor="border.subtle"
           borderRadius="md"
+          borderLeftWidth={column.pool ? '3px' : '1px'}
+          borderLeftColor={column.pool ? 'purple.solid' : 'border.subtle'}
           p={4}
         >
           <HStack gap={1}>
@@ -69,7 +59,6 @@ export function TargetBars({
                 {column.pool
                   ? `Pool target ≥${column.value} successes`
                   : `Target ${column.value}`}
-                {mixedPools ? ` (pools: ≥${poolTarget} successes)` : ''}
               </Text>
             </HelpTerm>
             {!column.pool && <RulingSymbol ruling={ruling} color="fg.muted" />}

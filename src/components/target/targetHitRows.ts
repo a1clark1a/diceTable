@@ -37,49 +37,58 @@ export function toTargetRows(expressions: Expression[]): TargetRow[] {
 }
 
 export interface TargetColumn {
-  /** What sum rows measure against here; pool rows always use the pool target. */
+  /** A total on a numeric column, a success count on a pool column. */
   value: number;
-  /** True when the column is the pool target standing in for an empty list. */
+  /** True when the column measures success counts rather than totals. */
   pool: boolean;
 }
 
-// The columns the target views measure. Normally the numeric targets, with
-// pool rows riding the first one. With no numeric target set the pool target
-// is the only thing left to measure, so it becomes the sole column rather
-// than leaving a table of pool rolls with nothing to show.
+// Two axes side by side: the numeric targets sum rows answer to, then the pool
+// targets pool rows answer to. Each axis appears only when the table holds both
+// a target of that kind and a row that can measure it, so neither kind of row
+// has to squat under a column that means nothing to it.
 export function targetColumns(
   target: TargetState,
-  poolTarget: number,
+  poolTargets: number[],
   hasPools: boolean,
+  hasSums: boolean,
 ): TargetColumn[] {
-  if (target.values.length > 0)
-    return target.values.map((value) => ({ value, pool: false }));
-  return hasPools ? [{ value: poolTarget, pool: true }] : [];
+  const columns: TargetColumn[] = [];
+  if (hasSums) {
+    for (const value of target.values) columns.push({ value, pool: false });
+  }
+  if (hasPools) {
+    for (const value of poolTargets) columns.push({ value, pool: true });
+  }
+  return columns;
 }
 
-// The single place that decides which target a row answers to: sum rows use
-// the toolbar target under the shared ruling, pool rows always measure the
-// shared pool target as a minimum success count.
+// The two axes can carry the same number (numeric target 3 beside pool target
+// 3), so the prefix is what keeps their keys apart.
+export function columnKey(column: TargetColumn): string {
+  return `${column.pool ? 'pool' : 'num'}-${column.value}`;
+}
+
+// The single place that decides which question a cell answers: a numeric column
+// reads a total under the shared ruling, a pool column reads a minimum success
+// count.
 export function rowHitChance(
   row: TargetRow,
   column: TargetColumn,
   ruling: TargetRuling,
-  poolTarget: number,
 ): number {
-  return row.isPool
-    ? hitProbability(row.dist, poolTarget, 'gte')
+  return column.pool
+    ? hitProbability(row.dist, column.value, 'gte')
     : hitProbability(row.dist, column.value, ruling);
 }
 
-// A pool row answers one question no matter how many targets are set, so it
-// appears only under the first column; a pool column is the mirror case,
-// where sum rows have nothing to measure.
+// Each axis is answered only by the rows on its scale: totals under the numeric
+// columns, success counts under the pool ones.
 export function rowShowsUnderTarget(
   row: TargetRow,
   column: TargetColumn,
-  columnIndex: number,
 ): boolean {
-  return column.pool ? row.isPool : !row.isPool || columnIndex === 0;
+  return column.pool === row.isPool;
 }
 
 // hitProbability(dist, v, ruling) for every integer v in [min..max], computed

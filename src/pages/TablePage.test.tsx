@@ -61,15 +61,17 @@ describe('TablePage first-run empty state', () => {
   it('shows the example panel instead of the workshop views on first run', () => {
     renderPage();
     expect(screen.getByText('Start with an example')).toBeInTheDocument();
-    // Chrome that needs rows stays hidden; the view switcher and Add stay.
+    // An empty table has nothing to edit, so the whole workshop toolbar sits
+    // out and the panel owns the only two ways in. The view switcher stays.
     expect(screen.queryByText('Roll mode')).toBeNull();
     expect(screen.queryByRole('button', { name: 'PMF' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Scroll to top' })).toBeNull();
     expect(screen.queryByTestId('overlay-chart')).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Table & chart' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /add roll/i }),
+      screen.getByRole('button', { name: /start from a blank roll/i }),
     ).toBeInTheDocument();
   });
 

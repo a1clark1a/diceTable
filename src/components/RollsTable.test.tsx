@@ -205,6 +205,8 @@ interface PoolSeedOptions {
   ruling?: 'gte' | 'lte';
   targetValues?: number[];
   poolTarget?: number;
+  /** Seeds the list instead of the legacy scalar the other cases migrate. */
+  poolTargets?: number[];
   /** Drops the sum row so the table holds nothing but the pool roll. */
   poolOnly?: boolean;
   /** Seeded chart view; each row resolves its own sparkline view from it. */
@@ -218,6 +220,7 @@ function seedMixedTable({
   ruling = 'gte',
   targetValues = [10],
   poolTarget = 2,
+  poolTargets,
   poolOnly = false,
   chartView = 'pmf',
 }: PoolSeedOptions = {}) {
@@ -246,7 +249,7 @@ function seedMixedTable({
       chartView,
       target: { values: targetValues, ruling },
       view: 'table',
-      poolTarget,
+      ...(poolTargets === undefined ? { poolTarget } : { poolTargets }),
     },
   };
   window.localStorage.setItem(
@@ -313,14 +316,28 @@ describe('RollsTable pool Hit %', () => {
     expect(screen.getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('committing a new pool target with Enter updates the pool Hit % live', () => {
+  it('adding a pool target with Enter stacks a second pool Hit % live', () => {
     seedMixedTable();
     renderTable();
-    const input = screen.getByLabelText('Pool target, minimum successes');
+    const input = screen.getByLabelText('Add pool target');
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
     expect(screen.getByLabelText('At least 1 successes')).toBeInTheDocument();
+    expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
+  });
+
+  it('removing a pool target chip takes its Hit % row off the pool row', () => {
+    seedMixedTable({ poolTargets: [1, 2] });
+    renderTable();
+    expect(screen.getByLabelText('At least 1 successes')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove pool target ≥ 1' }),
+    );
+    expect(screen.queryByLabelText('At least 1 successes')).toBeNull();
+    expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
   });
 
   it('keeps the pool Hit % when no numeric target is set', () => {

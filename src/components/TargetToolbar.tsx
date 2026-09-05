@@ -15,7 +15,6 @@ import {
 } from '@chakra-ui/react';
 import { X } from 'lucide-react';
 import { useApp } from '../state/useApp';
-import { useBufferedValue } from '../hooks/useBufferedValue';
 import { MAX_TARGETS, type TargetRuling } from '../types';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
@@ -29,48 +28,32 @@ function parseDraft(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-function parsePoolTarget(raw: string): number {
-  const n = Number.parseInt(raw.trim(), 10);
-  return Number.isFinite(n) ? Math.max(1, n) : 1;
+interface TargetDraft {
+  draft: string;
+  setDraft: (raw: string) => void;
+  commitDraft: () => void;
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-function formatPoolTarget(n: number): string {
-  return String(n);
-}
-
-export function TargetToolbar() {
-  const { target, setTarget, expressions, poolTarget, setPoolTarget } =
-    useApp();
+// Shared by both target rows: type a number, Enter or blur adds it as a chip,
+// Escape drops the draft, Backspace on an empty draft takes the last chip back.
+// minRemaining is how many chips the row must keep, so the pool row cannot lose
+// the last threshold its Hit % cells answer to.
+function useTargetDraft(
+  values: number[],
+  setValues: (next: number[]) => void,
+  minRemaining: number,
+): TargetDraft {
   const [draft, setDraft] = useState('');
-  const hasPoolRow = expressions.some((e) => e.mode === 'pool');
-  const hasSumRow = expressions.some((e) => e.mode !== 'pool');
-
-  const isFull = target.values.length >= MAX_TARGETS;
 
   const commitDraft = useCallback(() => {
     const parsed = parseDraft(draft);
-    if (parsed === null) {
-      setDraft('');
-      return;
-    }
-    if (target.values.includes(parsed)) {
-      setDraft('');
-      return;
-    }
-    if (target.values.length >= MAX_TARGETS) {
-      setDraft('');
-      return;
-    }
-    setTarget({ values: [...target.values, parsed] });
     setDraft('');
-  }, [draft, target.values, setTarget]);
-
-  const removeValue = useCallback(
-    (v: number) => {
-      setTarget({ values: target.values.filter((x) => x !== v) });
-    },
-    [target.values, setTarget],
-  );
+    if (parsed === null) return;
+    if (values.includes(parsed)) return;
+    if (values.length >= MAX_TARGETS) return;
+    setValues([...values, parsed]);
+  }, [draft, values, setValues]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -84,14 +67,41 @@ export function TargetToolbar() {
       } else if (
         e.key === 'Backspace' &&
         draft === '' &&
-        target.values.length > 0
+        values.length > minRemaining
       ) {
         e.preventDefault();
-        const last = target.values[target.values.length - 1]!;
-        removeValue(last);
+        setValues(values.slice(0, -1));
       }
     },
-    [commitDraft, draft, target.values, removeValue],
+    [commitDraft, draft, values, setValues, minRemaining],
+  );
+
+  return { draft, setDraft, commitDraft, onKeyDown };
+}
+
+export function TargetToolbar() {
+  const { target, setTarget, expressions, poolTargets, setPoolTargets } =
+    useApp();
+  const hasPoolRow = expressions.some((e) => e.mode === 'pool');
+  const hasSumRow = expressions.some((e) => e.mode !== 'pool');
+
+  const isFull = target.values.length >= MAX_TARGETS;
+
+  const setValues = useCallback(
+    (next: number[]) => setTarget({ values: next }),
+    [setTarget],
+  );
+  const { draft, setDraft, commitDraft, onKeyDown } = useTargetDraft(
+    target.values,
+    setValues,
+    0,
+  );
+
+  const removeValue = useCallback(
+    (v: number) => {
+      setValues(target.values.filter((x) => x !== v));
+    },
+    [target.values, setValues],
   );
 
   const hint = isFull
@@ -171,34 +181,53 @@ export function TargetToolbar() {
           fontFamily="mono"
           aria-label="Add target value"
         />
+        {/* Guidance is desktop-only noise until the row is full, where the
+            hint is the only thing explaining the dead input beside it. */}
         <Text
           fontSize="xs"
           color="fg.muted"
           ml="auto"
-          display={{ base: 'none', md: 'inline' }}
+          display={isFull ? 'inline' : { base: 'none', md: 'inline' }}
         >
           {hint}
         </Text>
       </HStack>
       {hasPoolRow && (
-        <PoolTargetRow poolTarget={poolTarget} setPoolTarget={setPoolTarget} />
+        <PoolTargetRow
+          poolTargets={poolTargets}
+          setPoolTargets={setPoolTargets}
+        />
       )}
     </Stack>
   );
 }
 
 interface PoolTargetRowProps {
-  poolTarget: number;
-  setPoolTarget: (value: number) => void;
+  poolTargets: number[];
+  setPoolTargets: (values: number[]) => void;
 }
 
-function PoolTargetRow({ poolTarget, setPoolTarget }: PoolTargetRowProps) {
-  const buf = useBufferedValue<number>({
-    committed: poolTarget,
-    commit: setPoolTarget,
-    parse: parsePoolTarget,
-    format: formatPoolTarget,
-  });
+function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
+  const isFull = poolTargets.length >= MAX_TARGETS;
+  const { draft, setDraft, commitDraft, onKeyDown } = useTargetDraft(
+    poolTargets,
+    setPoolTargets,
+    1,
+  );
+
+  const removeValue = useCallback(
+    (v: number) => {
+      setPoolTargets(poolTargets.filter((x) => x !== v));
+    },
+    [poolTargets, setPoolTargets],
+  );
+
+  const hint = isFull
+    ? `Up to ${MAX_TARGETS} pool targets. Remove one to add another.`
+    : poolTargets.length > 1
+      ? 'Hit % on pool rows uses these counts.'
+      : 'Add another count to compare thresholds side by side.';
+
   return (
     <HStack
       gap={2}
@@ -224,29 +253,36 @@ function PoolTargetRow({ poolTarget, setPoolTarget }: PoolTargetRowProps) {
           Pool target
         </Text>
       </HelpTerm>
-      {/* Decorative: the input's aria-label carries the "at least" relation
-          for anyone who can't see the glyph. */}
-      <Text
-        as="span"
-        fontFamily="mono"
-        fontSize="sm"
-        color="fg.muted"
-        aria-hidden="true"
-      >
-        ≥
-      </Text>
+      <Wrap gap={1} flexShrink={1}>
+        {poolTargets.map((v) => (
+          <WrapItem key={v}>
+            <TargetChip
+              ruling="gte"
+              value={v}
+              variant="pool"
+              // The list never empties, so the last threshold keeps no remove
+              // control rather than offering one that refuses.
+              onRemove={
+                poolTargets.length > 1 ? () => removeValue(v) : undefined
+              }
+            />
+          </WrapItem>
+        ))}
+      </Wrap>
       <Input
         size="sm"
         type="text"
         inputMode="numeric"
-        value={buf.value}
-        onChange={(e) => buf.setValue(e.target.value)}
-        onBlur={buf.onBlur}
-        onKeyDown={buf.onKeyDown}
-        maxW="64px"
+        placeholder={isFull ? '—' : 'Add'}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commitDraft}
+        onKeyDown={onKeyDown}
+        disabled={isFull}
+        maxW="80px"
         textAlign="right"
         fontFamily="mono"
-        aria-label="Pool target, minimum successes"
+        aria-label="Add pool target"
         style={{ fontVariantNumeric: 'tabular-nums' }}
       />
       <Text fontSize="xs" color="fg.muted">
@@ -256,22 +292,38 @@ function PoolTargetRow({ poolTarget, setPoolTarget }: PoolTargetRowProps) {
         fontSize="xs"
         color="fg.muted"
         ml="auto"
-        display={{ base: 'none', md: 'inline' }}
+        display={isFull ? 'inline' : { base: 'none', md: 'inline' }}
       >
-        Hit % on pool rows uses this count.
+        {hint}
       </Text>
     </HStack>
   );
 }
 
+// Pool chips read as one threshold token (≥1) to match the Hit % cells and the
+// target grid headers; a numeric chip keeps the ruling loose from its value
+// because the ruling is the user's choice there, not a fixed part of the label.
+const CHIP_VARIANTS = {
+  target: { noun: 'target', accent: 'fg.muted', gap: 1 },
+  pool: { noun: 'pool target', accent: 'purple.fg', gap: 0.5 },
+} as const;
+
 interface TargetChipProps {
   ruling: TargetRuling;
   value: number;
-  onRemove: () => void;
+  /** Omitted on a chip the row must keep, which then renders no remove control. */
+  onRemove?: (() => void) | undefined;
+  variant?: keyof typeof CHIP_VARIANTS;
 }
 
-function TargetChip({ ruling, value, onRemove }: TargetChipProps) {
+function TargetChip({
+  ruling,
+  value,
+  onRemove,
+  variant = 'target',
+}: TargetChipProps) {
   const symbol = RULING_SYMBOL[ruling];
+  const { noun, accent, gap } = CHIP_VARIANTS[variant];
   return (
     <HStack
       gap={1}
@@ -280,24 +332,28 @@ function TargetChip({ ruling, value, onRemove }: TargetChipProps) {
       borderColor="border.subtle"
       borderRadius="full"
       pl={2}
-      pr={1}
+      pr={onRemove ? 1 : 2}
       py={0.5}
       fontFamily="mono"
       fontSize="xs"
     >
-      <RulingSymbol ruling={ruling} color="fg.muted" />
-      <Text as="span" style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {value}
-      </Text>
-      <IconButton
-        aria-label={`Remove target ${symbol} ${value}`}
-        size="2xs"
-        variant="ghost"
-        onClick={onRemove}
-        title="Remove target"
-      >
-        <X size={12} />
-      </IconButton>
+      <HStack as="span" gap={gap}>
+        <RulingSymbol ruling={ruling} color={accent} />
+        <Text as="span" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {value}
+        </Text>
+      </HStack>
+      {onRemove !== undefined && (
+        <IconButton
+          aria-label={`Remove ${noun} ${symbol} ${value}`}
+          size="2xs"
+          variant="ghost"
+          onClick={onRemove}
+          title={`Remove ${noun}`}
+        >
+          <X size={12} />
+        </IconButton>
+      )}
     </HStack>
   );
 }

@@ -141,7 +141,7 @@ describe('AppProvider hydration healing', () => {
           chartView: result.current.chartView,
           target: result.current.target,
           view: result.current.view,
-          poolTarget: result.current.poolTarget,
+          poolTargets: result.current.poolTargets,
           baselineId: result.current.baselineId,
         },
       };

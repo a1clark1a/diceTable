@@ -26,9 +26,9 @@ import { isSingleDieCheck } from '../engine/critEffect';
 // envelope version in AppContext. The envelope gate rejects any version it does
 // not recognise before validation ever runs, so bumping both together would wipe
 // every saved table instead of migrating it.
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
-const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4];
+const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4, 5];
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
 const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool', 'check'];
@@ -274,6 +274,28 @@ function validateTarget(v: unknown): TargetState {
   return { values, ruling };
 }
 
+// Mirrors validateTarget's list handling, minus the ruling: pool targets are
+// always "at least n successes". A pool row's Hit % is not opt-in the way a sum
+// row's is, so anything unreadable lands on [1] rather than an empty list.
+function validatePoolTargets(v: Record<string, unknown>): number[] {
+  if (Array.isArray(v.poolTargets)) {
+    const seen = new Set<number>();
+    const values: number[] = [];
+    for (const raw of v.poolTargets) {
+      if (!isInt(raw)) continue;
+      const value = Math.max(1, raw);
+      if (seen.has(value)) continue;
+      seen.add(value);
+      values.push(value);
+      if (values.length >= MAX_TARGETS) break;
+    }
+    if (values.length > 0) return values.sort((a, b) => a - b);
+  }
+  // Envelopes written before the list existed carry a single scalar.
+  if (isInt(v.poolTarget) && v.poolTarget >= 1) return [v.poolTarget];
+  return [1];
+}
+
 function validateUi(v: unknown): PersistedState['ui'] {
   if (!isRecord(v)) {
     return {
@@ -281,7 +303,7 @@ function validateUi(v: unknown): PersistedState['ui'] {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     };
   }
@@ -294,9 +316,9 @@ function validateUi(v: unknown): PersistedState['ui'] {
   const chartView = isOneOf(v.chartView, CHART_VIEWS) ? v.chartView : 'pmf';
   const target = validateTarget(v.target);
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
-  const poolTarget = isInt(v.poolTarget) && v.poolTarget >= 1 ? v.poolTarget : 1;
+  const poolTargets = validatePoolTargets(v);
   const baselineId = typeof v.baselineId === 'string' ? v.baselineId : null;
-  return { expandedId, chartView, target, view, poolTarget, baselineId };
+  return { expandedId, chartView, target, view, poolTargets, baselineId };
 }
 
 export function validatePersistedState(raw: unknown): PersistedState | null {

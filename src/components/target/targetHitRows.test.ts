@@ -100,9 +100,11 @@ describe('the hand-written fixtures', () => {
 });
 
 describe('targetColumns', () => {
-  it('lists one non-pool column per numeric target', () => {
+  const noValues: TargetState = { values: [], ruling: 'gte' };
+
+  it('lists one numeric column per numeric target', () => {
     const target: TargetState = { values: [7, 10], ruling: 'gte' };
-    expect(targetColumns(target, 2, false)).toEqual([
+    expect(targetColumns(target, [2], false, true)).toEqual([
       { value: 7, pool: false },
       { value: 10, pool: false },
     ]);
@@ -110,86 +112,99 @@ describe('targetColumns', () => {
 
   it('keeps the numeric targets in the order they were set', () => {
     const target: TargetState = { values: [10, 7], ruling: 'gte' };
-    expect(targetColumns(target, 2, false)).toEqual([
+    expect(targetColumns(target, [2], false, true)).toEqual([
       { value: 10, pool: false },
       { value: 7, pool: false },
     ]);
   });
 
-  it('still lists only the numeric targets when the table holds a pool row', () => {
+  it('lists one pool column per pool target after the numeric ones', () => {
     const target: TargetState = { values: [7, 10], ruling: 'gte' };
-    expect(targetColumns(target, 2, true)).toEqual([
+    expect(targetColumns(target, [1, 3], true, true)).toEqual([
       { value: 7, pool: false },
       { value: 10, pool: false },
+      { value: 1, pool: true },
+      { value: 3, pool: true },
     ]);
   });
 
-  it('stands the pool target in as the only column when no numeric target is set', () => {
-    const target: TargetState = { values: [], ruling: 'gte' };
-    expect(targetColumns(target, 2, true)).toEqual([{ value: 2, pool: true }]);
+  it('gives an all-pool table only its pool columns', () => {
+    const target: TargetState = { values: [7, 10], ruling: 'gte' };
+    expect(targetColumns(target, [1, 3], true, false)).toEqual([
+      { value: 1, pool: true },
+      { value: 3, pool: true },
+    ]);
   });
 
-  it('carries whatever the pool target happens to be into that stand-in column', () => {
-    const target: TargetState = { values: [], ruling: 'gte' };
-    expect(targetColumns(target, 5, true)).toEqual([{ value: 5, pool: true }]);
+  it('gives an all-sum table only its numeric columns', () => {
+    const target: TargetState = { values: [7], ruling: 'gte' };
+    expect(targetColumns(target, [1, 3], false, true)).toEqual([
+      { value: 7, pool: false },
+    ]);
+  });
+
+  it('still gives a pool row its columns with no numeric target set', () => {
+    expect(targetColumns(noValues, [2], true, true)).toEqual([
+      { value: 2, pool: true },
+    ]);
   });
 
   it('has no columns when no numeric target is set and no row is a pool', () => {
-    const target: TargetState = { values: [], ruling: 'gte' };
-    expect(targetColumns(target, 2, false)).toEqual([]);
+    expect(targetColumns(noValues, [2], false, true)).toEqual([]);
   });
 });
 
 describe('rowShowsUnderTarget', () => {
-  it('shows a pool row under the pool column', () => {
-    expect(rowShowsUnderTarget(poolRow, poolColumn, 0)).toBe(true);
+  it('shows a pool row under a pool column', () => {
+    expect(rowShowsUnderTarget(poolRow, poolColumn)).toBe(true);
   });
 
-  it('hides a sum row under the pool column', () => {
-    expect(rowShowsUnderTarget(sumRow, poolColumn, 0)).toBe(false);
+  it('hides a sum row under a pool column', () => {
+    expect(rowShowsUnderTarget(sumRow, poolColumn)).toBe(false);
   });
 
-  it('shows a pool row under the first numeric column', () => {
-    expect(rowShowsUnderTarget(poolRow, numericColumn, 0)).toBe(true);
+  it('hides a pool row under a numeric column', () => {
+    expect(rowShowsUnderTarget(poolRow, numericColumn)).toBe(false);
   });
 
-  it('shows a sum row under the first numeric column', () => {
-    expect(rowShowsUnderTarget(sumRow, numericColumn, 0)).toBe(true);
+  it('shows a sum row under a numeric column', () => {
+    expect(rowShowsUnderTarget(sumRow, numericColumn)).toBe(true);
   });
 
-  it('hides a pool row under a second numeric column', () => {
-    expect(rowShowsUnderTarget(poolRow, numericColumn, 1)).toBe(false);
+  it('shows a sum row under every numeric column, not just the first', () => {
+    expect(rowShowsUnderTarget(sumRow, { value: 3, pool: false })).toBe(true);
+    expect(rowShowsUnderTarget(sumRow, { value: 11, pool: false })).toBe(true);
   });
 
-  it('shows a sum row under a second numeric column', () => {
-    expect(rowShowsUnderTarget(sumRow, numericColumn, 1)).toBe(true);
+  it('shows a pool row under every pool column, not just the first', () => {
+    expect(rowShowsUnderTarget(poolRow, { value: 1, pool: true })).toBe(true);
+    expect(rowShowsUnderTarget(poolRow, { value: 2, pool: true })).toBe(true);
   });
 });
 
 describe('rowHitChance', () => {
-  it('measures a pool row against the pool target as a minimum success count', () => {
-    expect(rowHitChance(poolRow, poolColumn, 'gte', 2)).toBeCloseTo(0.25, 12);
-    expect(rowHitChance(poolRow, poolColumn, 'gte', 1)).toBeCloseTo(0.75, 12);
-  });
-
-  it('ignores the column value and the ruling for a pool row', () => {
-    // Under the column's own terms (10, 'lte') every success count would hit.
-    expect(rowHitChance(poolRow, numericColumn, 'lte', 2)).toBeCloseTo(0.25, 12);
-  });
-
-  it('measures a sum row against the column value under the shared ruling', () => {
-    expect(rowHitChance(sumRow, numericColumn, 'gte', 2)).toBeCloseTo(6 / 36, 12);
-  });
-
-  it('follows the ruling for a sum row', () => {
-    expect(rowHitChance(sumRow, { value: 3, pool: false }, 'lte', 2)).toBeCloseTo(
-      3 / 36,
+  it('measures a pool column as a minimum success count', () => {
+    expect(rowHitChance(poolRow, poolColumn, 'gte')).toBeCloseTo(0.25, 12);
+    expect(rowHitChance(poolRow, { value: 1, pool: true }, 'gte')).toBeCloseTo(
+      0.75,
       12,
     );
   });
 
-  it('ignores the pool target for a sum row', () => {
-    expect(rowHitChance(sumRow, numericColumn, 'gte', 12)).toBeCloseTo(6 / 36, 12);
+  it('ignores the shared ruling on a pool column', () => {
+    // Under the numeric ruling ('lte') every success count would hit.
+    expect(rowHitChance(poolRow, poolColumn, 'lte')).toBeCloseTo(0.25, 12);
+  });
+
+  it('measures a sum row against the column value under the shared ruling', () => {
+    expect(rowHitChance(sumRow, numericColumn, 'gte')).toBeCloseTo(6 / 36, 12);
+  });
+
+  it('follows the ruling for a sum row', () => {
+    expect(rowHitChance(sumRow, { value: 3, pool: false }, 'lte')).toBeCloseTo(
+      3 / 36,
+      12,
+    );
   });
 });
 
@@ -198,20 +213,28 @@ describe('rowHitChance', () => {
 describe('a table with no numeric target set', () => {
   const noValues: TargetState = { values: [], ruling: 'gte' };
 
-  it('measures a pool row against the pool target in the one column it gets', () => {
-    const columns = targetColumns(noValues, 2, true);
-    expect(columns).toHaveLength(1);
-    const column = columns[0]!;
-    expect(rowShowsUnderTarget(poolRow, column, 0)).toBe(true);
-    expect(rowHitChance(poolRow, column, noValues.ruling, 2)).toBeCloseTo(0.25, 12);
+  it('measures a pool row against every pool target it is given', () => {
+    const columns = targetColumns(noValues, [1, 2], true, false);
+    expect(columns).toHaveLength(2);
+    expect(rowShowsUnderTarget(poolRow, columns[0]!)).toBe(true);
+    expect(rowHitChance(poolRow, columns[0]!, noValues.ruling)).toBeCloseTo(
+      0.75,
+      12,
+    );
+    expect(rowHitChance(poolRow, columns[1]!, noValues.ruling)).toBeCloseTo(
+      0.25,
+      12,
+    );
   });
 
   it('leaves a sum row unmeasured until a numeric target joins the pool row', () => {
-    const poolOnly = targetColumns(noValues, 2, true);
-    expect(rowShowsUnderTarget(sumRow, poolOnly[0]!, 0)).toBe(false);
+    const poolOnly = targetColumns(noValues, [2], true, true);
+    expect(poolOnly).toHaveLength(1);
+    expect(rowShowsUnderTarget(sumRow, poolOnly[0]!)).toBe(false);
 
-    const withNumeric = targetColumns({ values: [10], ruling: 'gte' }, 2, true);
-    expect(rowShowsUnderTarget(sumRow, withNumeric[0]!, 0)).toBe(true);
-    expect(rowHitChance(sumRow, withNumeric[0]!, 'gte', 2)).toBeCloseTo(6 / 36, 12);
+    const mixed = targetColumns({ values: [10], ruling: 'gte' }, [2], true, true);
+    expect(mixed).toHaveLength(2);
+    expect(rowShowsUnderTarget(sumRow, mixed[0]!)).toBe(true);
+    expect(rowHitChance(sumRow, mixed[0]!, 'gte')).toBeCloseTo(6 / 36, 12);
   });
 });

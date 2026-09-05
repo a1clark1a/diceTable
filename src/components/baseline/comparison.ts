@@ -15,8 +15,8 @@ export interface BaselineComparison {
   isPool: boolean;
   stats: RowStats;
   /**
-   * Sum baseline: one entry per toolbar target. Pool baseline: a single entry
-   * against the shared pool target. Null when no targets are set.
+   * Sum baseline: one entry per toolbar target. Pool baseline: one entry per
+   * shared pool target. Null when no targets are set.
    */
   hits: number[] | null;
   /**
@@ -38,7 +38,7 @@ export function buildBaselineComparison(
   expressions: Expression[],
   baselineId: string | null,
   target: TargetState,
-  poolTarget: number,
+  poolTargets: number[],
 ): BaselineComparison | null {
   if (baselineId === null) return null;
   const baseline = expressions.find((e) => e.id === baselineId);
@@ -48,7 +48,7 @@ export function buildBaselineComparison(
 
   const isPool = baseline.mode === 'pool';
   const hits = isPool
-    ? [hitProbability(stats.dist, poolTarget, 'gte')]
+    ? poolTargets.map((n) => hitProbability(stats.dist, n, 'gte'))
     : target.values.length === 0
       ? null
       : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
@@ -74,16 +74,16 @@ export function buildBaselineComparison(
     }
 
     if (hits !== null) {
-      // Mirror what the Hit % cells display: a pool row compares its single
-      // pool-target hit against the baseline's first hit; a sum row compares
-      // per target (a pool baseline offers only its first).
+      // Mirror what the Hit % cells display: a row sharing the baseline's scale
+      // compares target for target down the list; across scales the two lists
+      // measure different things, so both fall back to their first entry.
       const rowHits = rowIsPool
-        ? [hitProbability(row.stats.dist, poolTarget, 'gte')]
+        ? poolTargets.map((n) => hitProbability(row.stats.dist, n, 'gte'))
         : target.values.map((v) =>
             hitProbability(row.stats.dist, v, target.ruling),
           );
       for (const [i, rowHit] of rowHits.entries()) {
-        const baseHit = isPool ? hits[0] : hits[i];
+        const baseHit = rowIsPool === isPool ? hits[i] : hits[0];
         if (baseHit === undefined) continue;
         maxHitDelta = Math.max(maxHitDelta, Math.abs(rowHit - baseHit));
       }

@@ -144,6 +144,8 @@ type SeedRowKind = 'pool' | 'sum';
 interface PoolSeedOptions {
   targetValues?: number[];
   poolTarget?: number;
+  /** Seeds the list instead of the legacy scalar the other cases migrate. */
+  poolTargets?: number[];
   rows?: readonly SeedRowKind[];
 }
 
@@ -172,6 +174,7 @@ function seedExpression(kind: SeedRowKind) {
 function seedPoolRow({
   targetValues = [],
   poolTarget = 1,
+  poolTargets,
   rows = ['pool'],
 }: PoolSeedOptions = {}) {
   const state = {
@@ -182,7 +185,7 @@ function seedPoolRow({
       chartView: 'pmf',
       target: { values: targetValues, ruling: 'gte' },
       view: 'table',
-      poolTarget,
+      ...(poolTargets === undefined ? { poolTarget } : { poolTargets }),
     },
   };
   window.localStorage.setItem(
@@ -192,15 +195,23 @@ function seedPoolRow({
 }
 
 function queryPoolInput(): HTMLInputElement | null {
-  return screen.queryByLabelText(
-    'Pool target, minimum successes',
-  ) as HTMLInputElement | null;
+  return screen.queryByLabelText('Add pool target') as HTMLInputElement | null;
 }
 
 function getPoolInput(): HTMLInputElement {
-  return screen.getByLabelText(
-    'Pool target, minimum successes',
-  ) as HTMLInputElement;
+  return screen.getByLabelText('Add pool target') as HTMLInputElement;
+}
+
+function addPoolValue(raw: string) {
+  const input = getPoolInput();
+  fireEvent.change(input, { target: { value: raw } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+}
+
+function poolChipLabels(): string[] {
+  return screen
+    .queryAllByRole('button', { name: /^Remove pool target/ })
+    .map((b) => b.getAttribute('aria-label') ?? '');
 }
 
 // Matches whichever guidance sentence the toolbar is currently showing, so a
@@ -236,64 +247,119 @@ describe('TargetToolbar pool target row', () => {
     expect(getPoolInput()).toBeInTheDocument();
   });
 
-  it('shows the persisted pool target value', () => {
+  it('shows the persisted pool target as a chip', () => {
     seedPoolRow({ targetValues: [10], poolTarget: 4 });
     renderToolbar();
-    expect(getPoolInput().value).toBe('4');
+    expect(screen.getByText('4')).toBeInTheDocument();
   });
 
-  it('commits a typed pool target on Enter', () => {
+  it('hydrates a persisted list into one chip per pool target', () => {
+    seedPoolRow({ targetValues: [10], poolTargets: [1, 3] });
+    renderToolbar();
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 1',
+      'Remove pool target ≥ 3',
+    ]);
+  });
+
+  it('adds a pool target chip on Enter and clears the draft', () => {
     seedPoolRow({ targetValues: [10], poolTarget: 2 });
     renderToolbar();
-    const input = getPoolInput();
-    fireEvent.change(input, { target: { value: '6' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(input.value).toBe('6');
-    // Escape snaps back to the committed value, so a surviving '6' proves
-    // Enter committed rather than just buffered.
-    fireEvent.keyDown(input, { key: 'Escape' });
-    expect(input.value).toBe('6');
+    addPoolValue('6');
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 2',
+      'Remove pool target ≥ 6',
+    ]);
+    expect(getPoolInput().value).toBe('');
+  });
+
+  it('sorts an added pool target into the list', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 4 });
+    renderToolbar();
+    addPoolValue('2');
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 2',
+      'Remove pool target ≥ 4',
+    ]);
+  });
+
+  it('rejects a duplicate pool target silently', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 2 });
+    renderToolbar();
+    addPoolValue('2');
+    expect(poolChipLabels()).toHaveLength(0);
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('clamps a pool target below one up to one', () => {
     seedPoolRow({ targetValues: [10], poolTarget: 3 });
     renderToolbar();
-    const input = getPoolInput();
-    fireEvent.change(input, { target: { value: '0' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(input.value).toBe('1');
+    addPoolValue('0');
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 1',
+      'Remove pool target ≥ 3',
+    ]);
   });
 
-  it('falls back to one when the pool target is not a number', () => {
+  it('ignores a draft that is not a number', () => {
     seedPoolRow({ targetValues: [10], poolTarget: 3 });
     renderToolbar();
-    const input = getPoolInput();
-    fireEvent.change(input, { target: { value: 'abc' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(input.value).toBe('1');
+    addPoolValue('abc');
+    expect(poolChipLabels()).toHaveLength(0);
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(getPoolInput().value).toBe('');
   });
 
-  it('reverts an uncommitted pool target edit on Escape', () => {
+  it('clears an uncommitted pool draft on Escape', () => {
     seedPoolRow({ targetValues: [10], poolTarget: 4 });
     renderToolbar();
     const input = getPoolInput();
     fireEvent.change(input, { target: { value: '9' } });
     expect(input.value).toBe('9');
     fireEvent.keyDown(input, { key: 'Escape' });
-    expect(input.value).toBe('4');
+    expect(input.value).toBe('');
+    expect(poolChipLabels()).toHaveLength(0);
   });
 
-  it('commits a typed pool target when no numeric target is set', () => {
+  it('takes the last chip back on Backspace with an empty draft', () => {
+    seedPoolRow({ targetValues: [10], poolTargets: [1, 3] });
+    renderToolbar();
+    fireEvent.keyDown(getPoolInput(), { key: 'Backspace' });
+    expect(poolChipLabels()).toHaveLength(0);
+    expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  it('gives the last remaining pool target no remove control', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 2 });
+    renderToolbar();
+    expect(poolChipLabels()).toHaveLength(0);
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('keeps the last pool target through Backspace', () => {
+    seedPoolRow({ targetValues: [10], poolTarget: 2 });
+    renderToolbar();
+    fireEvent.keyDown(getPoolInput(), { key: 'Backspace' });
+    expect(screen.getByText('2')).toBeInTheDocument();
+  });
+
+  it('disables the pool input at the cap', () => {
+    seedPoolRow({ targetValues: [10], poolTargets: [1, 2, 3, 4, 5] });
+    renderToolbar();
+    expect(getPoolInput().disabled).toBe(true);
+    expect(
+      screen.getByText('Up to 5 pool targets. Remove one to add another.'),
+    ).toBeInTheDocument();
+  });
+
+  it('adds a pool target when no numeric target is set', () => {
     seedPoolRow({ poolTarget: 1 });
     renderToolbar();
-    const input = getPoolInput();
-    fireEvent.change(input, { target: { value: '2' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(input.value).toBe('2');
-    // Escape snaps back to the committed value, so a surviving '2' proves the
-    // row is live with no numeric target rather than decorative.
-    fireEvent.keyDown(input, { key: 'Escape' });
-    expect(input.value).toBe('2');
+    addPoolValue('2');
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 1',
+      'Remove pool target ≥ 2',
+    ]);
   });
 
   it('asks for a target for the sum rows when a table holds both kinds', () => {

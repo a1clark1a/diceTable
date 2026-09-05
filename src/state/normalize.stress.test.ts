@@ -292,7 +292,7 @@ function persistedWith(expr: Expression): PersistedState {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     },
   };

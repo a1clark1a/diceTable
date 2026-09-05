@@ -415,7 +415,7 @@ const uiTips: Record<string, string> = {
   successDirection:
     'A die succeeds when it lands at or above (≥) or at or below (≤) the number. Click to flip.',
   poolTarget:
-    'How many successes count as a hit for every pool row. Sum rows keep using the targets in the toolbar.',
+    'How many successes count as a hit on every pool row. Add more than one to compare thresholds side by side.',
   totalsChart:
     'Sum rolls compare here. The bottom axis shows each possible total.',
   successesChart:

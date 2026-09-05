@@ -4,7 +4,11 @@ import { createElement, type ReactNode } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
-import { validateExpression, validatePersistedState } from './persistedSchema';
+import {
+  SCHEMA_VERSION,
+  validateExpression,
+  validatePersistedState,
+} from './persistedSchema';
 import { expressionDistribution } from '../engine/expression';
 import { mean } from '../engine/stats';
 import { decodeFromHashFragment, decodeFromJsonString } from '../share/decode';
@@ -95,7 +99,7 @@ describe('validatePersistedState with a check row', () => {
   it('returns a v4 check row intact, including its crit rule', () => {
     const state = validatePersistedState(envelope([checkRow()]));
     expect(state).not.toBeNull();
-    expect(state!.version).toBe(4);
+    expect(state!.version).toBe(SCHEMA_VERSION);
     expect(state!.expressions).toEqual([EXPECTED_CHECK_ROW]);
   });
 
@@ -114,17 +118,17 @@ describe('validatePersistedState with a check row', () => {
     expect(validatePersistedState(envelope([checkRow(), corrupt]))).toBeNull();
   });
 
-  it('normalises a v2 payload with no check to version 4', () => {
+  it('normalises a v2 payload with no check to the current version', () => {
     const state = validatePersistedState(envelope([sumRow()], 2));
     expect(state).not.toBeNull();
-    expect(state!.version).toBe(4);
+    expect(state!.version).toBe(SCHEMA_VERSION);
     expect(state!.expressions).toHaveLength(1);
   });
 
-  it('normalises a v3 payload with no check to version 4', () => {
+  it('normalises a v3 payload with no check to the current version', () => {
     const state = validatePersistedState(envelope([sumRow()], 3));
     expect(state).not.toBeNull();
-    expect(state!.version).toBe(4);
+    expect(state!.version).toBe(SCHEMA_VERSION);
     expect(state!.expressions[0]!.mode).toBe('sum');
   });
 

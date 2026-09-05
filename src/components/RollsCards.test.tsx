@@ -9,6 +9,8 @@ import { TargetToolbar } from './TargetToolbar';
 function seedState(opts: {
   targetValues: number[];
   poolTarget: number;
+  /** Seeds the list instead of the legacy scalar the other cases migrate. */
+  poolTargets?: number[];
   /** Drops the sum card so the list holds nothing but the pool roll. */
   poolOnly?: boolean;
   /** Seeded chart view; each card resolves its own Shape label from it. */
@@ -39,7 +41,9 @@ function seedState(opts: {
       chartView: opts.chartView ?? 'pmf',
       target: { values: opts.targetValues, ruling: 'gte' },
       view: 'table',
-      poolTarget: opts.poolTarget,
+      ...(opts.poolTargets === undefined
+        ? { poolTarget: opts.poolTarget }
+        : { poolTargets: opts.poolTargets }),
     },
   };
   window.localStorage.setItem(
@@ -124,18 +128,30 @@ describe('RollsCards pool Hit %', () => {
     expect(glyphsIn(poolPill)).toHaveLength(0);
   });
 
-  it('committing pool target 1 with Enter updates the pool card to 75.0%', () => {
+  it('adding pool target 1 with Enter stacks a second percentage on the pool card', () => {
     seedState({ targetValues: [10], poolTarget: 2 });
     renderCards();
 
-    const input = screen.getByLabelText('Pool target, minimum successes');
+    const input = screen.getByLabelText('Add pool target');
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    const poolLabel = screen.getByText('≥1');
-    const poolValueRow = poolLabel.closest('div')!;
-    expect(within(poolValueRow).getByText('75.0%')).toBeInTheDocument();
-    expect(screen.queryByText('25.0%')).toBeNull();
+    const lowerBar = screen.getByText('≥1').closest('div')!;
+    expect(within(lowerBar).getByText('75.0%')).toBeInTheDocument();
+    const higherBar = screen.getByText('≥2').closest('div')!;
+    expect(within(higherBar).getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('removing a pool target chip takes its percentage off the pool card', () => {
+    seedState({ targetValues: [10], poolTarget: 2, poolTargets: [1, 2] });
+    renderCards();
+    expect(screen.getByText('≥1')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove pool target ≥ 1' }),
+    );
+    expect(screen.queryByText('≥1')).toBeNull();
+    expect(screen.getByText('≥2')).toBeInTheDocument();
   });
 
   it('keeps the pool Hit % pill when no numeric target is set', () => {

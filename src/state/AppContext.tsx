@@ -44,7 +44,7 @@ const initialState: PersistedState = {
     chartView: 'pmf',
     target: { values: [], ruling: 'gte' },
     view: 'table',
-    poolTarget: 1,
+    poolTargets: [1],
     baselineId: null,
   },
 };
@@ -229,10 +229,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
-  const setPoolTarget = useCallback(
-    (value: number) => {
-      const next = Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1;
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, poolTarget: next } }));
+  const setPoolTargets = useCallback(
+    (values: number[]) => {
+      setState((prev) => {
+        const seen = new Set<number>();
+        const cleaned: number[] = [];
+        for (const v of values) {
+          if (!Number.isInteger(v)) continue;
+          const value = Math.max(1, v);
+          if (seen.has(value)) continue;
+          seen.add(value);
+          cleaned.push(value);
+          if (cleaned.length >= MAX_TARGETS) break;
+        }
+        // A pool row's Hit % is not opt-in the way a sum row's is, so emptying
+        // the list would leave those rows with nothing to answer.
+        if (cleaned.length === 0) return prev;
+        cleaned.sort((a, b) => a - b);
+        return { ...prev, ui: { ...prev.ui, poolTargets: cleaned } };
+      });
     },
     [setState],
   );
@@ -460,14 +475,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       chartView: state.ui.chartView,
       target: state.ui.target,
       view: state.ui.view,
-      poolTarget: state.ui.poolTarget,
+      poolTargets: state.ui.poolTargets,
       baselineId: state.ui.baselineId,
       setExpandedId,
       setBaselineId,
       setChartView,
       setView,
       setTarget,
-      setPoolTarget,
+      setPoolTargets,
       addExpression,
       duplicateExpression,
       deleteExpression,
@@ -487,7 +502,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setChartView,
       setView,
       setTarget,
-      setPoolTarget,
+      setPoolTargets,
       addExpression,
       duplicateExpression,
       deleteExpression,

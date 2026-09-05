@@ -36,7 +36,7 @@ function Harness({ onState }: { onState: (state: PersistedState) => void }) {
         chartView: app.chartView,
         target: app.target,
         view: app.view,
-        poolTarget: app.poolTarget,
+        poolTargets: app.poolTargets,
         baselineId: app.baselineId,
       },
     });
@@ -54,7 +54,7 @@ function seedAndRender(expressions: unknown[]): Snapshot {
       chartView: 'pmf',
       target: { values: [] as number[], ruling: 'gte' as const },
       view: 'table' as const,
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     },
   };

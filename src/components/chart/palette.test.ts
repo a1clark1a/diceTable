@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   hitColor,
+  hitWeight,
   rowColor,
   seriesDash,
   SHARE_CARD_DARK,
@@ -93,6 +94,27 @@ describe('hitColor', () => {
     expect(hitColor(0.3299)).toBe('hit.bad');
     expect(hitColor(0.1)).toBe('hit.bad');
     expect(hitColor(0)).toBe('hit.bad');
+  });
+});
+
+describe('hitWeight', () => {
+  it('climbs with the percentage so the bands read without colour', () => {
+    expect(hitWeight(0)).toBe('normal');
+    expect(hitWeight(0.3299)).toBe('normal');
+    expect(hitWeight(0.33)).toBe('medium');
+    expect(hitWeight(0.6599)).toBe('medium');
+    expect(hitWeight(0.66)).toBe('semibold');
+    expect(hitWeight(1)).toBe('semibold');
+  });
+
+  it('changes band on exactly the thresholds hitColor uses', () => {
+    for (const p of [0, 0.2, 0.33, 0.5, 0.66, 0.8, 1]) {
+      const sameBand =
+        (hitColor(p) === 'hit.bad' && hitWeight(p) === 'normal') ||
+        (hitColor(p) === 'hit.mid' && hitWeight(p) === 'medium') ||
+        (hitColor(p) === 'hit.good' && hitWeight(p) === 'semibold');
+      expect(sameBand).toBe(true);
+    }
   });
 });
 

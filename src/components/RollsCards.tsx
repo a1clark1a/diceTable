@@ -35,7 +35,7 @@ import {
 } from './editor/PoolControls';
 import { RollExpand } from './RollExpand';
 import { RollPopover, RollResultInline } from './RollResult';
-import { hitColor, rowColor } from './chart/palette';
+import { rowColor } from './chart/palette';
 import { RowSparkline, ShapeCardLabel } from './chart/Sparkline';
 import { effectiveChartView } from './chart/effectiveView';
 import {
@@ -43,7 +43,6 @@ import {
   deltaTone,
   formatDelta,
   formatNumber,
-  formatPercent,
 } from './chart/format';
 import {
   STAT_DELTA_EPS,
@@ -51,7 +50,8 @@ import {
   type BaselineComparison,
 } from './baseline/comparison';
 import { buildVerdict } from './baseline/verdict';
-import { DeltaLine, HitDeltaValue } from './baseline/DeltaLine';
+import { DeltaLine } from './baseline/DeltaLine';
+import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
@@ -86,7 +86,7 @@ export function RollsCards() {
     expandedId,
     chartView,
     target,
-    poolTarget,
+    poolTargets,
     baselineId,
     setExpandedId,
     setBaselineId,
@@ -102,8 +102,8 @@ export function RollsCards() {
     target.values.length > 0 || expressions.some((e) => e.mode === 'pool');
   const atCap = expressions.length >= MAX_EXPRESSIONS;
   const comparison = useMemo(
-    () => buildBaselineComparison(expressions, baselineId, target, poolTarget),
-    [expressions, baselineId, target, poolTarget],
+    () => buildBaselineComparison(expressions, baselineId, target, poolTargets),
+    [expressions, baselineId, target, poolTargets],
   );
 
   return (
@@ -117,7 +117,7 @@ export function RollsCards() {
           showHit={showHit}
           chartView={chartView}
           target={target}
-          poolTarget={poolTarget}
+          poolTargets={poolTargets}
           baselineId={baselineId}
           comparison={comparison}
           setExpandedId={setExpandedId}
@@ -154,7 +154,7 @@ interface RollCardProps {
   showHit: boolean;
   chartView: ChartView;
   target: TargetState;
-  poolTarget: number;
+  poolTargets: number[];
   baselineId: string | null;
   comparison: BaselineComparison | null;
   setExpandedId: (id: string | null) => void;
@@ -171,7 +171,7 @@ const RollCard = memo(function RollCard({
   showHit,
   chartView,
   target,
-  poolTarget,
+  poolTargets,
   baselineId,
   comparison,
   setExpandedId,
@@ -191,20 +191,26 @@ const RollCard = memo(function RollCard({
         : null,
     [isPool, showHit, stats, target],
   );
-  const poolHit =
-    isPool && showHit && stats.hasDist
-      ? hitProbability(stats.dist, poolTarget, 'gte')
-      : null;
+  const poolHits = useMemo(
+    () =>
+      isPool && showHit && stats.hasDist
+        ? poolTargets.map((n) => ({
+            target: n,
+            p: hitProbability(stats.dist, n, 'gte'),
+          }))
+        : null,
+    [isPool, showHit, stats, poolTargets],
+  );
   // In target view a pool row's shape highlights against the shared pool
-  // target; the numeric target list describes sums, not success counts.
+  // targets; the numeric target list describes sums, not success counts.
   const sparkTarget = useMemo<TargetState>(
-    () => (isPool ? { values: [poolTarget], ruling: 'gte' } : target),
-    [isPool, poolTarget, target],
+    () => (isPool ? { values: poolTargets, ruling: 'gte' } : target),
+    [isPool, poolTargets, target],
   );
   const view = effectiveChartView(chartView, sparkTarget.values.length > 0);
   // Pointing at the Hit % column only helps a row that has one; a sum row
   // with no numeric target set shows a dash there.
-  const hasHitValue = hits !== null || poolHit !== null;
+  const hasHitValue = hits !== null || poolHits !== null;
   const isBaseline = baselineId === expr.id;
   const rowOk = stats.hasDist && !tooComplex;
   const deltasActive = comparison !== null && !isBaseline && rowOk;
@@ -215,18 +221,19 @@ const RollCard = memo(function RollCard({
     comparison !== null ? stats.mean - comparison.stats.mean : 0;
   const sigmaDelta =
     comparison !== null ? stats.stddev - comparison.stats.stddev : 0;
+  // Index-aligned while the card and the baseline share a scale; across scales
+  // the two lists measure different things, so both read their first entry.
   const baseHitFor = (i: number): number | undefined => {
     if (comparison === null || comparison.hits === null) return undefined;
-    return comparison.isPool ? comparison.hits[0] : comparison.hits[i];
+    return isPool === comparison.isPool ? comparison.hits[i] : comparison.hits[0];
   };
-  const poolBaseHit = deltasActive ? baseHitFor(0) : undefined;
   const hitMax = comparison?.maxHitDelta ?? 0;
   const verdict = deltasActive
     ? buildVerdict({
         mean: stats.mean,
         stddev: stats.stddev,
         isPool,
-        firstHit: isPool ? poolHit : (hits?.[0] ?? null),
+        firstHit: isPool ? (poolHits?.[0]?.p ?? null) : (hits?.[0] ?? null),
         baseMean: comparison.stats.mean,
         baseStddev: comparison.stats.stddev,
         baseIsPool: comparison.isPool,
@@ -578,59 +585,48 @@ const RollCard = memo(function RollCard({
               )}
               value={
                 isPool ? (
-                  poolHit === null ? (
+                  poolHits === null ? (
                     EM_DASH
                   ) : (
-                    <HStack gap={2} justify="center">
-                      <Text as="span" color="purple.fg" fontSize="2xs">
-                        ≥{poolTarget}
-                      </Text>
-                      {poolBaseHit !== undefined ? (
-                        <HitDeltaValue
-                          delta={poolHit - poolBaseHit}
+                    <Stack gap={0.5} align="center">
+                      {poolHits.map(({ target: n, p }, i) => (
+                        <HitLine
+                          key={n}
+                          label={
+                            <Text as="span" color="purple.fg" fontSize="2xs">
+                              ≥{n}
+                            </Text>
+                          }
+                          p={p}
+                          baseHit={deltasActive ? baseHitFor(i) : undefined}
                           maxDelta={hitMax}
+                          justify="center"
                         />
-                      ) : (
-                        <Text
-                          as="span"
-                          color={hitColor(poolHit)}
-                          fontWeight={poolHit >= 0.66 ? 'semibold' : undefined}
-                        >
-                          {formatPercent(poolHit)}
-                        </Text>
-                      )}
-                    </HStack>
+                      ))}
+                    </Stack>
                   )
                 ) : hits === null ? (
                   EM_DASH
                 ) : (
                   <Stack gap={0.5} align="center">
-                    {hits.map((p, i) => {
-                      const baseHit = deltasActive ? baseHitFor(i) : undefined;
-                      return (
-                        <HStack key={target.values[i]} gap={2} justify="center">
-                          {target.values.length > 1 && (
-                            <Text as="span" color="fg.muted" fontSize="2xs">
-                              {target.values[i]}
-                            </Text>
-                          )}
-                          {baseHit !== undefined ? (
-                            <HitDeltaValue
-                              delta={p - baseHit}
-                              maxDelta={hitMax}
-                            />
-                          ) : (
-                            <Text
-                              as="span"
-                              color={hitColor(p)}
-                              fontWeight={p >= 0.66 ? 'semibold' : undefined}
-                            >
-                              {formatPercent(p)}
-                            </Text>
-                          )}
-                        </HStack>
-                      );
-                    })}
+                    {hits.map((p, i) => (
+                      <HitLine
+                        key={target.values[i]}
+                        {...(target.values.length > 1
+                          ? {
+                              label: (
+                                <Text as="span" color="fg.muted" fontSize="2xs">
+                                  {target.values[i]}
+                                </Text>
+                              ),
+                            }
+                          : {})}
+                        p={p}
+                        baseHit={deltasActive ? baseHitFor(i) : undefined}
+                        maxDelta={hitMax}
+                        justify="center"
+                      />
+                    ))}
                   </Stack>
                 )
               }

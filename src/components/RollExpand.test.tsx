@@ -92,7 +92,7 @@ function seedSumExpressionInStorage() {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     },
   };
@@ -124,7 +124,7 @@ function seedPoolExpressionInStorage() {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     },
   };

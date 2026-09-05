@@ -49,6 +49,18 @@ export function hitColor(p: number): HitToken {
   return 'hit.bad';
 }
 
+export type HitWeight = 'normal' | 'medium' | 'semibold';
+
+// Weight climbs with the percentage so the three bands stay apart for anyone
+// who cannot separate the red from the amber. Colour alone cannot carry a
+// three-state signal.
+export function hitWeight(p: number): HitWeight {
+  const tone = hitTone(p);
+  if (tone === 'good') return 'semibold';
+  if (tone === 'mid') return 'medium';
+  return 'normal';
+}
+
 export interface ShareCardPalette {
   background: string;
   panel: string;

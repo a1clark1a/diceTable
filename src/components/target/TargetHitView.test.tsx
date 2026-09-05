@@ -78,10 +78,13 @@ const OVERSIZED_POOL = {
   successThreshold: { direction: 'gte', value: 4 },
 };
 
+// Writes the legacy scalar by default so the migration stays exercised, and the
+// list when a test asks for one.
 function seedState(opts: {
   expressions: unknown[];
   targetValues: number[];
   poolTarget?: number;
+  poolTargets?: number[];
 }) {
   const state = {
     version: 3,
@@ -91,7 +94,9 @@ function seedState(opts: {
       chartView: 'pmf',
       target: { values: opts.targetValues, ruling: 'gte' },
       view: 'target',
-      poolTarget: opts.poolTarget ?? 2,
+      ...(opts.poolTargets === undefined
+        ? { poolTarget: opts.poolTarget ?? 2 }
+        : { poolTargets: opts.poolTargets }),
     },
   };
   window.localStorage.setItem(
@@ -115,6 +120,13 @@ function gridRowNames(): string[] {
   return rows.map(
     (row) => within(row).getAllByRole('cell')[0]?.textContent ?? '',
   );
+}
+
+function cellsFor(name: string): HTMLElement[] {
+  const row = screen
+    .getAllByRole('row')
+    .find((r) => r.textContent?.includes(name));
+  return within(row!).getAllByRole('cell');
 }
 
 afterEach(() => {
@@ -223,7 +235,7 @@ describe('TargetHitView grid', () => {
     expect(gridRowNames()).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 
-  it('shows a pool row under the first target only, starred against the pool target', () => {
+  it('gives each scale its own columns, leaving the other kind blank', () => {
     seedState({
       expressions: [ALPHA, POOL],
       targetValues: [7, 10],
@@ -231,17 +243,43 @@ describe('TargetHitView grid', () => {
     });
     renderView();
 
-    const poolRow = screen
-      .getAllByRole('row')
-      .find((row) => row.textContent?.includes('Pool row'));
-    expect(poolRow).toBeDefined();
-    const cells = within(poolRow!).getAllByRole('cell');
-    expect(cells[1]).toHaveTextContent('25.0%*');
-    expect(cells[2]).toHaveTextContent(/^$/);
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent);
+    expect(headers).toHaveLength(4);
+    expect(headers[3]).toContain('≥2 successes');
 
-    expect(
-      screen.getByText(/\* pool rows use the pool target\./),
-    ).toBeInTheDocument();
+    const poolCells = cellsFor('Pool row');
+    expect(poolCells[1]).toHaveTextContent(/^$/);
+    expect(poolCells[2]).toHaveTextContent(/^$/);
+    expect(poolCells[3]).toHaveTextContent(/^25\.0%$/);
+
+    const sumCells = cellsFor('Alpha');
+    expect(sumCells[1]).toHaveTextContent(/^58\.3%$/);
+    expect(sumCells[2]).toHaveTextContent(/^16\.7%$/);
+    expect(sumCells[3]).toHaveTextContent(/^$/);
+
+    expect(screen.queryByText(/pool rows use the pool target/)).toBeNull();
+  });
+
+  it('gives every pool target its own column', () => {
+    seedState({
+      expressions: [ALPHA, POOL],
+      targetValues: [7],
+      poolTargets: [1, 2],
+    });
+    renderView();
+
+    const headers = screen
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent);
+    expect(headers).toHaveLength(4);
+    expect(headers[2]).toContain('≥1 successes');
+    expect(headers[3]).toContain('≥2 successes');
+
+    const poolCells = cellsFor('Pool row');
+    expect(poolCells[2]).toHaveTextContent(/^75\.0%$/);
+    expect(poolCells[3]).toHaveTextContent(/^25\.0%$/);
   });
 
   it('omits the pool footnote when every roll sums', () => {
@@ -293,20 +331,22 @@ describe('TargetHitView bars', () => {
     expect(names).toEqual(['Alpha', 'Beta', 'Beta', 'Alpha']);
   });
 
-  it('labels the first panel with the pool target and keeps pools out of the rest', () => {
+  it('gives the pool targets their own panels beside the numeric ones', () => {
     seedState({
       expressions: [ALPHA, POOL],
       targetValues: [7, 10],
-      poolTarget: 2,
+      poolTargets: [1, 2],
     });
     renderView();
     fireEvent.click(screen.getByRole('button', { name: 'Bars' }));
 
-    expect(
-      screen.getByText('Target 7 (pools: ≥2 successes)'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Target 7')).toBeInTheDocument();
     expect(screen.getByText('Target 10')).toBeInTheDocument();
-    expect(screen.getAllByText('Pool row')).toHaveLength(1);
+    expect(screen.getByText('Pool target ≥1 successes')).toBeInTheDocument();
+    expect(screen.getByText('Pool target ≥2 successes')).toBeInTheDocument();
+    // One bar per pool panel, and none under the numeric ones.
+    expect(screen.getAllByText('Pool row')).toHaveLength(2);
+    expect(screen.getAllByText('Alpha')).toHaveLength(2);
   });
 });
 
@@ -337,13 +377,6 @@ describe('TargetHitView curves wiring', () => {
 });
 
 describe('TargetHitView pool-only columns', () => {
-  function cellsFor(name: string): HTMLElement[] {
-    const row = screen
-      .getAllByRole('row')
-      .find((r) => r.textContent?.includes(name));
-    return within(row!).getAllByRole('cell');
-  }
-
   it('measures a pool table against the pool target when no numeric target is set', () => {
     seedState({ expressions: [POOL], targetValues: [], poolTarget: 2 });
     renderView();

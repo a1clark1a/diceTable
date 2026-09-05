@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
 import { validateExpression, validatePersistedState } from './persistedSchema';
-import type { Expression, RollMode } from '../types';
+import { MAX_TARGETS, type Expression, type RollMode } from '../types';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AppProvider>{children}</AppProvider>
@@ -450,70 +450,94 @@ describe('AppContext updateExpression mode switching', () => {
   });
 });
 
-describe('AppContext setPoolTarget', () => {
-  it('defaults to 1', () => {
+describe('AppContext setPoolTargets', () => {
+  it('defaults to a single target of 1', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([1]);
   });
 
-  it('stores a positive integer as given', () => {
+  it('stores positive integers as given', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(4);
+      result.current.setPoolTargets([4]);
     });
-    expect(result.current.poolTarget).toBe(4);
+    expect(result.current.poolTargets).toEqual([4]);
   });
 
-  it('floors a fractional value down to the nearest integer', () => {
+  it('sorts the list ascending', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(3.9);
+      result.current.setPoolTargets([5, 1, 3]);
     });
-    expect(result.current.poolTarget).toBe(3);
+    expect(result.current.poolTargets).toEqual([1, 3, 5]);
+  });
+
+  it('drops duplicates', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTargets([3, 3, 1]);
+    });
+    expect(result.current.poolTargets).toEqual([1, 3]);
+  });
+
+  it(`keeps at most ${MAX_TARGETS} targets`, () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTargets([1, 2, 3, 4, 5, 6, 7]);
+    });
+    expect(result.current.poolTargets).toHaveLength(MAX_TARGETS);
   });
 
   it('clamps zero up to 1', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([5]);
     });
     act(() => {
-      result.current.setPoolTarget(0);
+      result.current.setPoolTargets([0]);
     });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([1]);
   });
 
   it('clamps a negative value up to 1', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([5]);
     });
     act(() => {
-      result.current.setPoolTarget(-3);
+      result.current.setPoolTargets([-3]);
     });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([1]);
   });
 
-  it('falls back to 1 for NaN', () => {
+  it('drops a fractional value', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([3.9, 4]);
     });
-    act(() => {
-      result.current.setPoolTarget(NaN);
-    });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([4]);
   });
 
-  it('falls back to 1 for Infinity', () => {
+  it('keeps the current list when nothing in the new one is usable', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([5]);
     });
     act(() => {
-      result.current.setPoolTarget(Infinity);
+      result.current.setPoolTargets([NaN, Infinity]);
     });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([5]);
+  });
+
+  it('never empties the list', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTargets([5]);
+    });
+    act(() => {
+      result.current.setPoolTargets([]);
+    });
+    expect(result.current.poolTargets).toEqual([5]);
   });
 
   it('leaves expressions and target values untouched', () => {
@@ -523,7 +547,7 @@ describe('AppContext setPoolTarget', () => {
     });
     const beforeExpressions = result.current.expressions;
     act(() => {
-      result.current.setPoolTarget(3);
+      result.current.setPoolTargets([3]);
     });
     expect(result.current.expressions).toEqual(beforeExpressions);
     expect(result.current.target.values).toEqual([13, 16]);
@@ -1045,14 +1069,14 @@ describe('AppContext row lifecycle', () => {
       result.current.updatePart(id, partId, { reroll: undefined, explode: undefined });
     });
     const persisted = {
-      version: 4,
+      version: 5,
       expressions: result.current.expressions,
       ui: {
         expandedId: result.current.expandedId,
         chartView: result.current.chartView,
         target: result.current.target,
         view: result.current.view,
-        poolTarget: result.current.poolTarget,
+        poolTargets: result.current.poolTargets,
         baselineId: result.current.baselineId,
       },
     };

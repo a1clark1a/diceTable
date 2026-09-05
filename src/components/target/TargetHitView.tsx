@@ -8,6 +8,7 @@ import { formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
 import type { TargetRuling } from '../../types';
 import {
+  columnKey,
   rowHitChance,
   rowShowsUnderTarget,
   targetColumns,
@@ -22,7 +23,8 @@ type SubView = 'grid' | 'curves' | 'bars';
 type KindFilter = 'all' | 'sum' | 'pool';
 
 interface GridSort {
-  index: number;
+  /** columnKey, not a position: the two axes shift as targets and filters change. */
+  key: string;
   dir: 'desc' | 'asc';
 }
 
@@ -39,7 +41,7 @@ const KIND_FILTERS: { value: KindFilter; label: string }[] = [
 ];
 
 export function TargetHitView() {
-  const { expressions, target, poolTarget } = useApp();
+  const { expressions, target, poolTargets } = useApp();
   const [subView, setSubView] = useState<SubView>('grid');
   const [filter, setFilter] = useState<KindFilter>('all');
   const [sort, setSort] = useState<GridSort | null>(null);
@@ -58,15 +60,23 @@ export function TargetHitView() {
     [rows, effectiveFilter],
   );
   const sumRows = useMemo(() => rows.filter((r) => !r.isPool), [rows]);
+  // Built from the filtered rows so hiding one kind takes its axis with it
+  // instead of leaving a run of columns nothing on screen can answer.
   const columns = useMemo(
-    () => targetColumns(target, poolTarget, hasPools),
-    [target, poolTarget, hasPools],
+    () =>
+      targetColumns(
+        target,
+        poolTargets,
+        filteredRows.some((r) => r.isPool),
+        filteredRows.some((r) => !r.isPool),
+      ),
+    [target, poolTargets, filteredRows],
   );
 
-  const cycleSort = useCallback((index: number) => {
+  const cycleSort = useCallback((key: string) => {
     setSort((cur) => {
-      if (cur === null || cur.index !== index) return { index, dir: 'desc' };
-      if (cur.dir === 'desc') return { index, dir: 'asc' };
+      if (cur === null || cur.key !== key) return { key, dir: 'desc' };
+      if (cur.dir === 'desc') return { key, dir: 'asc' };
       return null;
     });
   }, []);
@@ -92,22 +102,20 @@ export function TargetHitView() {
     );
   }
 
-  // Removing a target can strand the sort on a column that no longer exists.
+  // Removing a target, or filtering its axis away, can strand the sort on a
+  // column that is gone. Matching by key drops it instead of re-pointing it at
+  // whatever column slid into that position.
   const activeSort =
-    sort !== null && sort.index < columns.length ? sort : null;
+    sort !== null && columns.some((c) => columnKey(c) === sort.key)
+      ? sort
+      : null;
 
-  const poolOnlyColumn = columns[0]?.pool === true;
-  const showPoolFootnote = !poolOnlyColumn && filteredRows.some((r) => r.isPool);
   const hint =
     subView === 'grid'
-      ? `Click a target column to sort. Green is reliable, red is a long shot.${
-          showPoolFootnote ? ' * pool rows use the pool target.' : ''
-        }`
+      ? 'Click a target column to sort. Green is reliable, red is a long shot.'
       : subView === 'curves'
         ? 'Read any target off the lines. Dashed lines mark your current targets. Sum rolls only.'
-        : poolOnlyColumn
-          ? 'One panel per target. Pool rolls answer the pool target.'
-          : 'One panel per target, best for a handful of rolls.';
+        : 'One panel per target, best for a handful of rolls.';
 
   return (
     <Stack gap={3}>
@@ -175,7 +183,6 @@ export function TargetHitView() {
           rows={filteredRows}
           columns={columns}
           ruling={target.ruling}
-          poolTarget={poolTarget}
           sort={activeSort}
           onCycleSort={cycleSort}
           onClearSort={clearSort}
@@ -187,17 +194,10 @@ export function TargetHitView() {
           rows={filteredRows}
           columns={columns}
           ruling={target.ruling}
-          poolTarget={poolTarget}
         />
       )}
     </Stack>
   );
-}
-
-// A pool column never coexists with numeric ones, so the prefix is enough to
-// keep the two kinds of key apart.
-function columnKey(column: TargetColumn): string {
-  return `${column.pool ? 'pool' : 'num'}-${column.value}`;
 }
 
 function bucketBg(p: number): string {
@@ -210,9 +210,8 @@ interface TargetGridProps {
   rows: TargetRow[];
   columns: TargetColumn[];
   ruling: TargetRuling;
-  poolTarget: number;
   sort: GridSort | null;
-  onCycleSort: (index: number) => void;
+  onCycleSort: (key: string) => void;
   onClearSort: () => void;
 }
 
@@ -220,7 +219,6 @@ function TargetGrid({
   rows,
   columns,
   ruling,
-  poolTarget,
   sort,
   onCycleSort,
   onClearSort,
@@ -229,20 +227,50 @@ function TargetGrid({
   const sortedRows = useMemo(() => {
     const scored = rows.map((row) => ({
       row,
+      // null where the row is on the other scale from the column: nothing to
+      // measure, nothing to print, and nothing to rank by.
       hits: columns.map((column) =>
-        rowHitChance(row, column, ruling, poolTarget),
+        rowShowsUnderTarget(row, column)
+          ? rowHitChance(row, column, ruling)
+          : null,
       ),
     }));
-    if (sort !== null) {
+    const index =
+      sort === null ? -1 : columns.findIndex((c) => columnKey(c) === sort.key);
+    if (index >= 0 && sort !== null) {
       const dir = sort.dir === 'desc' ? -1 : 1;
-      scored.sort(
-        (a, b) => dir * ((a.hits[sort.index] ?? 0) - (b.hits[sort.index] ?? 0)),
-      );
+      // Blank rows sink together rather than interleaving on a rank they have
+      // no value for.
+      scored.sort((a, b) => {
+        const av = a.hits[index] ?? null;
+        const bv = b.hits[index] ?? null;
+        if (av === null) return bv === null ? 0 : 1;
+        if (bv === null) return -1;
+        return dir * (av - bv);
+      });
     }
     return scored;
-  }, [rows, columns, ruling, poolTarget, sort]);
+  }, [rows, columns, ruling, sort]);
 
   const symbol = RULING_SYMBOL[ruling];
+  // Ten columns overflow a phone, so the name has to stay put or a scrolled
+  // row loses its identity. Sticky cells need their own opaque background,
+  // otherwise the scrolled columns show through.
+  const stickyName = {
+    position: 'sticky',
+    left: '0',
+    zIndex: 1,
+    borderRightWidth: '1px',
+    borderRightColor: 'border.subtle',
+  } as const;
+  // The two axes measure different things, so the first pool column opens with
+  // the same purple edge that marks pool rows and pool bar panels. Only when
+  // numeric columns precede it: a pool-only grid has nothing to divide from.
+  const dividerIndex = columns.findIndex((c) => c.pool);
+  const axisDivider = (index: number) =>
+    index > 0 && index === dividerIndex
+      ? { borderLeftWidth: '2px', borderLeftColor: 'purple.solid' }
+      : {};
 
   return (
     <Box
@@ -256,7 +284,7 @@ function TargetGrid({
         <Table.Root size="sm" variant="line">
           <Table.Header>
             <Table.Row bg="bg.subtle">
-              <Table.ColumnHeader>
+              <Table.ColumnHeader {...stickyName} bg="bg.subtle">
                 <Tooltip content={tipForId('targetGridName')}>
                   <Button size="xs" variant="ghost" onClick={onClearSort}>
                     Name
@@ -264,11 +292,13 @@ function TargetGrid({
                 </Tooltip>
               </Table.ColumnHeader>
               {columns.map((column, index) => {
-                const isSorted = sort !== null && sort.index === index;
+                const isSorted =
+                  sort !== null && sort.key === columnKey(column);
                 return (
                   <Table.ColumnHeader
                     key={columnKey(column)}
                     textAlign="end"
+                    {...axisDivider(index)}
                     aria-sort={
                       isSorted
                         ? sort.dir === 'desc'
@@ -287,7 +317,7 @@ function TargetGrid({
                         variant="ghost"
                         fontFamily="mono"
                         color={column.pool ? 'purple.fg' : undefined}
-                        onClick={() => onCycleSort(index)}
+                        onClick={() => onCycleSort(columnKey(column))}
                       >
                         {column.pool
                           ? `≥${column.value} successes`
@@ -303,7 +333,7 @@ function TargetGrid({
           <Table.Body>
             {sortedRows.map(({ row, hits }) => (
               <Table.Row key={row.id}>
-                <Table.Cell py={1.5}>
+                <Table.Cell py={1.5} {...stickyName} bg="bg.panel">
                   <HStack gap={2}>
                     <Box
                       w="8px"
@@ -316,15 +346,22 @@ function TargetGrid({
                   </HStack>
                 </Table.Cell>
                 {columns.map((column, index) => {
-                  if (!rowShowsUnderTarget(row, column, index)) {
-                    return <Table.Cell key={columnKey(column)} py={1.5} />;
+                  const p = hits[index] ?? null;
+                  if (p === null) {
+                    return (
+                      <Table.Cell
+                        key={columnKey(column)}
+                        py={1.5}
+                        {...axisDivider(index)}
+                      />
+                    );
                   }
-                  const p = hits[index] ?? 0;
                   return (
                     <Table.Cell
                       key={columnKey(column)}
                       py={1.5}
                       textAlign="end"
+                      {...axisDivider(index)}
                       bg={bucketBg(p)}
                       fontFamily="mono"
                       style={{ fontVariantNumeric: 'tabular-nums' }}
@@ -336,7 +373,6 @@ function TargetGrid({
                         fontWeight={p >= 0.66 ? 'semibold' : undefined}
                       >
                         {formatPercent(p)}
-                        {row.isPool && !column.pool ? '*' : ''}
                       </Text>
                     </Table.Cell>
                   );

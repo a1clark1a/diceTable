@@ -4,7 +4,7 @@ import {
   validateExpression,
   validatePersistedState,
 } from './persistedSchema';
-import type { PersistedState } from '../types';
+import { MAX_TARGETS, type PersistedState } from '../types';
 
 const validPayload: PersistedState = {
   version: SCHEMA_VERSION,
@@ -30,7 +30,7 @@ const validPayload: PersistedState = {
     chartView: 'cdf',
     target: { values: [15], ruling: 'gte' },
     view: 'table',
-    poolTarget: 1,
+    poolTargets: [1],
     baselineId: null,
   },
 };
@@ -147,7 +147,7 @@ describe('validatePersistedState', () => {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     });
   });
@@ -164,7 +164,7 @@ describe('validatePersistedState', () => {
       chartView: 'pmf',
       target: { values: [], ruling: 'gte' },
       view: 'table',
-      poolTarget: 1,
+      poolTargets: [1],
       baselineId: null,
     });
   });
@@ -378,5 +378,55 @@ describe('validatePersistedState — keepAcross', () => {
   it('rejects a non-object rule', () => {
     expect(validateExpression(withKeepAcross('highest'))).toBeNull();
     expect(validateExpression(withKeepAcross(null))).toBeNull();
+  });
+});
+
+describe('validatePersistedState — pool targets', () => {
+  function uiOf(ui: Record<string, unknown>): PersistedState['ui'] {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, ...ui },
+    });
+    expect(result).not.toBeNull();
+    return result!.ui;
+  }
+
+  it('folds the legacy scalar into a one-entry list', () => {
+    const { poolTargets } = uiOf({ poolTargets: undefined, poolTarget: 3 });
+    expect(poolTargets).toEqual([3]);
+  });
+
+  it('accepts a version 4 envelope carrying the scalar', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      version: 4,
+      ui: { ...validPayload.ui, poolTargets: undefined, poolTarget: 3 },
+    });
+    expect(result!.version).toBe(SCHEMA_VERSION);
+    expect(result!.ui.poolTargets).toEqual([3]);
+  });
+
+  it('dedupes, clamps, sorts and caps a stored list', () => {
+    const { poolTargets } = uiOf({ poolTargets: [3, 3, 1, 0, 9, 9, 9, 9] });
+    expect(poolTargets).toEqual([1, 3, 9]);
+  });
+
+  it('keeps at most MAX_TARGETS entries', () => {
+    const { poolTargets } = uiOf({ poolTargets: [1, 2, 3, 4, 5, 6, 7] });
+    expect(poolTargets).toHaveLength(MAX_TARGETS);
+  });
+
+  it('falls back to a single target of 1 rather than failing the envelope', () => {
+    expect(uiOf({ poolTargets: 'nope' }).poolTargets).toEqual([1]);
+    expect(uiOf({ poolTargets: [] }).poolTargets).toEqual([1]);
+    expect(uiOf({ poolTargets: ['a', null] }).poolTargets).toEqual([1]);
+    expect(
+      uiOf({ poolTargets: undefined, poolTarget: 0 }).poolTargets,
+    ).toEqual([1]);
+  });
+
+  it('prefers the scalar when the stored list holds nothing usable', () => {
+    const { poolTargets } = uiOf({ poolTargets: [], poolTarget: 4 });
+    expect(poolTargets).toEqual([4]);
   });
 });

@@ -93,14 +93,14 @@ export interface TargetState {
 }
 
 export interface PersistedState {
-  version: 4;
+  version: 5;
   expressions: Expression[];
   ui: {
     expandedId: string | null;
     chartView: ChartView;
     target: TargetState;
     view: WorkshopView;
-    poolTarget: number;
+    poolTargets: number[];
     baselineId: string | null;
   };
 }

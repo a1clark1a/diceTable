@@ -169,7 +169,7 @@ function ChartPanel({
 }
 
 export function OverlayChart({ ref }: OverlayChartProps) {
-  const { expressions, chartView, target, poolTarget } = useApp();
+  const { expressions, chartView, target, poolTargets } = useApp();
   const { dists } = useDistributions();
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -219,10 +219,10 @@ export function OverlayChart({ ref }: OverlayChartProps) {
     return { sum, pool };
   }, [overLimit, expressions, dists]);
 
-  // Pool rows answer to the shared pool target, not the numeric target list.
+  // Pool rows answer to the shared pool targets, not the numeric target list.
   const poolTargetState = useMemo<TargetState>(
-    () => ({ values: [poolTarget], ruling: 'gte' }),
-    [poolTarget],
+    () => ({ values: poolTargets, ruling: 'gte' }),
+    [poolTargets],
   );
 
   const showSum = legends.sum.length > 0;

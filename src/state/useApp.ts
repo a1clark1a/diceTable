@@ -43,14 +43,14 @@ export interface AppContextValue {
   chartView: ChartView;
   target: TargetState;
   view: WorkshopView;
-  poolTarget: number;
+  poolTargets: number[];
   baselineId: string | null;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
-  setPoolTarget: (value: number) => void;
+  setPoolTargets: (values: number[]) => void;
   addExpression: () => void;
   duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;
