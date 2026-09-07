@@ -94,6 +94,10 @@ function seedSumExpressionInStorage() {
       view: 'table',
       poolTargets: [1],
       baselineId: null,
+      targetSubView: 'grid',
+      targetFilter: 'all',
+      targetSort: null,
+      rollOffSort: 'win',
     },
   };
   window.localStorage.setItem(
@@ -126,6 +130,10 @@ function seedPoolExpressionInStorage() {
       view: 'table',
       poolTargets: [1],
       baselineId: null,
+      targetSubView: 'grid',
+      targetFilter: 'all',
+      targetSort: null,
+      rollOffSort: 'win',
     },
   };
   window.localStorage.setItem(

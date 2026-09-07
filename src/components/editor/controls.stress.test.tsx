@@ -38,6 +38,10 @@ function Harness({ onState }: { onState: (state: PersistedState) => void }) {
         view: app.view,
         poolTargets: app.poolTargets,
         baselineId: app.baselineId,
+        targetSubView: app.targetSubView,
+        targetFilter: app.targetFilter,
+        targetSort: app.targetSort,
+        rollOffSort: app.rollOffSort,
       },
     });
   });

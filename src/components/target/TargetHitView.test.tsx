@@ -134,7 +134,9 @@ afterEach(() => {
 });
 
 describe('TargetHitView empty states', () => {
-  it('prompts for a target when none is set', () => {
+  // The sub-view chips stay reachable with no target set: without them a table
+  // parked on Curves has no way back to Grid, and Curves needs no target at all.
+  it('prompts for a target when none is set, keeping the sub-view chips', () => {
     seedState({ expressions: [ALPHA], targetValues: [] });
     renderView();
     expect(
@@ -142,7 +144,9 @@ describe('TargetHitView empty states', () => {
         'Add a target above to see how likely each roll is to hit it.',
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Grid' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Grid' }),
+    ).toBeInTheDocument();
   });
 
   it('prompts for a roll when targets exist but no roll has a distribution', () => {

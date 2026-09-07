@@ -10,14 +10,18 @@ import {
   type EffectScale,
   type Expression,
   type ExpressionMode,
+  type GridSort,
   type ExplodeRule,
   type KeepRule,
   type PersistedState,
   type RerollRule,
   type RollMode,
+  type RollOffSort,
   type SuccessThreshold,
+  type TargetKindFilter,
   type TargetRuling,
   type TargetState,
+  type TargetSubView,
   type WorkshopView,
 } from '../types';
 import { isSingleDieCheck } from '../engine/critEffect';
@@ -35,6 +39,10 @@ const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool', 'check'];
 const THRESHOLD_DIRECTIONS: readonly SuccessThreshold['direction'][] = ['gte', 'lte'];
 const CHART_VIEWS: readonly ChartView[] = ['pmf', 'cdf', 'ccdf', 'target'];
 const WORKSHOP_VIEWS: readonly WorkshopView[] = ['table', 'target', 'rolloff', 'matrix'];
+const TARGET_SUB_VIEWS: readonly TargetSubView[] = ['grid', 'curves', 'bars'];
+const TARGET_FILTERS: readonly TargetKindFilter[] = ['all', 'sum', 'pool'];
+const ROLL_OFF_SORTS: readonly RollOffSort[] = ['win', 'table'];
+const SORT_DIRECTIONS: readonly GridSort['dir'][] = ['desc', 'asc'];
 const TARGET_RULINGS: readonly TargetRuling[] = ['gte', 'gt', 'lte', 'lt', 'eq'];
 const KEEP_TYPES: readonly KeepRule['type'][] = ['highest', 'lowest'];
 const REROLL_MODES: readonly RerollRule['mode'][] = ['once', 'always'];
@@ -296,17 +304,36 @@ function validatePoolTargets(v: Record<string, unknown>): number[] {
   return [1];
 }
 
+// The grid's sort points at a columnKey, which goes stale as targets and
+// filters change. The view already drops a sort whose column is gone, so the
+// only job here is to reject a shape that is not a sort at all.
+function validateGridSort(v: unknown): GridSort | null {
+  if (!isRecord(v)) return null;
+  if (!isNonEmptyString(v.key)) return null;
+  if (!isOneOf(v.dir, SORT_DIRECTIONS)) return null;
+  return { key: v.key, dir: v.dir };
+}
+
+// A function, not a shared constant: validatePersistedState edits the ui object
+// it returns (it drops a dangling baselineId), so every caller has to get its
+// own arrays and objects rather than aliases into one module-level default.
+function defaultUi(): PersistedState['ui'] {
+  return {
+    expandedId: null,
+    chartView: 'pmf',
+    target: { values: [], ruling: 'gte' },
+    view: 'table',
+    poolTargets: [1],
+    baselineId: null,
+    targetSubView: 'grid',
+    targetFilter: 'all',
+    targetSort: null,
+    rollOffSort: 'win',
+  };
+}
+
 function validateUi(v: unknown): PersistedState['ui'] {
-  if (!isRecord(v)) {
-    return {
-      expandedId: null,
-      chartView: 'pmf',
-      target: { values: [], ruling: 'gte' },
-      view: 'table',
-      poolTargets: [1],
-      baselineId: null,
-    };
-  }
+  if (!isRecord(v)) return defaultUi();
   const expandedId =
     v.expandedId === null
       ? null
@@ -318,7 +345,30 @@ function validateUi(v: unknown): PersistedState['ui'] {
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
   const poolTargets = validatePoolTargets(v);
   const baselineId = typeof v.baselineId === 'string' ? v.baselineId : null;
-  return { expandedId, chartView, target, view, poolTargets, baselineId };
+  // Envelopes written before these existed fall back to the view's own
+  // defaults, which is what an untouched control shows anyway.
+  const targetSubView = isOneOf(v.targetSubView, TARGET_SUB_VIEWS)
+    ? v.targetSubView
+    : 'grid';
+  const targetFilter = isOneOf(v.targetFilter, TARGET_FILTERS)
+    ? v.targetFilter
+    : 'all';
+  const targetSort = validateGridSort(v.targetSort);
+  const rollOffSort = isOneOf(v.rollOffSort, ROLL_OFF_SORTS)
+    ? v.rollOffSort
+    : 'win';
+  return {
+    expandedId,
+    chartView,
+    target,
+    view,
+    poolTargets,
+    baselineId,
+    targetSubView,
+    targetFilter,
+    targetSort,
+    rollOffSort,
+  };
 }
 
 export function validatePersistedState(raw: unknown): PersistedState | null {

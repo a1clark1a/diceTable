@@ -5,10 +5,14 @@ import type {
   Expression,
   ExpressionMode,
   ExplodeRule,
+  GridSort,
   KeepRule,
   RerollRule,
   RollMode,
+  RollOffSort,
   SuccessThreshold,
+  TargetKindFilter,
+  TargetSubView,
   TargetRuling,
   TargetState,
   WorkshopView,
@@ -45,12 +49,20 @@ export interface AppContextValue {
   view: WorkshopView;
   poolTargets: number[];
   baselineId: string | null;
+  targetSubView: TargetSubView;
+  targetFilter: TargetKindFilter;
+  targetSort: GridSort | null;
+  rollOffSort: RollOffSort;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
   setPoolTargets: (values: number[]) => void;
+  setTargetSubView: (subView: TargetSubView) => void;
+  setTargetFilter: (filter: TargetKindFilter) => void;
+  setTargetSort: (sort: GridSort | null) => void;
+  setRollOffSort: (sort: RollOffSort) => void;
   addExpression: () => void;
   duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;

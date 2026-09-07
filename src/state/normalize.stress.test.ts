@@ -294,6 +294,10 @@ function persistedWith(expr: Expression): PersistedState {
       view: 'table',
       poolTargets: [1],
       baselineId: null,
+      targetSubView: 'grid',
+      targetFilter: 'all',
+      targetSort: null,
+      rollOffSort: 'win',
     },
   };
 }

@@ -479,7 +479,17 @@ const uiTips: Record<string, string> = {
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   shareImage:
-    'Make a picture of the comparison to paste into a chat. Copying takes the link along as text.',
+    'Make a picture of the view you are on, to paste into a chat. Copying takes the link along as text.',
+  shareImageNoRows:
+    'No valid rolls to picture yet. Give a roll some dice first.',
+  shareImageNeedsTwo:
+    'This picture needs two rolls to compare. Add another one with valid dice.',
+  shareImageOverLimit:
+    'Too many rolls to fit in one picture. Remove a few rows and it comes back.',
+  shareImageNoTargets:
+    'Nothing to measure against yet. Add a target and the picture has something to show.',
+  shareImageNoSumRows:
+    'Curves picture rolls that add into a total. Switch a roll to Sum to see one here.',
   import:
     'Bring rolls in from a share link, JSON, or a file. Choose to add to the table or replace it.',
 };

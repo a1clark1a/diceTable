@@ -61,6 +61,21 @@ const byRuling = <T,>(pick: (m: RulingMeta) => T): Record<TargetRuling, T> => {
 };
 
 export const RULING_SYMBOL: Record<TargetRuling, string> = byRuling((m) => m.symbol);
+
+// The symbol reads as maths, which a shared picture cannot assume of its
+// reader. These say the same thing in words, for surfaces with no tooltip to
+// fall back on.
+const RULING_PLAIN: Record<TargetRuling, (value: number) => string> = {
+  gte: (v) => `${v} or more`,
+  gt: (v) => `over ${v}`,
+  lte: (v) => `${v} or less`,
+  lt: (v) => `under ${v}`,
+  eq: (v) => `exactly ${v}`,
+};
+
+export function rulingPlainLabel(ruling: TargetRuling, value: number): string {
+  return RULING_PLAIN[ruling](value);
+}
 export const RULING_TIP: Record<TargetRuling, string> = byRuling((m) => m.tip);
 
 export function isTargetRuling(value: string): value is TargetRuling {

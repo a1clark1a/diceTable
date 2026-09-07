@@ -342,7 +342,22 @@ describe('buildShareSvg views', () => {
     expect(polylinePoints(image.svg)[0]).toHaveLength(22);
   });
 
-  it('draws the target view the same way as chance-of-each-result', () => {
+  it('draws the target view as hit-rate bars, not a line chart', () => {
+    const image = buildShareSvg({
+      rows,
+      view: 'target',
+      target: { values: [8, 12], ruling: 'gte' },
+      theme: 'light',
+    });
+    expect(image.svg).toContain('>Chance of hitting each target</text>');
+    expect(image.svg).not.toContain('<polyline');
+    expect(image.svg).toContain('>≥8</text>');
+    expect(image.svg).toContain('>≥12</text>');
+  });
+
+  // The target view has nothing to measure against with an empty list, so it
+  // falls back the way the chart does rather than drawing an empty axis.
+  it('falls back to chance-of-each-result when no target is set', () => {
     const image = buildShareSvg({ rows, view: 'target', theme: 'light' });
     expect(image.svg).toContain('>Chance of each result</text>');
     expect(polylinePoints(image.svg)[0]).toHaveLength(22);
@@ -451,10 +466,12 @@ describe('buildShareSvg capped zero spike', () => {
       view: 'pmf',
       theme: 'light',
     });
-    // Faces 1 to 7 of the d20 fail and deal nothing: 7/20 of the time.
+    // Faces 1 to 7 of the d20 fail and deal nothing: 7/20 of the time. The
+    // marker sits on the first result, half a tread in from the axis: 0 to 20
+    // is 21 results across an 812px plot, so the inset is 812 / 42 = 19.33.
     expect(image.svg).toContain('>35%</text>');
     expect(image.svg).toContain(
-      '<circle cx="94" cy="46" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>',
+      '<circle cx="99.33" cy="46" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>',
     );
   });
 
@@ -507,28 +524,28 @@ describe('buildShareSvg footer note', () => {
     expect(countOf(image.svg, 'text-anchor="end" font-family="system-ui')).toBe(0);
   });
 
-  it('cuts a note longer than ninety characters down to an ellipsis', () => {
+  it('cuts a note past the budget down to an ellipsis', () => {
     const image = buildShareSvg({
       rows,
       view: 'pmf',
       theme: 'light',
-      note: 'c'.repeat(100),
+      note: 'c'.repeat(130),
     });
-    expect(image.svg).toContain(`>${'c'.repeat(89)}…</text>`);
-    expect(image.svg).not.toContain('c'.repeat(90));
+    expect(image.svg).toContain(`>${'c'.repeat(119)}…</text>`);
+    expect(image.svg).not.toContain('c'.repeat(120));
   });
 
-  it('leaves a note of exactly ninety characters whole', () => {
-    const note = 'c'.repeat(90);
+  it('leaves a note of exactly the budget whole', () => {
+    const note = 'c'.repeat(120);
     const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note });
     expect(image.svg).toContain(`>${note}</text>`);
     expect(image.svg).not.toContain('…');
   });
 
-  // Both left-out notes at once, with two-digit counts: the longest aside the
-  // hook can produce (37 + 2 + 31 code points) must survive whole.
-  it('keeps the pool and too-complex notes whole when both are present', () => {
-    const note = '99 pool rolls are not in this picture. 99 rolls left out (too complex)';
+  // Two notes at once, with two-digit counts: an aside near the top of the
+  // budget (37 + 2 + 31 code points) must survive whole.
+  it('keeps a pair of notes whole when both are present', () => {
+    const note = '99 rolls are on a different scale here. 99 rolls left out (too complex)';
     const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note });
     expect(image.svg).toContain(`>${note}</text>`);
     expect(image.svg).not.toContain('…');

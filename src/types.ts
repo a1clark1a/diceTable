@@ -82,10 +82,27 @@ export type ChartView = 'pmf' | 'cdf' | 'ccdf' | 'target';
 
 export type WorkshopView = 'table' | 'target' | 'rolloff' | 'matrix';
 
+/** Which shape the Target hit view is drawing its numbers in. */
+export type TargetSubView = 'grid' | 'curves' | 'bars';
+
+/** Which kinds of roll the Target hit view is showing. */
+export type TargetKindFilter = 'all' | 'sum' | 'pool';
+
+/** How the Roll-off view orders its rows. */
+export type RollOffSort = 'win' | 'table';
+
+export interface GridSort {
+  /** columnKey, not a position: the two axes shift as targets and filters change. */
+  key: string;
+  dir: 'desc' | 'asc';
+}
+
 export type TargetRuling = 'gte' | 'gt' | 'lte' | 'lt' | 'eq';
 
 export const MAX_TARGETS = 5;
 export const MAX_EXPRESSIONS = 100;
+/** Past this the overlay chart stops drawing, and the chart card stops picturing. */
+export const CHART_ROW_LIMIT = 20;
 
 export interface TargetState {
   values: number[];
@@ -102,5 +119,15 @@ export interface PersistedState {
     view: WorkshopView;
     poolTargets: number[];
     baselineId: string | null;
+    /**
+     * The Target hit and Roll-off views' own controls. They live here rather
+     * than in component state because the share image has to picture the view
+     * the user actually selected, and the share hook cannot reach into a
+     * component's useState.
+     */
+    targetSubView: TargetSubView;
+    targetFilter: TargetKindFilter;
+    targetSort: GridSort | null;
+    rollOffSort: RollOffSort;
   };
 }

@@ -326,7 +326,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 11,
     title: 'Share and import',
     plain:
-      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button above the chart makes a picture of the comparison you can paste into a chat, and copying it puts the link on the clipboard as text at the same time.',
+      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button in the toolbar makes a picture of the view you are on, following the sub-view, filter and sort you have set (Curves always plots the sum rolls, whatever the filter says), and copying it puts the link on the clipboard as text at the same time.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -336,11 +336,15 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           current table or replace it.
         </Text>
         <Text>
-          The <strong>Image</strong> button above the chart makes a picture of
-          the comparison to paste into a chat or a forum thread, with an
-          optional title. Copying it puts the link on the clipboard as text at
-          the same time, so pasting into a message box gives the picture and
-          pasting into a text field gives the link.
+          The <strong>Image</strong> button in the toolbar, and{' '}
+          <strong>Copy image</strong> in the Share menu, make a picture of what
+          you are looking at, with an optional title. It follows the controls
+          you set, so the Target hit picture uses the Grid, Curves or Bars you
+          picked, and Grid and Bars honour the All / Sum / Pools filter and any
+          column sort. Curves always plots the sum rolls, whatever the filter
+          says. The Roll-off picture keeps the order its sort chip is on. Copying it puts the link
+          on the clipboard as text at the same time, so pasting into a message
+          box gives the picture and pasting into a text field gives the link.
         </Text>
       </Stack>
     ),

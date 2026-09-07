@@ -18,7 +18,7 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
 const STORAGE_KEY = 'dicetable.v2';
 const ENVELOPE_VERSION = 2;
 const DATA_URL_PREFIX = 'data:image/svg+xml;charset=utf-8,';
-const TRIGGER_NAME = 'Share the comparison as an image';
+const TRIGGER_NAME = 'Share this view as an image';
 
 function seedTable(expressions: unknown[]): void {
   localStorage.setItem(
@@ -142,15 +142,19 @@ afterEach(() => {
 });
 
 describe('ShareImagePopover trigger', () => {
-  it('is disabled on an empty table', () => {
+  // Marked disabled to assistive tech rather than natively: a disabled button
+  // fires no pointer or focus events, so the tip explaining the block could
+  // never open.
+  it('is blocked on an empty table', () => {
     renderPopover();
-    expect(trigger()).toBeDisabled();
+    expect(trigger()).toHaveAttribute('aria-disabled', 'true');
+    expect(trigger()).not.toBeDisabled();
   });
 
-  it('is enabled once the table has a row it can draw', () => {
+  it('is usable once the table has a row it can draw', () => {
     seedTable([sumRowSeed()]);
     renderPopover();
-    expect(trigger()).not.toBeDisabled();
+    expect(trigger()).toHaveAttribute('aria-disabled', 'false');
   });
 });
 

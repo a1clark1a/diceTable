@@ -4,10 +4,10 @@ import { uniformDistribution } from '../../engine/distribution';
 import { rowColor } from '../../components/chart/palette';
 
 // The card's text budgets, in code points and including the ellipsis: 28 for a
-// row name, 70 for the title, 90 for the footer note, 72 for a notation.
+// row name, 70 for the title, 120 for the footer note, 72 for a notation.
 const NAME_BUDGET = 28;
 const TITLE_BUDGET = 70;
-const NOTE_BUDGET = 90;
+const NOTE_BUDGET = 120;
 const NOTATION_BUDGET = 72;
 
 // Seven code points: four people joined by three zero-width joiners.
@@ -180,9 +180,9 @@ describe('buildShareSvg hostile titles and notes', () => {
   });
 
   it('cuts the note by code points with an emoji walked across its boundary', () => {
-    // 94 code points total against the 90-point budget.
-    for (let pos = 86; pos <= 92; pos++) {
-      const note = `${'a'.repeat(pos)}😀${'a'.repeat(93 - pos)}`;
+    // 124 code points total against the 120-point budget.
+    for (let pos = 116; pos <= 122; pos++) {
+      const note = `${'a'.repeat(pos)}😀${'a'.repeat(123 - pos)}`;
       const { svg } = buildShareSvg({
         rows: [namedRow('Row')],
         view: 'pmf',

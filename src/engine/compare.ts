@@ -42,10 +42,11 @@ function cumulative(dist: Distribution): CumulativeDist {
   };
 }
 
-/** One-on-one odds: how often a rolls strictly higher than b, and how often they land equal. */
-export function beatChance(a: Distribution, b: Distribution): BeatChance {
-  if (a.size === 0 || b.size === 0) return { win: 0, tie: 0 };
-  const cdfB = cumulative(b);
+function score(
+  a: Distribution,
+  b: Distribution,
+  cdfB: CumulativeDist,
+): BeatChance {
   let win = 0;
   let tie = 0;
   for (const [v, p] of a) {
@@ -53,6 +54,34 @@ export function beatChance(a: Distribution, b: Distribution): BeatChance {
     tie += p * (b.get(v) ?? 0);
   }
   return { win, tie };
+}
+
+/** One-on-one odds: how often a rolls strictly higher than b, and how often they land equal. */
+export function beatChance(a: Distribution, b: Distribution): BeatChance {
+  if (a.size === 0 || b.size === 0) return { win: 0, tie: 0 };
+  return score(a, b, cumulative(b));
+}
+
+/**
+ * Every one-on-one in a field, row against column, with a null diagonal: a
+ * distribution has no odds against itself. Each column's cumulative index is
+ * built once here rather than once per cell, which is the whole reason to ask
+ * for the grid instead of calling beatChance n² times.
+ */
+export function beatMatrix(
+  dists: readonly Distribution[],
+): (BeatChance | null)[][] {
+  const cdfs = dists.map(cumulative);
+  return dists.map((a, i) =>
+    dists.map((b, j) => {
+      if (i === j) return null;
+      const cdfB = cdfs[j];
+      if (a.size === 0 || b.size === 0 || cdfB === undefined) {
+        return { win: 0, tie: 0 };
+      }
+      return score(a, b, cdfB);
+    }),
+  );
 }
 
 /**

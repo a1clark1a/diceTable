@@ -35,6 +35,7 @@ import {
   type RollMode,
 } from '../types';
 import { ExamplesDialog } from './presets/ExamplesDialog';
+import { ShareImagePopover } from './share/ShareImagePopover';
 import { Tooltip } from './ui/tooltip';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
@@ -367,10 +368,12 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
                 </Button>
               </Tooltip>
             )}
+            <ShareImagePopover />
             {scrollButtons}
           </>
         ) : (
           <>
+            <ShareImagePopover />
             {scrollButtons}
             <Menu.Root>
               <Menu.Trigger asChild>

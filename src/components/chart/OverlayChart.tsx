@@ -4,17 +4,17 @@ import { ChartColumn } from 'lucide-react';
 import { isTotalsMode } from '../../engine/expression';
 import { useApp } from '../../state/useApp';
 import { useDistributions } from '../../state/useDistributions';
-import type {
-  ChartView,
-  Distribution,
-  Expression,
-  TargetState,
+import {
+  CHART_ROW_LIMIT,
+  type ChartView,
+  type Distribution,
+  type Expression,
+  type TargetState,
 } from '../../types';
 import { rowColor } from './palette';
 import { effectiveChartView } from './effectiveView';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
-import { ShareImagePopover } from '../share/ShareImagePopover';
 import { tipForId } from '../../docs/glossary';
 import type { ChartUnit } from './OverlayChartImpl';
 
@@ -29,8 +29,6 @@ interface LegendEntry {
 interface OverlayChartProps {
   ref?: Ref<HTMLDivElement>;
 }
-
-const CHART_ROW_LIMIT = 20;
 
 interface PanelLegendProps {
   entries: LegendEntry[];
@@ -234,18 +232,15 @@ export function OverlayChart({ ref }: OverlayChartProps) {
 
   return (
     <Stack ref={ref} gap={2} scrollMarginTop={{ base: '64px', md: '72px' }}>
-      <HStack justify="space-between" align="center" gap={3}>
-        <Text
-          fontSize="xs"
-          fontWeight="semibold"
-          color="fg.muted"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          Comparison
-        </Text>
-        {hasValidSeries && !overLimit && <ShareImagePopover />}
-      </HStack>
+      <Text
+        fontSize="xs"
+        fontWeight="semibold"
+        color="fg.muted"
+        textTransform="uppercase"
+        letterSpacing="wider"
+      >
+        Comparison
+      </Text>
       <Box
         bg="bg.panel"
         borderWidth="1px"

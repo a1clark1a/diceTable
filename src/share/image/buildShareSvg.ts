@@ -1,12 +1,47 @@
-import type { ChartView, Distribution } from '../../types';
+import type { ChartView, Distribution, TargetState } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
-import { seriesDash, shareCardPalette } from '../../components/chart/palette';
+import { hitProbability } from '../../engine/stats';
+import {
+  seriesDash,
+  shareCardPalette,
+  type ShareCardPalette,
+} from '../../components/chart/palette';
+import { effectiveChartView } from '../../components/chart/effectiveView';
+import { RULING_SYMBOL } from '../../components/targetRulingMeta';
 import { buildSeriesEval, evalSeriesAt } from '../../components/chart/seriesEval';
 import {
   formatMissPercent,
   planZeroSpikes,
   type ZeroSpikeRow,
 } from '../../components/chart/zeroSpike';
+import { drawHitBars, type HitBarColumn } from './drawHitBars';
+import {
+  AXIS_FOOT,
+  AXIS_GUTTER,
+  CARD_WIDTH,
+  FOOTER_HEIGHT,
+  LIST_GAP,
+  LIST_LINE,
+  MONO,
+  NAME_CHARS,
+  NOTATION_CHARS,
+  PADDING,
+  PANEL_HEADING,
+  PLOT_HEIGHT,
+  PLOT_X_PAD,
+  SANS,
+  escapeXml,
+  formatCardPercent,
+  formatStat,
+  headerHeight,
+  panelHeading,
+  renderCard,
+  round,
+  rowSwatch,
+  scaleFor,
+  truncate,
+  type ShareImage,
+} from './svgPrimitives';
 
 export interface ShareImageRow {
   id: string;
@@ -30,110 +65,98 @@ export interface ShareImageOptions {
   /** Optional footer aside, for saying what the picture leaves out. */
   note?: string;
   scale?: number;
+  /** The numeric targets the totals panel measures against in the target view. */
+  target?: TargetState;
+  /**
+   * Pool rows count successes, so they cannot share an axis with totals. They
+   * get their own panel stacked under the totals one, the way the chart splits
+   * on screen.
+   */
+  poolRows?: ShareImageRow[];
+  /**
+   * The pool targets the successes panel measures against. It resolves the
+   * target view on its own, so Successes can show hit bars while the numeric
+   * list is empty and Totals falls back to the chance of each result.
+   */
+  poolTarget?: TargetState;
 }
 
-export interface ShareImage {
-  svg: string;
-  width: number;
-  height: number;
-}
-
-const CARD_WIDTH = 920;
-const PADDING = 28;
-const TITLE_HEIGHT = 42;
-const PLOT_HEIGHT = 300;
-const AXIS_GUTTER = 52;
-// The lowest result sits inset from the axis, the way the chart pads its x-axis,
-// so a marker on the first result does not land on the y-axis labels.
-const PLOT_X_PAD = 14;
-const AXIS_FOOT = 26;
-const LIST_GAP = 22;
-const LIST_LINE = 46;
-const FOOTER_HEIGHT = 34;
-// The footer aside can carry both left-out notes at once ("N pool rolls are
-// not in this picture. N rolls left out (too complex)"), which reaches 70
-// code points with two-digit counts; the budget has to hold the pair whole.
-// At 11px the aside still ends well clear of the credit on the left.
-const NOTE_CHARS = 90;
-
-const SANS = "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
+const NO_TARGET: TargetState = { values: [], ruling: 'gte' };
 
 const VIEW_LABELS: Record<ChartView, string> = {
   pmf: 'Chance of each result',
   cdf: 'Chance of rolling at most',
   ccdf: 'Chance of rolling at least',
-  target: 'Chance of each result',
+  target: 'Chance of hitting each target',
 };
-
-// Everything drawn here is user-supplied text, so nothing reaches the markup
-// without going through this first.
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-// No DOM means no text measurement, so long strings are cut to a character
-// budget instead. Monospace at 12px sits near 7.2px a character. The cut is by
-// code points, not UTF-16 units: slicing through a surrogate pair would leave a
-// lone surrogate that encodeURIComponent refuses, sinking every share action.
-function truncate(value: string, maxChars: number): string {
-  const chars = Array.from(value);
-  if (chars.length <= maxChars) return value;
-  return `${chars.slice(0, Math.max(0, maxChars - 1)).join('')}…`;
-}
-
-function round(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-function formatStat(value: number): string {
-  return value.toFixed(2);
-}
 
 function niceTicks(min: number, max: number, count: number): number[] {
   if (max <= min) return [min];
   const step = Math.max(1, Math.round((max - min) / count));
   const ticks: number[] = [];
   for (let v = min; v <= max; v += step) ticks.push(v);
-  if (ticks[ticks.length - 1] !== max) ticks.push(max);
+  const last = ticks[ticks.length - 1] ?? min;
+  if (last !== max) {
+    if (max - last >= step / 2) ticks.push(max);
+    else ticks[ticks.length - 1] = max;
+  }
   return ticks;
 }
 
-export function buildShareSvg(options: ShareImageOptions): ShareImage {
-  const { rows, theme } = options;
-  const view: ChartView = options.view === 'target' ? 'pmf' : options.view;
-  const palette = shareCardPalette(theme);
-  const scale = options.scale && options.scale > 0 ? options.scale : 1;
-  const title = (options.title ?? '').trim();
+// Flat treads are drawn half a step either side of their result, so a domain of
+// a handful of results needs half a step of margin or the end treads run off the
+// card: a 5d6 pool counting 0 to 5 successes puts its last edge 36px past the
+// right rule. Reserving half a band resolves the circularity (the band width
+// depends on the span, which depends on the margin) and collapses back to the
+// plain inset once the results are dense enough not to need it.
+function plotInset(results: number, plotWidth: number, view: ChartView): number {
+  if (view !== 'pmf') return PLOT_X_PAD;
+  return Math.max(PLOT_X_PAD, plotWidth / (2 * Math.max(1, results)));
+}
 
-  const usable = rows.filter((r) => r.dist.size > 0);
-  const headerHeight = title.length > 0 ? TITLE_HEIGHT : 0;
-  const listHeight = usable.length * LIST_LINE;
-  const height =
-    PADDING * 2 +
-    headerHeight +
-    PLOT_HEIGHT +
-    AXIS_FOOT +
-    LIST_GAP +
-    listHeight +
-    FOOTER_HEIGHT;
+function targetColumns(target: TargetState): HitBarColumn[] {
+  const symbol = RULING_SYMBOL[target.ruling];
+  return target.values.map((value) => ({ label: `${symbol}${value}` }));
+}
 
+interface PanelSpec {
+  /** Already filtered to rows with something to draw. */
+  rows: ShareImageRow[];
+  view: ChartView;
+  target: TargetState;
+  palette: ShareCardPalette;
+  originY: number;
+  /** Null on a single-panel card, which reads as one chart needing no label. */
+  heading: string | null;
+  /** Successes panels carry the same purple the chart titles them with. */
+  pool: boolean;
+}
+
+interface PanelDrawing {
+  parts: string[];
+  height: number;
+  /** Rows the target bars could not fit, for the caller's footer note. */
+  hidden: number;
+}
+
+function drawPanel({
+  rows,
+  view,
+  target,
+  palette,
+  originY,
+  heading,
+  pool,
+}: PanelSpec): PanelDrawing {
   const parts: string[] = [];
-  parts.push(
-    `<rect x="0" y="0" width="${CARD_WIDTH}" height="${height}" fill="${palette.background}"/>`,
-  );
+  let hidden = 0;
+  let y = originY;
 
-  let y = PADDING;
-  if (title.length > 0) {
+  if (heading !== null) {
     parts.push(
-      `<text x="${PADDING}" y="${y + 22}" font-family="${SANS}" font-size="20" font-weight="600" fill="${palette.text}">${escapeXml(truncate(title, 70))}</text>`,
+      panelHeading(heading, y, palette, pool ? palette.poolAccent : palette.text),
     );
-    y += TITLE_HEIGHT;
+    y += PANEL_HEADING;
   }
 
   const plotLeft = PADDING + AXIS_GUTTER;
@@ -143,18 +166,41 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const plotWidth = plotRight - plotLeft;
   const plotHeight = plotBottom - plotTop;
 
+  // Over the plot, not over the y-axis gutter: at x = PADDING this caption
+  // sits 12px above the topmost tick label and the two run together.
   parts.push(
-    `<text x="${PADDING}" y="${y + 10}" font-family="${SANS}" font-size="11" fill="${palette.muted}">${escapeXml(VIEW_LABELS[view])}</text>`,
+    `<text x="${plotLeft}" y="${y + 10}" font-family="${SANS}" font-size="11" fill="${palette.muted}">${escapeXml(VIEW_LABELS[view])}</text>`,
   );
 
-  if (usable.length === 0) {
+  if (rows.length === 0) {
     parts.push(
       `<text x="${PADDING}" y="${plotTop + 40}" font-family="${SANS}" font-size="13" fill="${palette.muted}">No rolls to compare yet.</text>`,
     );
+  } else if (view === 'target') {
+    // The chart swaps its curves for grouped bars here, so the picture does too
+    // rather than substituting a line chart the user was not looking at.
+    const bars = drawHitBars({
+      rows: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        color: row.color,
+        hits: target.values.map((v) =>
+          hitProbability(row.dist, v, target.ruling),
+        ),
+      })),
+      columns: targetColumns(target),
+      palette,
+      x: PADDING,
+      width: CARD_WIDTH - PADDING * 2,
+      y: plotTop,
+      height: PLOT_HEIGHT + AXIS_FOOT - 18,
+    });
+    parts.push(...bars.parts);
+    hidden = bars.hidden;
   } else {
     let globalMin = Infinity;
     let globalMax = -Infinity;
-    const prepared = usable.map((row) => {
+    const prepared = rows.map((row) => {
       const keys = sortedKeys(row.dist);
       const rowMin = keys[0] ?? 0;
       const rowMax = keys[keys.length - 1] ?? 0;
@@ -164,7 +210,7 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
     });
     if (globalMax <= globalMin) globalMax = globalMin + 1;
 
-    const spikeRows: ZeroSpikeRow[] = usable.map((row) => ({
+    const spikeRows: ZeroSpikeRow[] = rows.map((row) => ({
       id: row.id,
       name: row.name,
       color: row.color,
@@ -180,20 +226,20 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
     const yMax = view === 'pmf' ? spikes.axis.domainMax : 1;
     const yTicks = view === 'pmf' ? spikes.axis.ticks : [0, 0.25, 0.5, 0.75, 1];
 
-    const xSpan = plotWidth - PLOT_X_PAD * 2;
+    const inset = plotInset(globalMax - globalMin + 1, plotWidth, view);
+    const xSpan = plotWidth - inset * 2;
     const xAt = (value: number): number =>
-      plotLeft + PLOT_X_PAD + ((value - globalMin) / (globalMax - globalMin)) * xSpan;
+      plotLeft + inset + ((value - globalMin) / (globalMax - globalMin)) * xSpan;
     const yAt = (p: number): number =>
       plotBottom - Math.min(p / yMax, 1) * plotHeight;
 
     for (const tick of yTicks) {
       const gridY = round(plotBottom - (tick / yMax) * plotHeight);
-      const label = `${Math.round(tick * 100)}%`;
       parts.push(
         `<line x1="${plotLeft}" y1="${gridY}" x2="${plotRight}" y2="${gridY}" stroke="${palette.grid}" stroke-width="1"/>`,
       );
       parts.push(
-        `<text x="${plotLeft - 8}" y="${gridY + 4}" text-anchor="end" font-family="${MONO}" font-size="11" fill="${palette.muted}">${label}</text>`,
+        `<text x="${plotLeft - 8}" y="${gridY + 4}" text-anchor="end" font-family="${MONO}" font-size="11" fill="${palette.muted}">${formatCardPercent(tick)}</text>`,
       );
     }
 
@@ -234,44 +280,108 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
         `<text x="${cx + 8}" y="${plotTop + 16}" font-family="${MONO}" font-size="11" fill="${marker.color}">${formatMissPercent(marker.probability)}</text>`,
       );
     }
-
-    let listY = plotBottom + AXIS_FOOT + LIST_GAP;
-    for (const row of usable) {
-      parts.push(
-        `<rect x="${PADDING}" y="${listY - 9}" width="10" height="10" rx="2" fill="${row.color}"/>`,
-      );
-      parts.push(
-        `<text x="${PADDING + 20}" y="${listY}" font-family="${SANS}" font-size="13" font-weight="600" fill="${palette.text}">${escapeXml(truncate(row.name, 28))}</text>`,
-      );
-      parts.push(
-        `<text x="${CARD_WIDTH - PADDING}" y="${listY}" text-anchor="end" font-family="${MONO}" font-size="13" fill="${palette.text}">${formatStat(row.mean)} ± ${formatStat(row.stddev)}</text>`,
-      );
-      parts.push(
-        `<text x="${PADDING + 20}" y="${listY + 17}" font-family="${MONO}" font-size="12" fill="${palette.muted}">${escapeXml(truncate(row.notation, 72))}</text>`,
-      );
-      parts.push(
-        `<text x="${CARD_WIDTH - PADDING}" y="${listY + 17}" text-anchor="end" font-family="${MONO}" font-size="12" fill="${palette.muted}">${row.min} to ${row.max}</text>`,
-      );
-      listY += LIST_LINE;
-    }
   }
 
-  parts.push(
-    `<text x="${PADDING}" y="${height - PADDING + 6}" font-family="${SANS}" font-size="11" fill="${palette.muted}">built with dice-table.app</text>`,
-  );
-
-  const note = (options.note ?? '').trim();
-  if (note.length > 0) {
+  let listY = plotBottom + AXIS_FOOT + LIST_GAP;
+  for (const row of rows) {
+    parts.push(rowSwatch(PADDING, listY, row.color));
     parts.push(
-      `<text x="${CARD_WIDTH - PADDING}" y="${height - PADDING + 6}" text-anchor="end" font-family="${SANS}" font-size="11" fill="${palette.muted}">${escapeXml(truncate(note, NOTE_CHARS))}</text>`,
+      `<text x="${PADDING + 20}" y="${listY}" font-family="${SANS}" font-size="13" font-weight="600" fill="${palette.text}">${escapeXml(truncate(row.name, NAME_CHARS))}</text>`,
     );
+    parts.push(
+      `<text x="${CARD_WIDTH - PADDING}" y="${listY}" text-anchor="end" font-family="${MONO}" font-size="13" fill="${palette.text}">${formatStat(row.mean)} ± ${formatStat(row.stddev)}</text>`,
+    );
+    parts.push(
+      `<text x="${PADDING + 20}" y="${listY + 17}" font-family="${MONO}" font-size="12" fill="${palette.muted}">${escapeXml(truncate(row.notation, NOTATION_CHARS))}</text>`,
+    );
+    parts.push(
+      `<text x="${CARD_WIDTH - PADDING}" y="${listY + 17}" text-anchor="end" font-family="${MONO}" font-size="12" fill="${palette.muted}">${row.min} to ${row.max}</text>`,
+    );
+    listY += LIST_LINE;
   }
 
-  const svg = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_WIDTH * scale}" height="${height * scale}" viewBox="0 0 ${CARD_WIDTH} ${height}">`,
-    parts.join(''),
-    '</svg>',
-  ].join('');
+  return {
+    parts,
+    hidden,
+    height:
+      (heading !== null ? PANEL_HEADING : 0) +
+      PLOT_HEIGHT +
+      AXIS_FOOT +
+      LIST_GAP +
+      rows.length * LIST_LINE,
+  };
+}
 
-  return { svg, width: CARD_WIDTH * scale, height: height * scale };
+function unfitNote(count: number): string {
+  return count === 1
+    ? '1 roll does not fit these bars'
+    : `${count} rolls do not fit these bars`;
+}
+
+export function buildShareSvg(options: ShareImageOptions): ShareImage {
+  const { rows, theme } = options;
+  const target = options.target ?? NO_TARGET;
+  const poolTarget = options.poolTarget ?? NO_TARGET;
+  const view = effectiveChartView(options.view, target.values.length > 0);
+  const poolView = effectiveChartView(
+    options.view,
+    poolTarget.values.length > 0,
+  );
+  const palette = shareCardPalette(theme);
+  const scale = scaleFor(options.scale);
+  const title = (options.title ?? '').trim();
+
+  const usable = rows.filter((r) => r.dist.size > 0);
+  const poolUsable = (options.poolRows ?? []).filter((r) => r.dist.size > 0);
+  // Headings only earn their space once a Successes panel exists, the same rule
+  // the chart uses on screen: an all-sum card keeps the unlabeled single-chart
+  // look, and a pool-only card gets the heading that carries its unit.
+  const showHeadings = poolUsable.length > 0;
+
+  const specs: Omit<PanelSpec, 'originY'>[] = [];
+  // The empty totals panel still draws when there is nothing else at all, so a
+  // table with no drawable rows says so instead of rendering a bare footer.
+  if (usable.length > 0 || !showHeadings) {
+    specs.push({
+      rows: usable,
+      view,
+      target,
+      palette,
+      heading: showHeadings ? 'Totals' : null,
+      pool: false,
+    });
+  }
+  if (showHeadings) {
+    specs.push({
+      rows: poolUsable,
+      view: poolView,
+      target: poolTarget,
+      palette,
+      heading: 'Successes',
+      pool: true,
+    });
+  }
+
+  let cursor = PADDING + headerHeight(title);
+  const body: string[] = [];
+  let hidden = 0;
+  for (const spec of specs) {
+    const drawing = drawPanel({ ...spec, originY: cursor });
+    body.push(...drawing.parts);
+    cursor += drawing.height;
+    hidden += drawing.hidden;
+  }
+  const height = cursor + FOOTER_HEIGHT + PADDING;
+
+  const notes = [(options.note ?? '').trim()];
+  if (hidden > 0) notes.push(unfitNote(hidden));
+
+  return renderCard({
+    palette,
+    height,
+    scale,
+    title,
+    note: notes.filter((n) => n.length > 0).join('. '),
+    body,
+  });
 }

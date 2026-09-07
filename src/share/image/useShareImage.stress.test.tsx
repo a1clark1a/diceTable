@@ -154,41 +154,43 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe('useShareImage hasRows honesty', () => {
+describe('useShareImage cardState honesty', () => {
   it('reports no shareable rows for a brand-new table', () => {
     const { result } = renderHook(() => useShareImage(), { wrapper });
-    expect(result.current.hasRows).toBe(false);
+    expect(result.current.cardState).toBe('noRows');
   });
 
-  it('does not count a pool row as shareable', () => {
+  // A pool row draws its own Successes panel, so a pool-only table is as
+  // shareable as any other.
+  it('counts a pool row as shareable', () => {
     seedTable([poolRowSeed()]);
     const { result } = renderHook(() => useShareImage(), { wrapper });
-    expect(result.current.hasRows).toBe(false);
+    expect(result.current.cardState).toBe('ready');
   });
 
   it('does not count a row too complex to compute', () => {
     seedTable([overloadedRowSeed()]);
     const { result } = renderHook(() => useShareImage(), { wrapper });
-    expect(result.current.hasRows).toBe(false);
+    expect(result.current.cardState).toBe('noRows');
   });
 
   it('counts an ordinary sum row as shareable', () => {
     seedTable([sumRowSeed()]);
     const { result } = renderHook(() => useShareImage(), { wrapper });
-    expect(result.current.hasRows).toBe(true);
+    expect(result.current.cardState).toBe('ready');
   });
 
   it('flips true the moment a computable row joins a table of unshareable ones', () => {
-    seedTable([poolRowSeed(), overloadedRowSeed()]);
+    seedTable([overloadedRowSeed()]);
     const { result } = renderHook(() => ({ app: useApp(), share: useShareImage() }), {
       wrapper,
     });
-    expect(result.current.share.hasRows).toBe(false);
+    expect(result.current.share.cardState).toBe('noRows');
 
     act(() => {
       result.current.app.addExpression();
     });
-    expect(result.current.share.hasRows).toBe(true);
+    expect(result.current.share.cardState).toBe('ready');
   });
 });
 

@@ -19,10 +19,14 @@ import {
   type CheckSpec,
   type DicePart,
   type Expression,
+  type GridSort,
   type PersistedState,
   type RollMode,
+  type RollOffSort,
   type SuccessThreshold,
+  type TargetKindFilter,
   type TargetState,
+  type TargetSubView,
   type WorkshopView,
 } from '../types';
 
@@ -46,6 +50,10 @@ const initialState: PersistedState = {
     view: 'table',
     poolTargets: [1],
     baselineId: null,
+    targetSubView: 'grid',
+    targetFilter: 'all',
+    targetSort: null,
+    rollOffSort: 'win',
   },
 };
 
@@ -194,6 +202,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setChartView = useCallback(
     (view: ChartView) => {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, chartView: view } }));
+    },
+    [setState],
+  );
+
+  const setTargetSubView = useCallback(
+    (subView: TargetSubView) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetSubView: subView } }));
+    },
+    [setState],
+  );
+
+  const setTargetFilter = useCallback(
+    (filter: TargetKindFilter) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetFilter: filter } }));
+    },
+    [setState],
+  );
+
+  const setTargetSort = useCallback(
+    (sort: GridSort | null) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetSort: sort } }));
+    },
+    [setState],
+  );
+
+  const setRollOffSort = useCallback(
+    (sort: RollOffSort) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, rollOffSort: sort } }));
     },
     [setState],
   );
@@ -477,10 +513,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       view: state.ui.view,
       poolTargets: state.ui.poolTargets,
       baselineId: state.ui.baselineId,
+      targetSubView: state.ui.targetSubView,
+      targetFilter: state.ui.targetFilter,
+      targetSort: state.ui.targetSort,
+      rollOffSort: state.ui.rollOffSort,
       setExpandedId,
       setBaselineId,
       setChartView,
       setView,
+      setTargetSubView,
+      setTargetFilter,
+      setTargetSort,
+      setRollOffSort,
       setTarget,
       setPoolTargets,
       addExpression,
@@ -501,6 +545,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBaselineId,
       setChartView,
       setView,
+      setTargetSubView,
+      setTargetFilter,
+      setTargetSort,
+      setRollOffSort,
       setTarget,
       setPoolTargets,
       addExpression,

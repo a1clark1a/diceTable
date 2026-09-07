@@ -3,7 +3,8 @@ import { Box, HStack, Text } from '@chakra-ui/react';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import type { TargetState } from '../../types';
-import { hitSeries, type TargetRow } from './targetHitRows';
+import { hitSeries } from '../../engine/stats';
+import type { TargetRow } from './targetHitRows';
 
 const W = 640;
 const H = 210;

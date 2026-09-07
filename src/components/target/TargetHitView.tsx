@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Box, Button, HStack, Stack, Table, Text } from '@chakra-ui/react';
 import { useApp } from '../../state/useApp';
 import { RULING_SYMBOL } from '../targetRulingMeta';
@@ -6,7 +6,12 @@ import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
-import type { TargetRuling } from '../../types';
+import type {
+  GridSort,
+  TargetKindFilter,
+  TargetRuling,
+  TargetSubView,
+} from '../../types';
 import {
   columnKey,
   rowHitChance,
@@ -19,32 +24,32 @@ import {
 import { TargetBars } from './TargetBars';
 import { TargetCurves } from './TargetCurves';
 
-type SubView = 'grid' | 'curves' | 'bars';
-type KindFilter = 'all' | 'sum' | 'pool';
-
-interface GridSort {
-  /** columnKey, not a position: the two axes shift as targets and filters change. */
-  key: string;
-  dir: 'desc' | 'asc';
-}
-
-const SUB_VIEWS: { value: SubView; label: string }[] = [
+const SUB_VIEWS: { value: TargetSubView; label: string }[] = [
   { value: 'grid', label: 'Grid' },
   { value: 'curves', label: 'Curves' },
   { value: 'bars', label: 'Bars' },
 ];
 
-const KIND_FILTERS: { value: KindFilter; label: string }[] = [
+const KIND_FILTERS: { value: TargetKindFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'sum', label: 'Sum' },
   { value: 'pool', label: 'Pools' },
 ];
 
 export function TargetHitView() {
-  const { expressions, target, poolTargets } = useApp();
-  const [subView, setSubView] = useState<SubView>('grid');
-  const [filter, setFilter] = useState<KindFilter>('all');
-  const [sort, setSort] = useState<GridSort | null>(null);
+  // Sub-view, kind filter and grid sort all live in app state rather than here,
+  // so the share image can picture the selection actually on screen.
+  const {
+    expressions,
+    target,
+    poolTargets,
+    targetSubView: subView,
+    setTargetSubView: setSubView,
+    targetFilter: filter,
+    setTargetFilter: setFilter,
+    targetSort: sort,
+    setTargetSort: setSort,
+  } = useApp();
 
   const rows = useMemo(() => toTargetRows(expressions), [expressions]);
   const hasPools = rows.some((r) => r.isPool);
@@ -73,14 +78,16 @@ export function TargetHitView() {
     [target, poolTargets, filteredRows],
   );
 
-  const cycleSort = useCallback((key: string) => {
-    setSort((cur) => {
-      if (cur === null || cur.key !== key) return { key, dir: 'desc' };
-      if (cur.dir === 'desc') return { key, dir: 'asc' };
-      return null;
-    });
-  }, []);
-  const clearSort = useCallback(() => setSort(null), []);
+  // The setter takes a value, not an updater, so the cycle reads `sort` here.
+  const cycleSort = useCallback(
+    (key: string) => {
+      if (sort === null || sort.key !== key) setSort({ key, dir: 'desc' });
+      else if (sort.dir === 'desc') setSort({ key, dir: 'asc' });
+      else setSort(null);
+    },
+    [sort, setSort],
+  );
+  const clearSort = useCallback(() => setSort(null), [setSort]);
 
   // Order matters: a table with nothing chartable needs to hear about its
   // rolls, not its targets. Asking for a target first would tell a table whose
@@ -90,14 +97,6 @@ export function TargetHitView() {
     return (
       <Text fontSize="sm" color="fg.muted" px={1}>
         Add a roll with valid dice to see hit chances against your targets.
-      </Text>
-    );
-  }
-
-  if (columns.length === 0) {
-    return (
-      <Text fontSize="sm" color="fg.muted" px={1}>
-        Add a target above to see how likely each roll is to hit it.
       </Text>
     );
   }
@@ -178,7 +177,17 @@ export function TargetHitView() {
           {hint}
         </Text>
       </HStack>
-      {subView === 'grid' && (
+      {/* Curves need no target of their own: they plot the hit chance for every
+          possible target, and the target list only adds markers. Asking for a
+          target first would also strand the sub-view chips above, which render
+          after this point. */}
+      {subView === 'curves' ? (
+        <TargetCurves rows={sumRows} target={target} />
+      ) : columns.length === 0 ? (
+        <Text fontSize="sm" color="fg.muted" px={1}>
+          Add a target above to see how likely each roll is to hit it.
+        </Text>
+      ) : subView === 'grid' ? (
         <TargetGrid
           rows={filteredRows}
           columns={columns}
@@ -187,9 +196,7 @@ export function TargetHitView() {
           onCycleSort={cycleSort}
           onClearSort={clearSort}
         />
-      )}
-      {subView === 'curves' && <TargetCurves rows={sumRows} target={target} />}
-      {subView === 'bars' && (
+      ) : (
         <TargetBars
           rows={filteredRows}
           columns={columns}

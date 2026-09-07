@@ -174,7 +174,7 @@ export function SharePopover() {
                   <Download size={16} />
                   Download file
                 </Button>
-                {image.hasRows && (
+                {image.cardState === 'ready' && (
                   <>
                     <Separator my={1} />
                     <Button

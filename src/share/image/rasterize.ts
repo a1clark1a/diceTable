@@ -1,4 +1,4 @@
-import type { ShareImage } from './buildShareSvg';
+import type { ShareImage } from './svgPrimitives';
 
 // A data: URL, never a blob: one. The deployed CSP allows `img-src 'self' data:`
 // and nothing else, so a blob URL would be refused before the image ever
