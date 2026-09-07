@@ -13,7 +13,7 @@ import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
 import { buildMonotonePath } from './monotonePath';
-import { effectiveChartView, targetViewAvailable } from './effectiveView';
+import { shapeHeaderView } from './effectiveView';
 import { missProbability, rowPeak } from './zeroSpike';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
@@ -24,11 +24,11 @@ const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
 };
 
 export function ShapeHeaderLabel() {
-  const { chartView, target, expressions } = useApp();
-  const view = effectiveChartView(
-    chartView,
-    targetViewAvailable(target, expressions),
-  );
+  const { chartView, target, poolTargets, expressions } = useApp();
+  const view = shapeHeaderView(chartView, target, poolTargets, expressions);
+  if (view === null) {
+    return <HelpTerm tip={tipForId('shapeMixed')}>Shape</HelpTerm>;
+  }
   const { text, tip } = VIEW_LABELS[view];
   return <HelpTerm tip={tip}>{text}</HelpTerm>;
 }

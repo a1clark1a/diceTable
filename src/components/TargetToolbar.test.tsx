@@ -410,3 +410,34 @@ describe('TargetToolbar pool target row', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('TargetToolbar draft clamping', () => {
+  it('commits a negative pool draft as the floor the row keeps', () => {
+    seedPoolRow({ poolTargets: [3] });
+    renderToolbar();
+    addPoolValue('-4');
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 1',
+      'Remove pool target ≥ 3',
+    ]);
+  });
+
+  it('leaves the list alone when a pool draft below the floor is already in it', () => {
+    seedPoolRow({ poolTargets: [1, 3] });
+    renderToolbar();
+    addPoolValue('0');
+    expect(poolChipLabels()).toEqual([
+      'Remove pool target ≥ 1',
+      'Remove pool target ≥ 3',
+    ]);
+    expect(getPoolInput().value).toBe('');
+  });
+
+  it('keeps a negative numeric target, which a modifier can reach', () => {
+    renderToolbar();
+    addValue('-3');
+    expect(
+      screen.getByRole('button', { name: 'Remove target ≥ -3' }),
+    ).toBeInTheDocument();
+  });
+});

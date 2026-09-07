@@ -277,7 +277,12 @@ export function CheckEditor({
       const next: CheckSpec = { ...check };
       if (on) {
         const sides = checkDie?.sides ?? 20;
-        next.crit = { onFaces: [sides], effect: 'doubleDice' };
+        // A critical face succeeds without being tested against the threshold,
+        // so the seed has to sit at the end of the die the rule rolls toward.
+        // Seeding the top face under "at most" would hand an automatic success
+        // to the worst roll the die can make.
+        const seed = check.threshold.direction === 'lte' ? 1 : sides;
+        next.crit = { onFaces: [seed], effect: 'doubleDice' };
       } else {
         delete next.crit;
       }

@@ -389,6 +389,8 @@ const uiTips: Record<string, string> = {
     'The average result, with how spread out rolls land around it. Lower σ means more consistent rolls.',
   targetView:
     'Shows each row’s chances against your targets. Bars left to right go in target order.',
+  shapeMixed:
+    'Rows here draw different views. Pool rows highlight the pool target, and sum rows fall back to their full shape until you add a target.',
   roll: 'Open the roller. Pick how many times to roll, see recent results. History stays until you reload the page.',
   rollMode:
     'Applies to the whole roll. Advantage rolls twice and takes the higher; disadvantage rolls twice and takes the lower.',

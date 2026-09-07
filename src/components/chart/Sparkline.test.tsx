@@ -456,8 +456,19 @@ describe('ShapeHeaderLabel', () => {
     expect(screen.getByText('Target')).toBeInTheDocument();
   });
 
-  it('shows Target when chartView is target and a sum row and a pool row share the table with no target value set', () => {
+  it('stays neutral when a pool row draws the target view but a sum row falls back to PMF', () => {
     seed('target', null, 'mixed');
+    render(
+      <AllProviders>
+        <ShapeHeaderLabel />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Shape')).toBeInTheDocument();
+    expect(screen.queryByText('Target')).not.toBeInTheDocument();
+  });
+
+  it('shows Target when a sum row and a pool row share the table and a target value is set', () => {
+    seed('target', 10, 'mixed');
     render(
       <AllProviders>
         <ShapeHeaderLabel />

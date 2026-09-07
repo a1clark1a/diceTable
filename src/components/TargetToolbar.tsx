@@ -21,11 +21,16 @@ import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
 
-function parseDraft(raw: string): number | null {
+// Clamping in parse means the duplicate and cap checks below run on the value
+// the store will actually keep, rather than on a raw draft the store then
+// floors out from under them. Garbage and out-of-range input landing on the
+// nearest bound is the same trade NumberStepper.parseClamped makes.
+function parseDraft(raw: string, minValue?: number): number | null {
   const trimmed = raw.trim();
   if (trimmed === '') return null;
   const n = Number.parseInt(trimmed, 10);
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n)) return null;
+  return minValue !== undefined && n < minValue ? minValue : n;
 }
 
 interface TargetDraft {
@@ -38,22 +43,25 @@ interface TargetDraft {
 // Shared by both target rows: type a number, Enter or blur adds it as a chip,
 // Escape drops the draft, Backspace on an empty draft takes the last chip back.
 // minRemaining is how many chips the row must keep, so the pool row cannot lose
-// the last threshold its Hit % cells answer to.
+// the last threshold its Hit % cells answer to. minValue is the floor the store
+// applies to a committed value, and is left off where the store keeps any
+// integer: a sum target can sit below zero once modifiers do.
 function useTargetDraft(
   values: number[],
   setValues: (next: number[]) => void,
   minRemaining: number,
+  minValue?: number,
 ): TargetDraft {
   const [draft, setDraft] = useState('');
 
   const commitDraft = useCallback(() => {
-    const parsed = parseDraft(draft);
+    const parsed = parseDraft(draft, minValue);
     setDraft('');
     if (parsed === null) return;
     if (values.includes(parsed)) return;
     if (values.length >= MAX_TARGETS) return;
     setValues([...values, parsed]);
-  }, [draft, values, setValues]);
+  }, [draft, values, setValues, minValue]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -212,6 +220,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
   const { draft, setDraft, commitDraft, onKeyDown } = useTargetDraft(
     poolTargets,
     setPoolTargets,
+    1,
     1,
   );
 

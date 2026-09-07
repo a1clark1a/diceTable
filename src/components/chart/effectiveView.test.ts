@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { effectiveChartView, targetViewAvailable } from './effectiveView';
+import {
+  effectiveChartView,
+  shapeHeaderView,
+  targetViewAvailable,
+} from './effectiveView';
 import type { ChartView, Expression, TargetState } from '../../types';
 
 function sumExpr(id: string): Expression {
@@ -112,5 +116,80 @@ describe('the view a table resolves to', () => {
   it('drops off the target view for a table of only sum rolls with no numeric target', () => {
     const available = targetViewAvailable(noValues, [sumExpr('a'), sumExpr('b')]);
     expect(effectiveChartView('target', available)).toBe('pmf');
+  });
+});
+
+describe('shapeHeaderView', () => {
+  const poolTargets = [1, 3];
+
+  it('passes a distribution view straight through whatever the rows are', () => {
+    for (const view of DISTRIBUTION_VIEWS) {
+      expect(
+        shapeHeaderView(view, noValues, poolTargets, [sumExpr('a'), poolExpr('p')]),
+      ).toBe(view);
+    }
+  });
+
+  it('names the target view when every sum row has a numeric target', () => {
+    expect(
+      shapeHeaderView('target', withValues, poolTargets, [
+        sumExpr('a'),
+        checkExpr('c'),
+      ]),
+    ).toBe('target');
+  });
+
+  it('names the fallback when sum rows have no numeric target', () => {
+    expect(
+      shapeHeaderView('target', noValues, poolTargets, [
+        sumExpr('a'),
+        checkExpr('c'),
+      ]),
+    ).toBe('pmf');
+  });
+
+  it('names the target view for a pool-only table with no numeric target', () => {
+    expect(shapeHeaderView('target', noValues, poolTargets, [poolExpr('p')])).toBe(
+      'target',
+    );
+  });
+
+  it('names the fallback for a pool-only table whose pool target list is empty', () => {
+    expect(shapeHeaderView('target', noValues, [], [poolExpr('p')])).toBe('pmf');
+  });
+
+  it('reports disagreement when a pool row draws the target view and a sum row does not', () => {
+    expect(
+      shapeHeaderView('target', noValues, poolTargets, [
+        sumExpr('a'),
+        poolExpr('p'),
+      ]),
+    ).toBeNull();
+  });
+
+  it('reports disagreement when a sum row draws the target view and a pool row does not', () => {
+    expect(
+      shapeHeaderView('target', withValues, [], [sumExpr('a'), poolExpr('p')]),
+    ).toBeNull();
+  });
+
+  it('names the target view when a mixed table has both kinds of target', () => {
+    expect(
+      shapeHeaderView('target', withValues, poolTargets, [
+        sumExpr('a'),
+        poolExpr('p'),
+      ]),
+    ).toBe('target');
+  });
+
+  it('names the fallback when a mixed table has neither kind of target', () => {
+    expect(
+      shapeHeaderView('target', noValues, [], [sumExpr('a'), poolExpr('p')]),
+    ).toBe('pmf');
+  });
+
+  it('falls back to the numeric target alone on an empty table', () => {
+    expect(shapeHeaderView('target', noValues, poolTargets, [])).toBe('pmf');
+    expect(shapeHeaderView('target', withValues, [], [])).toBe('target');
   });
 });

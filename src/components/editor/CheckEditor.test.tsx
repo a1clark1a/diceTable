@@ -96,6 +96,21 @@ function effectDieControl(label: string) {
   return screen.getAllByLabelText(label)[1]!;
 }
 
+function setDirection(direction: 'gte' | 'lte') {
+  fireEvent.change(screen.getByLabelText('Success direction'), {
+    target: { value: direction },
+  });
+}
+
+// Reads the rule off the rendered picker, which is the only place the user can
+// see which face the seed landed on.
+function pressedCritFaces(): number[] {
+  const group = within(screen.getByRole('group', { name: 'Critical faces' }));
+  return group
+    .getAllByRole('button', { pressed: true })
+    .map((b) => Number((b.getAttribute('aria-label') ?? '').slice('Face '.length)));
+}
+
 // Both the Check and the Effect panel carry an Add part button, in that order.
 function addCheckPart() {
   fireEvent.click(screen.getAllByRole('button', { name: 'Add part' })[0]!);
@@ -164,6 +179,38 @@ describe('CheckEditor building a whole roll through the GUI', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
 
     expect(current?.check?.crit).toEqual({ onFaces: [12], effect: 'doubleDice' });
+  });
+
+  it('shows the seeded critical face pressed in the face picker', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd12' })[0]!);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    expect(pressedCritFaces()).toEqual([12]);
+  });
+
+  it('seeds the critical on the bottom face when the check succeeds at most the threshold', () => {
+    startCheckRow();
+    setDirection('lte');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    expect(pressedCritFaces()).toEqual([1]);
+  });
+
+  // A critical face succeeds without being threshold-tested, so seeding the top
+  // face of a roll-under check would hand the automatic success to the worst
+  // roll the die can make.
+  it('seeds the bottom face of a roll-under check rather than the die top', () => {
+    startCheckRow();
+    fireEvent.click(screen.getAllByRole('button', { name: 'd12' })[0]!);
+    setDirection('lte');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Critical' }));
+
+    expect(pressedCritFaces()).toEqual([1]);
+    expect(pressedCritFaces()).not.toContain(12);
   });
 
   it('builds a fireball with a mean of 21.5875', () => {

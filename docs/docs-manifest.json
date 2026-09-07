@@ -81,6 +81,7 @@
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/state/AppContext.tsx",
+        "src/components/WorkshopToolbar.tsx",
         "src/presets/starterRolls.ts",
         "src/components/presets/StartExamplesPanel.tsx",
         "src/components/presets/PresetCardGrid.tsx",
@@ -109,6 +110,10 @@
         "src/components/chart/OverlayChartImpl.tsx",
         "src/components/chart/Sparkline.tsx",
         "src/components/chart/zeroSpike.ts",
+        "src/components/chart/seriesEval.ts",
+        "src/components/chart/effectiveView.ts",
+        "src/components/chart/pmfAxis.ts",
+        "src/components/chart/format.ts",
         "src/components/chart/palette.ts",
         "src/components/inspect/InspectChart.tsx",
         "src/components/docs/Quickstart.tsx",
@@ -169,6 +174,8 @@
       "deps": [
         "src/components/TargetToolbar.tsx",
         "src/components/targetRuling.tsx",
+        "src/components/targetRulingMeta.ts",
+        "src/components/HitLine.tsx",
         "src/components/chart/OverlayChart.tsx",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
@@ -181,7 +188,7 @@
       "label": "Quickstart · Step 9 (Switch workshop views)",
       "deps": [
         "src/components/WorkshopViewSwitcher.tsx",
-        "src/components/WorkshopHeader.tsx",
+        "src/pages/TablePage.tsx",
         "src/components/target/TargetHitView.tsx",
         "src/components/compare/RollOffView.tsx",
         "src/components/compare/HeadToHeadView.tsx",
@@ -194,6 +201,7 @@
       "label": "Quickstart · Step 10 (Roll the dice)",
       "deps": [
         "src/components/RollResult.tsx",
+        "src/components/WorkshopToolbar.tsx",
         "src/state/useRollHistory.ts",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
@@ -208,7 +216,12 @@
         "src/components/share/SharePopover.tsx",
         "src/components/share/ShareImagePopover.tsx",
         "src/components/share/ImportDialog.tsx",
+        "src/components/WorkshopToolbar.tsx",
         "src/share/image/buildShareSvg.ts",
+        "src/share/image/buildTargetHitSvg.ts",
+        "src/share/image/buildRollOffSvg.ts",
+        "src/share/image/buildMatrixSvg.ts",
+        "src/share/image/clipboard.ts",
         "src/share/image/useShareImage.ts",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
@@ -244,6 +257,7 @@
       "deps": [
         "src/engine/distribution.ts",
         "src/components/chart/OverlayChart.tsx",
+        "src/components/chart/seriesEval.ts",
         "src/docs/glossary.ts"
       ]
     },
