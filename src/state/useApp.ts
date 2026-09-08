@@ -1,13 +1,18 @@
 import { createContext, useContext } from 'react';
 import type {
   ChartView,
+  CheckSpec,
   Expression,
   ExpressionMode,
   ExplodeRule,
+  GridSort,
   KeepRule,
   RerollRule,
   RollMode,
+  RollOffSort,
   SuccessThreshold,
+  TargetKindFilter,
+  TargetSubView,
   TargetRuling,
   TargetState,
   WorkshopView,
@@ -19,6 +24,8 @@ export type ExpressionPatch = {
   rollMode?: RollMode;
   mode?: ExpressionMode;
   successThreshold?: SuccessThreshold | undefined;
+  keepAcross?: KeepRule | undefined;
+  check?: CheckSpec | undefined;
 };
 
 export type PartPatch = {
@@ -40,14 +47,22 @@ export interface AppContextValue {
   chartView: ChartView;
   target: TargetState;
   view: WorkshopView;
-  poolTarget: number;
+  poolTargets: number[];
   baselineId: string | null;
+  targetSubView: TargetSubView;
+  targetFilter: TargetKindFilter;
+  targetSort: GridSort | null;
+  rollOffSort: RollOffSort;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
   setChartView: (view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
-  setPoolTarget: (value: number) => void;
+  setPoolTargets: (values: number[]) => void;
+  setTargetSubView: (subView: TargetSubView) => void;
+  setTargetFilter: (filter: TargetKindFilter) => void;
+  setTargetSort: (sort: GridSort | null) => void;
+  setRollOffSort: (sort: RollOffSort) => void;
   addExpression: () => void;
   duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;

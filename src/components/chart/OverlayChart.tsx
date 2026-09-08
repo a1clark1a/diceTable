@@ -1,15 +1,18 @@
 import { lazy, Suspense, useMemo, useState, type Ref } from 'react';
 import { Box, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
+import { isTotalsMode } from '../../engine/expression';
 import { useApp } from '../../state/useApp';
 import { useDistributions } from '../../state/useDistributions';
-import type {
-  ChartView,
-  Distribution,
-  Expression,
-  TargetState,
+import {
+  CHART_ROW_LIMIT,
+  type ChartView,
+  type Distribution,
+  type Expression,
+  type TargetState,
 } from '../../types';
 import { rowColor } from './palette';
+import { effectiveChartView } from './effectiveView';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
@@ -26,8 +29,6 @@ interface LegendEntry {
 interface OverlayChartProps {
   ref?: Ref<HTMLDivElement>;
 }
-
-const CHART_ROW_LIMIT = 20;
 
 interface PanelLegendProps {
   entries: LegendEntry[];
@@ -166,15 +167,17 @@ function ChartPanel({
 }
 
 export function OverlayChart({ ref }: OverlayChartProps) {
-  const { expressions, chartView, target, poolTarget } = useApp();
+  const { expressions, chartView, target, poolTargets } = useApp();
   const { dists } = useDistributions();
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const overLimit = expressions.length > CHART_ROW_LIMIT;
-  const hasTarget = target.values.length > 0;
-  const effectiveView: ChartView =
-    chartView === 'target' && !hasTarget ? 'pmf' : chartView;
+  // Each panel resolves the target view against its own target: the pool
+  // target always exists, so the Successes panel can show it even while the
+  // numeric target list is empty and Totals falls back to PMF.
+  const sumView = effectiveChartView(chartView, target.values.length > 0);
+  const poolView = effectiveChartView(chartView, true);
 
   // Keyed by unfiltered row position so the sum/pool split below cannot shift
   // any series off its table swatch color.
@@ -184,12 +187,15 @@ export function OverlayChart({ ref }: OverlayChartProps) {
     return map;
   }, [expressions]);
 
+  // Check rows total up like sum rows, so they belong on the Totals panel; only
+  // pool rows change the scale. Matching the legend split below keeps a row from
+  // appearing in the key without a curve to point at.
   const sumExprs = useMemo(
-    () => expressions.filter((e) => e.mode === 'sum'),
+    () => expressions.filter(isTotalsMode),
     [expressions],
   );
   const poolExprs = useMemo(
-    () => expressions.filter((e) => e.mode === 'pool'),
+    () => expressions.filter((e) => !isTotalsMode(e)),
     [expressions],
   );
 
@@ -205,16 +211,16 @@ export function OverlayChart({ ref }: OverlayChartProps) {
         name: expr.name,
         color: rowColor(idx),
       };
-      if (expr.mode === 'pool') pool.push(entry);
-      else sum.push(entry);
+      if (isTotalsMode(expr)) sum.push(entry);
+      else pool.push(entry);
     });
     return { sum, pool };
   }, [overLimit, expressions, dists]);
 
-  // Pool rows answer to the shared pool target, not the numeric target list.
+  // Pool rows answer to the shared pool targets, not the numeric target list.
   const poolTargetState = useMemo<TargetState>(
-    () => ({ values: [poolTarget], ruling: 'gte' }),
-    [poolTarget],
+    () => ({ values: poolTargets, ruling: 'gte' }),
+    [poolTargets],
   );
 
   const showSum = legends.sum.length > 0;
@@ -285,7 +291,7 @@ export function OverlayChart({ ref }: OverlayChartProps) {
                 expressions={sumExprs}
                 dists={dists}
                 colors={colors}
-                effectiveView={effectiveView}
+                effectiveView={sumView}
                 target={target}
                 hoveredId={hoveredId}
                 onHover={setHoveredId}
@@ -302,7 +308,7 @@ export function OverlayChart({ ref }: OverlayChartProps) {
                 expressions={poolExprs}
                 dists={dists}
                 colors={colors}
-                effectiveView={effectiveView}
+                effectiveView={poolView}
                 target={poolTargetState}
                 hoveredId={hoveredId}
                 onHover={setHoveredId}

@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
-import { defaultPart, newId } from './defaultPart';
+import { normalizeExpression } from './normalize';
+import { applyPartPatch, defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
 import { toaster } from '../components/share/toaster-store';
 import {
@@ -15,12 +16,17 @@ import {
   MAX_EXPRESSIONS,
   MAX_TARGETS,
   type ChartView,
+  type CheckSpec,
   type DicePart,
   type Expression,
+  type GridSort,
   type PersistedState,
   type RollMode,
+  type RollOffSort,
   type SuccessThreshold,
+  type TargetKindFilter,
   type TargetState,
+  type TargetSubView,
   type WorkshopView,
 } from '../types';
 
@@ -42,8 +48,12 @@ const initialState: PersistedState = {
     chartView: 'pmf',
     target: { values: [], ruling: 'gte' },
     view: 'table',
-    poolTarget: 1,
+    poolTargets: [1],
     baselineId: null,
+    targetSubView: 'grid',
+    targetFilter: 'all',
+    targetSort: null,
+    rollOffSort: 'win',
   },
 };
 
@@ -71,41 +81,25 @@ function defaultExpression(name: string = DEFAULT_ROLL_NAME): Expression {
   };
 }
 
+function freshParts(parts: DicePart[]): DicePart[] {
+  return parts.map((p) => ({ ...p, id: newId('part') }));
+}
+
+// The effect's dice are addressed by id the same way the row's are, so a copy
+// that reused them would leave two rows editing through the same handles.
+function freshCheck(check: CheckSpec | undefined): CheckSpec | undefined {
+  if (check === undefined) return undefined;
+  return { ...check, effect: { ...check.effect, parts: freshParts(check.effect.parts) } };
+}
+
 function reIdExpression(expr: Expression): Expression {
-  return {
+  const next: Expression = {
     ...expr,
     id: newId('expr'),
-    parts: expr.parts.map((p) => ({ ...p, id: newId('part') })),
+    parts: freshParts(expr.parts),
   };
-}
-
-function applyPartPatch(part: DicePart, patch: PartPatch): DicePart {
-  const next: DicePart = { ...part };
-  if (patch.count !== undefined) next.count = patch.count;
-  if (patch.sides !== undefined) next.sides = patch.sides;
-  if ('keep' in patch) {
-    if (patch.keep) next.keep = patch.keep;
-    else delete next.keep;
-  }
-  if ('reroll' in patch) {
-    if (patch.reroll) next.reroll = patch.reroll;
-    else delete next.reroll;
-  }
-  if ('explode' in patch) {
-    if (patch.explode) next.explode = patch.explode;
-    else delete next.explode;
-  }
-  return next;
-}
-
-// Keep and explode have no honest meaning when counting successes; stripping
-// them on the switch keeps notation and math in agreement (they are never
-// displayed-but-ignored). Reroll survives: pool odds are post-reroll.
-function stripPoolIncompatibleRules(part: DicePart): DicePart {
-  if (part.keep === undefined && part.explode === undefined) return part;
-  const next: DicePart = { ...part };
-  delete next.keep;
-  delete next.explode;
+  const check = freshCheck(expr.check);
+  if (check) next.check = check;
   return next;
 }
 
@@ -115,6 +109,31 @@ function seedSuccessThreshold(parts: DicePart[]): SuccessThreshold {
   const sides = parts[0]?.sides ?? 6;
   const value = Math.min(Math.max(Math.ceil(sides / 2) + 1, 1), sides);
   return { direction: 'gte', value };
+}
+
+// A check needs somewhere to start that reads as a whole mechanic on the first
+// look: roll what the row already rolls, clear the bar half the time, then deal
+// a small effect. Nothing here is tuned to a system; every piece is one control
+// away from being changed.
+function seedCheckSpec(parts: DicePart[]): CheckSpec {
+  const sides = parts[0]?.sides ?? 20;
+  return {
+    threshold: { direction: 'gte', value: Math.min(10, sides) },
+    effect: { parts: [{ id: newId('part'), count: 1, sides: 6 }], flatModifier: 0 },
+    onSuccess: 'full',
+    onFailure: 'none',
+  };
+}
+
+// Envelopes written before the normalize choke point existed can carry rules
+// the editors can no longer reach (a critical face the shrunken die cannot
+// show); repairing them on the way in heals old saves instead of letting the
+// stale rule persist. The validator itself stays as strict as it was, so
+// nothing previously valid is wiped.
+function validateAndNormalize(raw: unknown): PersistedState | null {
+  const state = validatePersistedState(raw);
+  if (state === null) return null;
+  return { ...state, expressions: state.expressions.map(normalizeExpression) };
 }
 
 function isQuotaError(err: unknown): boolean {
@@ -147,16 +166,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     initialState,
     {
       version: ENVELOPE_VERSION,
-      validate: validatePersistedState,
+      validate: validateAndNormalize,
       onWriteError,
     },
   );
 
+  // Every row edit funnels through here, so normalizeExpression only has to be
+  // right in one place for no mutation to be able to persist an invariant break.
   const updateExpressionInList = useCallback(
     (id: string, mapper: (expr: Expression) => Expression) => {
       setState((prev) => ({
         ...prev,
-        expressions: prev.expressions.map((e) => (e.id === id ? mapper(e) : e)),
+        expressions: prev.expressions.map((e) =>
+          e.id === id ? normalizeExpression(mapper(e)) : e,
+        ),
       }));
     },
     [setState],
@@ -179,6 +202,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setChartView = useCallback(
     (view: ChartView) => {
       setState((prev) => ({ ...prev, ui: { ...prev.ui, chartView: view } }));
+    },
+    [setState],
+  );
+
+  const setTargetSubView = useCallback(
+    (subView: TargetSubView) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetSubView: subView } }));
+    },
+    [setState],
+  );
+
+  const setTargetFilter = useCallback(
+    (filter: TargetKindFilter) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetFilter: filter } }));
+    },
+    [setState],
+  );
+
+  const setTargetSort = useCallback(
+    (sort: GridSort | null) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetSort: sort } }));
+    },
+    [setState],
+  );
+
+  const setRollOffSort = useCallback(
+    (sort: RollOffSort) => {
+      setState((prev) => ({ ...prev, ui: { ...prev.ui, rollOffSort: sort } }));
     },
     [setState],
   );
@@ -214,10 +265,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
-  const setPoolTarget = useCallback(
-    (value: number) => {
-      const next = Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 1;
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, poolTarget: next } }));
+  const setPoolTargets = useCallback(
+    (values: number[]) => {
+      setState((prev) => {
+        const seen = new Set<number>();
+        const cleaned: number[] = [];
+        for (const v of values) {
+          if (!Number.isInteger(v)) continue;
+          const value = Math.max(1, v);
+          if (seen.has(value)) continue;
+          seen.add(value);
+          cleaned.push(value);
+          if (cleaned.length >= MAX_TARGETS) break;
+        }
+        // A pool row's Hit % is not opt-in the way a sum row's is, so emptying
+        // the list would leave those rows with nothing to answer.
+        if (cleaned.length === 0) return prev;
+        cleaned.sort((a, b) => a - b);
+        return { ...prev, ui: { ...prev.ui, poolTargets: cleaned } };
+      });
     },
     [setState],
   );
@@ -255,10 +321,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return prev;
         }
         const copy: Expression = {
-          ...source,
-          id: newId('expr'),
+          ...reIdExpression(source),
           name: `${source.name} (copy)`,
-          parts: source.parts.map((p) => ({ ...p, id: newId('part') })),
         };
         const idx = prev.expressions.findIndex((e) => e.id === id);
         const next = [...prev.expressions];
@@ -307,18 +371,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (patch.name !== undefined) next.name = patch.name;
         if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
+        // Switching modes only seeds what the new mode needs; the fields the
+        // new mode cannot read (threshold, check, keepAcross, per-part rules)
+        // are stripped by normalizeExpression on the way into the list. The
+        // row's dice become the check roll, which is the least surprising place
+        // for them: the Mod column keeps meaning "the modifier on the roll you
+        // make".
         if (patch.mode !== undefined && patch.mode !== e.mode) {
           next.mode = patch.mode;
           if (patch.mode === 'pool') {
-            next.parts = e.parts.map(stripPoolIncompatibleRules);
             next.successThreshold = seedSuccessThreshold(e.parts);
-          } else {
-            delete next.successThreshold;
+          } else if (patch.mode === 'check') {
+            next.check = e.check ?? seedCheckSpec(e.parts);
           }
         }
         if ('successThreshold' in patch) {
           if (patch.successThreshold) next.successThreshold = patch.successThreshold;
           else delete next.successThreshold;
+        }
+        if ('keepAcross' in patch) {
+          if (patch.keepAcross) next.keepAcross = patch.keepAcross;
+          else delete next.keepAcross;
+        }
+        if ('check' in patch) {
+          if (patch.check) next.check = patch.check;
+          else delete next.check;
         }
         return next;
       });
@@ -374,7 +451,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const replaceExpressions = useCallback(
     (incoming: Expression[]) => {
       const capped = incoming.slice(0, MAX_EXPRESSIONS);
-      const fresh = capped.map(reIdExpression);
+      // Imported rows bypass updateExpressionInList, so they get the same
+      // repair pass here before they can reach the persisted envelope.
+      const fresh = capped.map((e) => normalizeExpression(reIdExpression(e)));
       if (incoming.length > MAX_EXPRESSIONS) {
         toaster.create({
           type: 'info',
@@ -407,7 +486,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         const accepted = incoming.slice(0, room);
         const renamed = renameCollisions(prev.expressions, accepted);
-        const fresh = renamed.map(reIdExpression);
+        const fresh = renamed.map((e) => normalizeExpression(reIdExpression(e)));
         if (incoming.length > room) {
           toaster.create({
             type: 'info',
@@ -432,14 +511,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       chartView: state.ui.chartView,
       target: state.ui.target,
       view: state.ui.view,
-      poolTarget: state.ui.poolTarget,
+      poolTargets: state.ui.poolTargets,
       baselineId: state.ui.baselineId,
+      targetSubView: state.ui.targetSubView,
+      targetFilter: state.ui.targetFilter,
+      targetSort: state.ui.targetSort,
+      rollOffSort: state.ui.rollOffSort,
       setExpandedId,
       setBaselineId,
       setChartView,
       setView,
+      setTargetSubView,
+      setTargetFilter,
+      setTargetSort,
+      setRollOffSort,
       setTarget,
-      setPoolTarget,
+      setPoolTargets,
       addExpression,
       duplicateExpression,
       deleteExpression,
@@ -458,8 +545,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setBaselineId,
       setChartView,
       setView,
+      setTargetSubView,
+      setTargetFilter,
+      setTargetSort,
+      setRollOffSort,
       setTarget,
-      setPoolTarget,
+      setPoolTargets,
       addExpression,
       duplicateExpression,
       deleteExpression,

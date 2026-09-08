@@ -190,8 +190,10 @@ P_always(X = k) = 0                              for k ∈ R`,
         A total of 7 means rolling a 6, then a 1:{' '}
         <Code>1/6 · 1/6 ≈ 0.028</Code>.
         <br />
-        Reaching 12 takes a 6, then a 6, then whatever the chain cap forces:{' '}
-        <Code>1/36</Code>.
+        Reaching 13 takes a 6, then a 6, then a 1:{' '}
+        <Code>1/6 · 1/6 · 1/6 = 1/216</Code>. Totals like 12 never appear at
+        all, because every 6 in the chain keeps rolling. Each multiple of 6 is
+        a gap on the chart.
       </Text>
     ),
     snippet: `// recursive: P_explode = non-exploding tail + (exploding face) ⊛ P_explode
@@ -201,7 +203,7 @@ explode(P, F, depth):
     P_keep = { k : P(k)  for k ≠ F }   // non-exploding outcomes
     P_pop  = { k : P(F)  for k = F }   // the exploding face
     P_next = explode(P, F, depth − 1)
-    return P_keep ⊕ ( P_pop ⊛ shift_by_F(P_next) )
+    return P_keep ⊕ ( P_pop ⊛ P_next )   // P_pop sits at F, so ⊛ already shifts by F
 
 // ⊕ = pointwise sum, ⊛ = convolution`,
   },
@@ -286,5 +288,91 @@ win_i = Σ  P_i(v) · Π  P_j(X < v)      over every other roll j
 // tie share: best-or-tied-best, minus outright wins
 tie_i = Σ  P_i(v) · Π  P_j(X ≤ v)  −  win_i
         v          j≠i`,
+  },
+  {
+    id: 'keep-across',
+    title: '10 · Keep across parts: dice of different sizes',
+    subtitle: 'e.g. 1d8 + 1d6 · keep highest 1, the trait-and-wild-die roll',
+    plain: (
+      <Text>
+        Keeping inside one part only ever compares identical dice, so it can be
+        counted face by face. Across parts the dice have different faces, and
+        the trick is to stop thinking about which die won and count levels
+        instead. For any threshold t, count how many dice show at least t. The
+        sum of the top n dice is the same as adding up, for every t, the smaller
+        of n and that count. So DiceTable walks t downward from the highest face,
+        tracking how many dice of each part have reached the current level.
+        Dice inside a part are identical, so how many of them arrive at each
+        level is a binomial step, which keeps the bookkeeping small. Keeping the
+        lowest n is the same walk read against a mirrored roll.
+      </Text>
+    ),
+    example: (
+      <Text>
+        For 1d8 + 1d6 · keep highest 1, the chance the best die is at most{' '}
+        <Code>v</Code> is just the chance both are:{' '}
+        <Code>P(max ≤ v) = (v/8) · (min(v,6)/6)</Code>. That gives a mean of{' '}
+        <Code>251/48 ≈ 5.229</Code>, against <Code>4.5</Code> for the d8 alone.
+      </Text>
+    ),
+    snippet: `// the level identity, for positive integer faces
+sum of top n  =  Σ  min(n, C_t)        C_t = dice showing at least t
+                t≥1
+
+// keep highest 1 has a closed form: everyone lands at or below v
+P(max ≤ v) = Π  F_p(v) ^ m_p           m_p = dice in part p
+             p
+
+// general n: walk t downward, state = dice per part already at or above t
+// newcomers within a part are binomial, since those dice are identical
+P(k of part p arrive) = C(remaining, k) · q^k · (1 − q)^(remaining − k)
+                        q = P(die = t | die ≤ t)
+
+// keep lowest n of v  =  keep highest n of (maxFace + 1 − v), read back`,
+  },
+  {
+    id: 'check',
+    title: '11 · Checks: an effect scaled by how the roll went',
+    subtitle: 'e.g. 1d20 + 7 ≥15 → 1d8 + 4, crit 20 doubles the dice',
+    plain: (
+      <Text>
+        A check row is a weighted mix of three distributions, which is why it
+        still hands the chart a single curve. First the check roll is split into
+        outcomes: the faces that crit, the faces that clear the bar, and the
+        rest. A critical is classified on the face the die shows rather than on
+        the total, because that is where advantage and rerolls already live
+        exactly, and it always counts as a success. Then the effect is built
+        like any summed roll, along with the bigger version a critical rolls.
+        Each outcome scales the effect it applies, where half is floor division
+        and nothing is a certain zero, and the results are mixed in proportion
+        to how often each outcome happens. The mean that comes out is the
+        average per attempt, misses included.
+      </Text>
+    ),
+    example: (
+      <Text>
+        1d20+7 against 15 succeeds on a face of 8 or better, so 12 plain
+        successes and the 20, and it fails on the other 7 faces. Mixing{' '}
+        <Code>0.60 · (1d8+4)</Code> with <Code>0.05 · (2d8+4)</Code> and{' '}
+        <Code>0.35 · 0</Code> gives a mean of exactly <Code>5.75</Code>.
+      </Text>
+    ),
+    snippet: `// 1. split the check roll into disjoint outcomes
+P(crit)    = Σ P(face = f)          for every crit face f
+P(success) = Σ P(face = f)          f + modifier meets the threshold, f not a crit
+P(fail)    = 1 − P(crit) − P(success)
+
+// 2. scale one distribution by what an outcome applies
+scale(D, full)    = D
+scale(D, half)    = distribution of floor(D / 2)
+scale(D, nothing) = point mass at 0
+
+// 3. mix them, weighted by how often each outcome happens
+P_row = P(fail)    · scale(effect, onFailure)
+      + P(success) · scale(effect, onSuccess)
+      + P(crit)    · scale(critEffect, onSuccess)
+
+// advantage applies to the check roll, so it also raises the crit chance
+P(crit on 20, advantage) = 1 − (19/20)² = 0.0975`,
   },
 ];

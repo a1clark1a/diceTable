@@ -14,13 +14,26 @@ import { PresetCardGrid } from './PresetCardGrid';
 import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 
-export function ExamplesDialog() {
+interface ExamplesDialogProps {
+  // Controlled when `open` is supplied, which also drops the built-in trigger:
+  // the toolbar opens this from a menu item that cannot host a Dialog.Trigger.
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function ExamplesDialog({ open, onOpenChange }: ExamplesDialogProps) {
   const { addExpressions } = useApp();
-  const [open, setOpen] = useState(false);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const controlled = open !== undefined;
+  const isOpen = controlled ? open : uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (controlled) onOpenChange?.(next);
+    else setUncontrolledOpen(next);
+  };
 
   return (
     <Dialog.Root
-      open={open}
+      open={isOpen}
       onOpenChange={(e) => setOpen(e.open)}
       lazyMount
       unmountOnExit
@@ -28,14 +41,16 @@ export function ExamplesDialog() {
       scrollBehavior="inside"
       size={{ mdDown: 'full', md: 'lg' }}
     >
-      <Tooltip content={tipForId('examples')} disabled={open}>
-        <Dialog.Trigger asChild>
-          <Button size="sm" variant="outline" minH="48px">
-            <Dices size={16} />
-            Examples
-          </Button>
-        </Dialog.Trigger>
-      </Tooltip>
+      {!controlled && (
+        <Tooltip content={tipForId('examples')} disabled={isOpen}>
+          <Dialog.Trigger asChild>
+            <Button size="sm" variant="outline" minH="48px">
+              <Dices size={16} />
+              Examples
+            </Button>
+          </Dialog.Trigger>
+        </Tooltip>
+      )}
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>

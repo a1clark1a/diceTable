@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Box, HStack, Stack, Text } from '@chakra-ui/react';
+import { Box, HStack, Stack, Text, VisuallyHidden } from '@chakra-ui/react';
 import {
   Bar,
   BarChart,
@@ -8,6 +8,7 @@ import {
   ComposedChart,
   LabelList,
   Line,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   type TooltipContentProps,
@@ -15,6 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { sortedKeys } from '../../engine/distribution';
+import { canMiss } from '../../engine/expression';
 import { hitProbability } from '../../engine/stats';
 import type {
   ChartView,
@@ -22,19 +24,23 @@ import type {
   Expression,
   TargetState,
 } from '../../types';
-import { rowColor } from './palette';
+import { rowColor, seriesDash } from './palette';
 import { RulingSymbol } from '../targetRuling';
 import { RULING_SYMBOL } from '../targetRulingMeta';
 import { formatPercentCompact, targetLabelFits } from './format';
+import { buildSeriesEval, evalSeriesAt, type SeriesEval } from './seriesEval';
+import {
+  formatMissPercent,
+  missDescription,
+  planZeroSpikes,
+  type ZeroSpikePlan,
+} from './zeroSpike';
 
-interface RowSeries {
+interface RowSeries extends SeriesEval {
   id: string;
   name: string;
   color: string;
-  dist: Distribution;
-  min: number;
-  max: number;
-  cdf: Float64Array;
+  canMiss: boolean;
 }
 
 interface ChartDatum {
@@ -76,45 +82,19 @@ function buildSeries(
     const keys = sortedKeys(dist);
     const min = keys[0]!;
     const max = keys[keys.length - 1]!;
-    const span = max - min + 1;
-    const cdf = new Float64Array(span);
-    let cum = 0;
-    for (let i = 0; i < span; i++) {
-      cum += dist.get(min + i) ?? 0;
-      cdf[i] = cum;
-    }
     out.push({
       id: expr.id,
       name: expr.name,
+      // Only a row that can land on "nothing happened" ever has a bar capped.
+      canMiss: canMiss(expr),
       // The caller keys colors by unfiltered row position so a panel fed a
       // filtered list (sum-only or pool-only) still matches the table
       // swatches; the index fallback only fires if an id is missing.
       color: colors.get(expr.id) ?? rowColor(idx),
-      dist,
-      min,
-      max,
-      cdf,
+      ...buildSeriesEval(dist, min, max),
     });
   });
   return out;
-}
-
-function valueAt(s: RowSeries, x: number, view: ChartView): number {
-  switch (view) {
-    case 'pmf':
-    case 'target':
-      return s.dist.get(x) ?? 0;
-    case 'cdf': {
-      if (x < s.min) return 0;
-      if (x >= s.max) return 1;
-      return s.cdf[x - s.min] ?? 0;
-    }
-    case 'ccdf': {
-      if (x <= s.min) return 1;
-      if (x > s.max) return 0;
-      return 1 - (s.cdf[x - 1 - s.min] ?? 0);
-    }
-  }
 }
 
 function buildChartData(series: RowSeries[], view: ChartView): ChartDatum[] {
@@ -131,7 +111,7 @@ function buildChartData(series: RowSeries[], view: ChartView): ChartDatum[] {
   for (let x = globalMin; x <= globalMax; x++) {
     const datum: ChartDatum = { x };
     for (const s of series) {
-      datum[s.id] = valueAt(s, x, view);
+      datum[s.id] = evalSeriesAt(s, x, view);
     }
     data.push(datum);
   }
@@ -155,55 +135,6 @@ function formatPctTick(value: number): string {
 function formatTooltipValue(value: number | string | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
   return `${(value * 100).toFixed(2)}%`;
-}
-
-// Series get a stroke dash by index so overlapping lines stay distinguishable
-// without relying on hue alone (color-blind users) — and two coincident series
-// no longer fully occlude each other. Index 0 (the primary row) stays solid.
-const SERIES_DASH: string[] = [
-  '0', // solid — the primary row
-  '7 4',
-  '2 4',
-  '9 4 2 4',
-  '5 5',
-  '1 4',
-  '12 5',
-  '4 4',
-];
-
-function seriesDash(index: number): string {
-  const safe = ((index % SERIES_DASH.length) + SERIES_DASH.length) % SERIES_DASH.length;
-  return SERIES_DASH[safe] ?? '0';
-}
-
-const NICE_STEPS = [0.005, 0.01, 0.02, 0.025, 0.05, 0.1, 0.15, 0.2, 0.25];
-
-interface PmfYAxis {
-  domainMax: number;
-  ticks: number[];
-}
-
-// PMF probabilities have no fixed ceiling, so let the axis end on a round
-// fraction with evenly spaced ticks instead of recharts' auto values
-// (which produced awkward 0 / 5 / 9 / 14 / 18 %).
-function buildPmfYAxis(data: ChartDatum[]): PmfYAxis {
-  let max = 0;
-  for (const d of data) {
-    for (const key in d) {
-      if (key === 'x') continue;
-      const v = d[key];
-      if (typeof v === 'number' && v > max) max = v;
-    }
-  }
-  if (max <= 0) return { domainMax: 0.1, ticks: [0, 0.05, 0.1] };
-  const rawStep = max / 4;
-  const step = NICE_STEPS.find((s) => s >= rawStep) ?? 0.25;
-  const domainMax = Math.ceil(max / step - 1e-9) * step;
-  const ticks: number[] = [];
-  for (let t = 0; t <= domainMax + 1e-9; t += step) {
-    ticks.push(Number(t.toFixed(4)));
-  }
-  return { domainMax, ticks };
 }
 
 // Custom tooltip: each row carries its series-color swatch (matching the table
@@ -278,9 +209,9 @@ export default function OverlayChartImpl({
     () => (effectiveView === 'target' ? buildHitRows(series, target) : []),
     [series, target, effectiveView],
   );
-  const pmfYAxis = useMemo(
-    () => (effectiveView === 'pmf' ? buildPmfYAxis(data) : null),
-    [data, effectiveView],
+  const spikes = useMemo<ZeroSpikePlan>(
+    () => planZeroSpikes(effectiveView === 'pmf' ? series : []),
+    [series, effectiveView],
   );
 
   const focusedId =
@@ -300,14 +231,15 @@ export default function OverlayChartImpl({
   }
 
   const yDomain: [number, number] =
-    effectiveView === 'pmf' ? [0, pmfYAxis?.domainMax ?? 0.1] : [0, 1];
+    effectiveView === 'pmf' ? [0, spikes.axis.domainMax] : [0, 1];
   const yTicks =
-    effectiveView === 'pmf'
-      ? (pmfYAxis?.ticks ?? [0, 0.05, 0.1])
-      : [0, 0.25, 0.5, 0.75, 1];
+    effectiveView === 'pmf' ? spikes.axis.ticks : [0, 0.25, 0.5, 0.75, 1];
+
+  const domainMax = yDomain[1];
 
   return (
-    <Box w="100%" h={{ base: '260px', md: '320px' }}>
+    <>
+      <Box w="100%" h={{ base: '260px', md: '320px' }}>
       <ResponsiveContainer
         width="100%"
         height="100%"
@@ -352,6 +284,7 @@ export default function OverlayChartImpl({
             domain={yDomain}
             ticks={yTicks}
             width={48}
+            allowDataOverflow
           />
           <RechartsTooltip
             cursor={{ fill: 'var(--chakra-colors-bg-emphasized)' }}
@@ -404,9 +337,33 @@ export default function OverlayChartImpl({
                   />
                 );
               })}
+          {/* The capped bars keep their true value everywhere it can be read:
+              the label here, the tooltip at 0, and the description below. */}
+          {spikes.markers.map((marker) => (
+            <ReferenceDot
+              key={marker.id}
+              x={0}
+              y={domainMax}
+              r={4}
+              fill={marker.color}
+              stroke="var(--chakra-colors-bg-panel)"
+              strokeWidth={2}
+              ifOverflow="visible"
+              label={{
+                value: formatMissPercent(marker.probability),
+                position: 'right',
+                fill: marker.color,
+                fontSize: 11,
+              }}
+            />
+          ))}
         </ComposedChart>
       </ResponsiveContainer>
-    </Box>
+      </Box>
+      {spikes.markers.length > 0 && (
+        <VisuallyHidden>{missDescription(spikes.markers)}</VisuallyHidden>
+      )}
+    </>
   );
 }
 

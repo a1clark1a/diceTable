@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
-import type { DicePart } from '../types';
+import type { ChartView, DicePart } from '../types';
 import type { PartPatch } from '../state/useApp';
 
 // Render-isolation invariant: a Count commit inside the one expanded row
@@ -15,8 +15,13 @@ const { rowRenderCounts } = vi.hoisted(() => ({
   rowRenderCounts: {} as Record<string, number>,
 }));
 
+// The sparkline is stubbed so row assertions never depend on SVG geometry,
+// but the stub still echoes the `view` it was handed: each row resolves that
+// view from its own target, and a stub returning null hides the result.
 vi.mock('./chart/Sparkline', () => ({
-  RowSparkline: () => null,
+  RowSparkline: ({ view }: { view: ChartView }) => (
+    <span>{`shape view ${view}`}</span>
+  ),
   ShapeHeaderLabel: () => null,
 }));
 
@@ -200,6 +205,12 @@ interface PoolSeedOptions {
   ruling?: 'gte' | 'lte';
   targetValues?: number[];
   poolTarget?: number;
+  /** Seeds the list instead of the legacy scalar the other cases migrate. */
+  poolTargets?: number[];
+  /** Drops the sum row so the table holds nothing but the pool roll. */
+  poolOnly?: boolean;
+  /** Seeded chart view; each row resolves its own sparkline view from it. */
+  chartView?: 'pmf' | 'target';
 }
 
 // One sum row (2d6) and one pool row (2d6, success on 4+, so per-die p = 0.5).
@@ -209,40 +220,79 @@ function seedMixedTable({
   ruling = 'gte',
   targetValues = [10],
   poolTarget = 2,
+  poolTargets,
+  poolOnly = false,
+  chartView = 'pmf',
 }: PoolSeedOptions = {}) {
+  const sumRow = {
+    id: 'sum1',
+    name: 'Sum row',
+    parts: [{ id: 'sp1', count: 2, sides: 6 }],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'sum',
+  };
+  const poolRow = {
+    id: 'pool1',
+    name: 'Pool row',
+    parts: [{ id: 'pp1', count: 2, sides: 6 }],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'pool',
+    successThreshold: { direction: 'gte', value: 4 },
+  };
   const state = {
     version: 3,
-    expressions: [
-      {
-        id: 'sum1',
-        name: 'Sum row',
-        parts: [{ id: 'sp1', count: 2, sides: 6 }],
-        flatModifier: 0,
-        rollMode: 'normal',
-        mode: 'sum',
-      },
-      {
-        id: 'pool1',
-        name: 'Pool row',
-        parts: [{ id: 'pp1', count: 2, sides: 6 }],
-        flatModifier: 0,
-        rollMode: 'normal',
-        mode: 'pool',
-        successThreshold: { direction: 'gte', value: 4 },
-      },
-    ],
+    expressions: poolOnly ? [poolRow] : [sumRow, poolRow],
     ui: {
       expandedId: null,
-      chartView: 'pmf',
+      chartView,
       target: { values: targetValues, ruling },
       view: 'table',
-      poolTarget,
+      ...(poolTargets === undefined ? { poolTarget } : { poolTargets }),
     },
   };
   window.localStorage.setItem(
     'dicetable.v2',
     JSON.stringify({ version: 2, value: state }),
   );
+}
+
+// The body row that owns a named roll, found through its name field so the
+// lookup never depends on row order.
+function rowFor(rollName: string): HTMLElement {
+  const row = screen
+    .getAllByRole('row')
+    .find((r) => within(r).queryByDisplayValue(rollName) !== null);
+  if (row === undefined) throw new Error(`no row named ${rollName}`);
+  return row;
+}
+
+function hitColumnHeader(): HTMLElement {
+  const header = screen
+    .getAllByRole('columnheader')
+    .find((h) => (h.textContent ?? '').includes('Hit %'));
+  if (header === undefined) throw new Error('no Hit % column header');
+  return header;
+}
+
+// The cell sitting under the Hit % header, located by that header's position
+// rather than by a hard-coded column index.
+function hitCellIn(row: HTMLElement): HTMLElement {
+  const columnIndex = screen
+    .getAllByRole('columnheader')
+    .findIndex((h) => (h.textContent ?? '').includes('Hit %'));
+  const cell = within(row).getAllByRole('cell')[columnIndex];
+  if (cell === undefined) throw new Error('no Hit % cell in row');
+  return cell;
+}
+
+// Leaf filter: the glyph text node lives in exactly one childless span, so a
+// wrapper that merely contains it is never counted as a second symbol.
+function rulingGlyphsIn(el: HTMLElement): HTMLElement[] {
+  return within(el)
+    .queryAllByText('≥')
+    .filter((node) => node.children.length === 0);
 }
 
 describe('RollsTable pool Hit %', () => {
@@ -266,21 +316,112 @@ describe('RollsTable pool Hit %', () => {
     expect(screen.getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('committing a new pool target with Enter updates the pool Hit % live', () => {
+  it('adding a pool target with Enter stacks a second pool Hit % live', () => {
     seedMixedTable();
     renderTable();
-    const input = screen.getByLabelText('Pool target, minimum successes');
+    const input = screen.getByLabelText('Add pool target');
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(screen.getByText('75.0%')).toBeInTheDocument();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
     expect(screen.getByLabelText('At least 1 successes')).toBeInTheDocument();
+    expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
   });
 
-  it('renders no pool Hit % when no targets are set', () => {
+  it('removing a pool target chip takes its Hit % row off the pool row', () => {
+    seedMixedTable({ poolTargets: [1, 2] });
+    renderTable();
+    expect(screen.getByLabelText('At least 1 successes')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove pool target ≥ 1' }),
+    );
+    expect(screen.queryByLabelText('At least 1 successes')).toBeNull();
+    expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
+  });
+
+  it('keeps the pool Hit % when no numeric target is set', () => {
     seedMixedTable({ targetValues: [] });
     renderTable();
-    expect(screen.queryByText('25.0%')).toBeNull();
-    expect(screen.queryByLabelText('At least 2 successes')).toBeNull();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
+    expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
+  });
+
+  it('keeps the Hit % column on a table of only pool rows with no numeric target', () => {
+    seedMixedTable({ targetValues: [], poolOnly: true });
+    renderTable();
+    expect(screen.getByText('Hit %')).toBeInTheDocument();
+    expect(screen.getByText('25.0%')).toBeInTheDocument();
+  });
+
+  it('dashes the sum row Hit % cell while the pool row keeps its percentage', () => {
+    seedMixedTable({ targetValues: [] });
+    renderTable();
+    // EM_DASH, U+2014; the Range cell's 2–12 uses an en dash instead.
+    expect(hitCellIn(rowFor('Sum row')).textContent).toBe('—');
+    expect(hitCellIn(rowFor('Pool row')).textContent).toContain('25.0%');
+  });
+
+  it('shows the Hit % ruling glyph only once a numeric target exists', () => {
+    seedMixedTable({ targetValues: [] });
+    renderTable();
+
+    // The pool row keeps the column open, but the ruling describes sum rows
+    // against numeric targets, and there are none yet.
+    expect(rulingGlyphsIn(hitColumnHeader())).toHaveLength(0);
+
+    const input = screen.getByLabelText('Add target value');
+    fireEvent.change(input, { target: { value: '10' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(rulingGlyphsIn(hitColumnHeader())).toHaveLength(1);
+  });
+
+  it('opens the Hit % column when a sum row is switched to pool with no numeric target', () => {
+    seedTwoSumRows([]);
+    renderTable();
+    expect(screen.queryByText('Hit %')).toBeNull();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Pool' })[0]!);
+
+    expect(screen.getByText('Hit %')).toBeInTheDocument();
+  });
+});
+
+describe('RollsTable per-row chart view', () => {
+  it('keeps a pool row in target view while a sum row falls back to PMF with no numeric target', () => {
+    seedMixedTable({ targetValues: [], chartView: 'target' });
+    renderTable();
+
+    // The pool row measures the shared pool target, so target view still has
+    // something to highlight; the sum row has nothing and drops to PMF.
+    expect(
+      within(rowFor('Pool row')).getByText('shape view target'),
+    ).toBeInTheDocument();
+    expect(
+      within(rowFor('Sum row')).getByText('shape view pmf'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the pool row in target view when the last numeric target is removed', () => {
+    seedMixedTable({ chartView: 'target' });
+    renderTable();
+
+    // Both rows start in target view: the sum row measures the numeric 10,
+    // the pool row the shared pool target.
+    expect(
+      within(rowFor('Sum row')).getByText('shape view target'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Remove target/ }));
+
+    // Only the sum row loses what it was measuring.
+    expect(
+      within(rowFor('Sum row')).getByText('shape view pmf'),
+    ).toBeInTheDocument();
+    expect(
+      within(rowFor('Pool row')).getByText('shape view target'),
+    ).toBeInTheDocument();
   });
 });
 

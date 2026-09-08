@@ -2,7 +2,7 @@ import * as React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
-import { PoolBadge, PoolModeToggle, PoolThresholdEditor } from './PoolControls';
+import { PoolBadge, ExpressionModeToggle, PoolThresholdEditor } from './PoolControls';
 import type { ExpressionMode, SuccessThreshold } from '../../types';
 
 const Provider = ({ children }: { children: React.ReactNode }) => (
@@ -20,17 +20,17 @@ describe('PoolBadge', () => {
   });
 });
 
-describe('PoolModeToggle', () => {
+describe('ExpressionModeToggle', () => {
   function renderToggle(mode: ExpressionMode, onSelect = vi.fn()) {
     render(
       <Provider>
-        <PoolModeToggle mode={mode} onSelect={onSelect} />
+        <ExpressionModeToggle mode={mode} onSelect={onSelect} />
       </Provider>,
     );
     return { onSelect };
   }
 
-  it('marks the Sum chip pressed and the Pool chip unpressed in sum mode', () => {
+  it('marks only the active chip pressed', () => {
     renderToggle('sum');
     expect(screen.getByRole('button', { name: 'Sum' })).toHaveAttribute(
       'aria-pressed',
@@ -40,6 +40,16 @@ describe('PoolModeToggle', () => {
       'aria-pressed',
       'false',
     );
+    expect(screen.getByRole('button', { name: 'Check' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('clicking the Check chip selects check mode', () => {
+    const { onSelect } = renderToggle('sum');
+    fireEvent.click(screen.getByRole('button', { name: 'Check' }));
+    expect(onSelect).toHaveBeenCalledWith('check');
   });
 
   it('clicking the Pool chip selects pool mode', () => {

@@ -35,3 +35,27 @@ export const MIXED_SCALE_NOTE =
 export function hasMixedScales(rows: CompareRow[]): boolean {
   return rows.some((r) => r.isPool) && rows.some((r) => !r.isPool);
 }
+
+// Under half a percentage point a chance rounds away to nothing, the floor both
+// the roll-off view and its share card read before saying anything about ties.
+export const TIE_FLOOR = 0.005;
+
+/**
+ * The one sentence the roll-off leads with, shared so the picture cannot say
+ * something different from the screen it is a picture of. Names are passed in
+ * already fit to their space: the card truncates, the view does not.
+ */
+export function rollOffHeadline(
+  top: { name: string; win: number },
+  second: { name: string; win: number },
+): string {
+  // Nobody wins outright, so naming a favourite would be a lie: every track is
+  // empty and the ties carry the whole story.
+  if (top.win < TIE_FLOOR) return 'These rolls almost always tie.';
+  // The gap between the top two decides the phrasing; below one percentage
+  // point the race reads as even.
+  if (top.win - second.win < 0.01) {
+    return `It’s nearly a coin flip between ${top.name} and ${second.name}.`;
+  }
+  return `${top.name} is most likely to come out on top.`;
+}

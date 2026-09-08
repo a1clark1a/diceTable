@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { beatChance, winChances } from './compare';
+import { beatChance, beatMatrix, winChances } from './compare';
 import {
   emptyDistribution,
   shift,
@@ -47,6 +47,77 @@ describe('beatChance', () => {
     const d6 = uniformDistribution(6);
     expect(beatChance(emptyDistribution(), d6)).toEqual({ win: 0, tie: 0 });
     expect(beatChance(d6, emptyDistribution())).toEqual({ win: 0, tie: 0 });
+  });
+});
+
+describe('beatMatrix', () => {
+  const d6 = uniformDistribution(6);
+  const d6plus3 = shift(uniformDistribution(6), 3);
+  const d20 = uniformDistribution(20);
+  const field = [d6, d6plus3, d20];
+
+  it('gives every off-diagonal cell the odds of that one-on-one pair', () => {
+    const matrix = beatMatrix(field);
+    field.forEach((a, i) => {
+      field.forEach((b, j) => {
+        if (i === j) return;
+        const pair = beatChance(a, b);
+        expect(matrix[i]?.[j]?.win).toBeCloseTo(pair.win, 12);
+        expect(matrix[i]?.[j]?.tie).toBeCloseTo(pair.tie, 12);
+      });
+    });
+  });
+
+  it('d6 against d6 + 3 wins 1/12 and ties 1/12', () => {
+    // The higher roll covers 4..9, so the d6 only takes it with a 5 (over a 4)
+    // or a 6 (over a 4 or a 5): 3 of the 36 pairs. They meet on 4, 5 and 6, so
+    // another 3 tie.
+    const matrix = beatMatrix([d6, d6plus3]);
+    expect(matrix[0]?.[1]?.win).toBeCloseTo(1 / 12, 12);
+    expect(matrix[0]?.[1]?.tie).toBeCloseTo(1 / 12, 12);
+  });
+
+  it('reads the same pair the other way round for the remaining 5/6', () => {
+    const matrix = beatMatrix([d6, d6plus3]);
+    expect(matrix[1]?.[0]?.win).toBeCloseTo(5 / 6, 12);
+    expect(matrix[1]?.[0]?.tie).toBeCloseTo(1 / 12, 12);
+  });
+
+  it('leaves the diagonal empty because a roll has no odds against itself', () => {
+    const matrix = beatMatrix(field);
+    field.forEach((_, i) => {
+      expect(matrix[i]?.[i]).toBeNull();
+    });
+  });
+
+  it('gives a field of three rolls a three by three grid', () => {
+    const matrix = beatMatrix(field);
+    expect(matrix).toHaveLength(3);
+    for (const row of matrix) expect(row).toHaveLength(3);
+  });
+
+  it('returns no rows at all for an empty field', () => {
+    expect(beatMatrix([])).toEqual([]);
+  });
+
+  it('gives a lone roll nothing but its own empty diagonal', () => {
+    expect(beatMatrix([d6])).toEqual([[null]]);
+  });
+
+  it('scores a roll with no distribution at zero rather than dropping it', () => {
+    const matrix = beatMatrix([d6, emptyDistribution()]);
+    expect(matrix[0]?.[1]).toEqual({ win: 0, tie: 0 });
+    expect(matrix[1]?.[0]).toEqual({ win: 0, tie: 0 });
+    expect(matrix[0]?.[0]).toBeNull();
+    expect(matrix[1]?.[1]).toBeNull();
+  });
+
+  it('keeps equal cells as separate objects', () => {
+    const matrix = beatMatrix([d6, d6, d6]);
+    const first = matrix[0]?.[1];
+    const second = matrix[0]?.[2];
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
   });
 });
 

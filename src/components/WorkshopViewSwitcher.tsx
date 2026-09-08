@@ -1,4 +1,4 @@
-import { Button, HStack } from '@chakra-ui/react';
+import { Box, Button } from '@chakra-ui/react';
 import type { WorkshopView } from '../types';
 import { useIsDesktop } from '../hooks/useBreakpoint';
 
@@ -21,16 +21,21 @@ export function WorkshopViewSwitcher({
 }: WorkshopViewSwitcherProps) {
   const isDesktop = useIsDesktop();
   return (
-    <HStack
+    <Box
       gap={1}
       p={1}
       bg="bg.subtle"
       borderRadius="lg"
-      display="inline-flex"
-      alignSelf="flex-start"
-      // Four chips outgrow a 360px viewport; wrapping beats clipping or a
-      // hidden sideways scroll of the whole page.
-      flexWrap="wrap"
+      // Four chips outgrow a 360px viewport. A fixed column per chip keeps the
+      // bar one row high at every width, where wrapping made the header jump
+      // between one and two rows as labels changed. Stretching stops at sm:
+      // carried up to the 768px desktop switch it gave a 40px word a 165px chip.
+      display={{ base: 'grid', sm: 'inline-flex' }}
+      gridTemplateColumns={{
+        base: `repeat(${views.length}, minmax(0, 1fr))`,
+        sm: 'none',
+      }}
+      alignSelf={{ base: 'stretch', sm: 'flex-start' }}
       role="group"
       aria-label="Workshop view"
     >
@@ -46,11 +51,14 @@ export function WorkshopViewSwitcher({
             onClick={() => onSelect(v.id)}
             aria-pressed={isActive}
             minH="40px"
+            minW={0}
+            px={{ base: 2, md: 3 }}
+            fontSize={{ base: 'xs', md: 'sm' }}
           >
             {label}
           </Button>
         );
       })}
-    </HStack>
+    </Box>
   );
 }

@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { convolve, shift, uniformDistribution } from '../../engine/distribution';
-import { hitProbability, max, min } from '../../engine/stats';
+import { hitProbability, hitSeries, max, min } from '../../engine/stats';
 import type { TargetRuling, TargetState } from '../../types';
 import { TargetCurves } from './TargetCurves';
-import { hitSeries, type TargetRow } from './targetHitRows';
+import type { TargetRow } from './targetHitRows';
 
 const RULINGS: readonly TargetRuling[] = ['gte', 'gt', 'lte', 'lt', 'eq'];
 

@@ -1,31 +1,21 @@
 import { Text, chakra } from '@chakra-ui/react';
 import { Fragment, type ReactNode } from 'react';
-import type { DicePart, Expression } from '../../types';
+import type {
+  CheckSpec,
+  EffectScale,
+  Expression,
+  KeepRule,
+} from '../../types';
 import { HelpTerm } from '../ui/help-term';
 import { tipForKeep } from '../../docs/dynamicTips';
 import { tipForId } from '../../docs/glossary';
-
-function formatFaceList(values: number[]): string {
-  return [...values].sort((a, b) => a - b).join(',');
-}
-
-function renderPartText(part: DicePart): string {
-  let s = `${part.count}d${part.sides}`;
-  if (part.keep) {
-    const tag = part.keep.type === 'highest' ? 'kh' : 'kl';
-    s += `${tag}${part.keep.n}`;
-  }
-  if (part.reroll && part.reroll.values.length > 0) {
-    s += ` reroll ${formatFaceList(part.reroll.values)}s ${part.reroll.mode}`;
-  }
-  if (part.explode && part.explode.onFaces.length > 0) {
-    s += ` explode ${formatFaceList(part.explode.onFaces)}`;
-    if (part.explode.depthCap !== 10) {
-      s += `(cap ${part.explode.depthCap})`;
-    }
-  }
-  return s;
-}
+import {
+  CRIT_WORDS,
+  SCALE_WORDS,
+  formatFaceList,
+  modifierNotation,
+  partsNotation,
+} from '../../share/notation';
 
 const KEEP_TOKEN = /(k[hl]\d+)/g;
 
@@ -48,14 +38,107 @@ function renderTokenized(text: string, key: string | number): ReactNode {
   );
 }
 
+function Middot() {
+  return (
+    <Text as="span" color="fg.muted">
+      {' · '}
+    </Text>
+  );
+}
+
+function KeepAcrossSegment({ rule }: { rule: KeepRule }) {
+  return (
+    <>
+      <Middot />
+      <HelpTerm
+        tip={tipForId('keepAcross')}
+        ariaLabel={`keep the ${rule.n} ${rule.type} dice across every part`}
+      >
+        {/* nowrap keeps the rule intact when long notation wraps; the middot is
+            the intended break point. */}
+        <Text as="span" color="blue.fg" whiteSpace="nowrap">
+          keep {rule.type} {rule.n}
+        </Text>
+      </HelpTerm>
+    </>
+  );
+}
+
+function ScaleSegment({
+  scale,
+  outcome,
+}: {
+  scale: EffectScale;
+  outcome: 'success' | 'failure';
+}) {
+  return (
+    <>
+      <Middot />
+      <HelpTerm tip={tipForId('effectScale')}>
+        <Text as="span" color="orange.fg" whiteSpace="nowrap">
+          {SCALE_WORDS[scale]} on a {outcome}
+        </Text>
+      </HelpTerm>
+    </>
+  );
+}
+
+// Check notation reads left to right the way the roll happens: what you roll,
+// what clears the bar, then what lands. The arrow is the only new symbol, and
+// the threshold and the critical carry their own tooltips.
+function CheckNotation({ check }: { check: CheckSpec }) {
+  const { effect, threshold, crit } = check;
+  const thresholdText = `${threshold.direction === 'gte' ? '≥' : '≤'}${threshold.value}`;
+
+  return (
+    <>
+      {' '}
+      <HelpTerm
+        tip={tipForId('checkThreshold')}
+        ariaLabel={`succeeds at ${
+          threshold.direction === 'gte' ? 'or above' : 'or below'
+        } ${threshold.value}`}
+      >
+        <Text as="span" color="orange.fg" whiteSpace="nowrap">
+          {thresholdText}
+        </Text>
+      </HelpTerm>
+      <Text as="span" color="fg.muted">
+        {' → '}
+      </Text>
+      {renderTokenized(partsNotation(effect.parts, '(no effect)'), 'effect')}
+      {modifierNotation(effect.flatModifier)}
+      {effect.keepAcross && <KeepAcrossSegment rule={effect.keepAcross} />}
+      {check.onSuccess !== 'full' && (
+        <ScaleSegment scale={check.onSuccess} outcome="success" />
+      )}
+      {check.onFailure !== 'none' && (
+        <ScaleSegment scale={check.onFailure} outcome="failure" />
+      )}
+      {crit && (
+        <>
+          <Middot />
+          <HelpTerm
+            tip={tipForId('crit')}
+            ariaLabel={`critical on ${formatFaceList(crit.onFaces)}`}
+          >
+            <Text as="span" color="orange.fg" whiteSpace="nowrap">
+              crit {formatFaceList(crit.onFaces)} {CRIT_WORDS[crit.effect]}
+            </Text>
+          </HelpTerm>
+        </>
+      )}
+    </>
+  );
+}
+
 interface ExpressionDiceTextProps {
   expr: Expression;
   showRollMode?: boolean;
 }
 
 export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextProps) {
-  const parts = expr.parts.map(renderPartText).filter((s) => s.length > 0);
-  const body = parts.length > 0 ? parts.join(' + ') : '(no parts)';
+  const body = partsNotation(expr.parts, '(no parts)');
 
   // Pool notation: `7d10 · count ≥8 · +2 auto`. The modifier reads as auto-
   // successes, and there is no roll-mode suffix because pool math ignores
@@ -67,9 +150,7 @@ export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextPro
         {renderTokenized(body, 'body')}
         {threshold && (
           <>
-            <Text as="span" color="fg.muted">
-              {' · '}
-            </Text>
+            <Middot />
             <HelpTerm
               tip={tipForId('successThreshold')}
               ariaLabel={`count ${
@@ -87,9 +168,7 @@ export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextPro
         )}
         {expr.flatModifier !== 0 && (
           <>
-            <Text as="span" color="fg.muted">
-              {' · '}
-            </Text>
+            <Middot />
             <HelpTerm
               tip={tipForId('poolAutoSuccess')}
               ariaLabel={`${expr.flatModifier > 0 ? 'plus' : 'minus'} ${Math.abs(
@@ -109,25 +188,32 @@ export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextPro
     );
   }
 
-  let mod = '';
-  if (expr.flatModifier > 0) mod = ` + ${expr.flatModifier}`;
-  else if (expr.flatModifier < 0) mod = ` − ${Math.abs(expr.flatModifier)}`;
+  const mod = modifierNotation(expr.flatModifier);
   const rollSuffix =
     showRollMode && expr.rollMode !== 'normal'
       ? expr.rollMode === 'advantage'
         ? ' adv'
         : ' dis'
       : '';
+  const check = expr.mode === 'check' ? expr.check : undefined;
+  const keepAcross = expr.keepAcross;
+
   return (
     <chakra.span>
       {renderTokenized(body, 'body')}
       {mod}
+      {/* On a check row the suffix describes the check roll, so it stays with
+          the dice it belongs to instead of trailing the whole sentence. */}
       {rollSuffix && (
         <Text as="span" color="fg.muted" fontSize="xs" ml={1}>
           {rollSuffix}
         </Text>
       )}
+      {check ? (
+        <CheckNotation check={check} />
+      ) : (
+        keepAcross && <KeepAcrossSegment rule={keepAcross} />
+      )}
     </chakra.span>
   );
 }
-

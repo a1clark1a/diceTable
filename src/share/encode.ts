@@ -13,6 +13,13 @@ export function encodeRollsToHash(rolls: Expression[]): string {
   return HASH_PREFIX + compressToEncodedURIComponent(json);
 }
 
+// The link everything shares: the table lives entirely in the hash, so the
+// origin and path are whatever page the user is already on.
+export function shareUrlFor(rolls: Expression[]): string {
+  const { origin, pathname, search } = window.location;
+  return `${origin}${pathname}${search}${encodeRollsToHash(rolls)}`;
+}
+
 export function encodeRollsToJson(rolls: Expression[]): string {
   const envelope = buildExportEnvelope(rolls);
   return JSON.stringify(envelope, null, 2);

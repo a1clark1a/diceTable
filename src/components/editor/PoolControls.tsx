@@ -1,8 +1,11 @@
-import { Badge, Button, HStack, Input } from '@chakra-ui/react';
+import { Badge, Button, HStack, Input, Text } from '@chakra-ui/react';
 import type { ExpressionMode, SuccessThreshold } from '../../types';
+import type { CheckOutcomeChances } from '../../engine/check';
+import { formatWholePercent } from '../chart/format';
 import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { useBufferedValue } from '../../hooks/useBufferedValue';
+import { chipFocusRing } from './focusRings';
 
 function parseThresholdValue(raw: string): number {
   const n = Number.parseInt(raw.trim(), 10);
@@ -12,16 +15,6 @@ function parseThresholdValue(raw: string): number {
 function formatThresholdValue(n: number): string {
   return String(n);
 }
-
-// Same rationale as DicePartRow's chipFocusRing: chips track colorPalette, so
-// the focus ring would read blue on Sum, purple on Pool, gray when inactive.
-// Pin it to blue so the keyboard cue is identical across every chip state.
-const chipFocusRing = {
-  outlineWidth: '2px',
-  outlineStyle: 'solid',
-  outlineColor: 'blue.solid',
-  outlineOffset: '2px',
-};
 
 // tabIndex makes the badge's tooltip reachable by keyboard, same contract as
 // HelpTerm. On desktop the badge sits in the Name cell, far from the toggle
@@ -42,39 +35,95 @@ export function PoolBadge() {
   );
 }
 
-interface PoolModeToggleProps {
+// tabIndex makes the badge's tooltip reachable by keyboard, same contract as
+// PoolBadge above.
+export function CheckBadge() {
+  return (
+    <Tooltip content={tipForId('checkMode')}>
+      <Badge
+        colorPalette="orange"
+        variant="surface"
+        flexShrink={0}
+        tabIndex={0}
+        cursor="help"
+      >
+        Check
+      </Badge>
+    </Tooltip>
+  );
+}
+
+// The row already shows what a check rolls; what it cannot show is how often
+// that roll lands. Criticals count as successes here, the same way they do at
+// the table. Chances arrive from the row-data cache rather than being computed
+// here, so a table-wide render costs nothing per chip; null means the odds are
+// not computable, and the chip says so instead of claiming a confident 0%.
+export function CheckSucceedsChip({
+  chances,
+}: {
+  chances: CheckOutcomeChances | null;
+}) {
+  if (chances === null) {
+    return (
+      <Text as="span" fontSize="xs" color="fg.muted">
+        (too complex)
+      </Text>
+    );
+  }
+  const succeeds = chances.success + chances.crit;
+  return (
+    <Tooltip content={tipForId('checkSucceeds')}>
+      <Badge
+        colorPalette="orange"
+        variant="surface"
+        flexShrink={0}
+        tabIndex={0}
+        cursor="help"
+        fontFamily="mono"
+        style={{ fontVariantNumeric: 'tabular-nums' }}
+      >
+        succeeds {formatWholePercent(succeeds)}
+      </Badge>
+    </Tooltip>
+  );
+}
+
+interface ExpressionModeToggleProps {
   mode: ExpressionMode;
   onSelect: (mode: ExpressionMode) => void;
 }
 
-export function PoolModeToggle({ mode, onSelect }: PoolModeToggleProps) {
-  const isPool = mode === 'pool';
+const MODE_CHIPS: {
+  value: ExpressionMode;
+  label: string;
+  tip: string;
+  palette: string;
+}[] = [
+  { value: 'sum', label: 'Sum', tip: tipForId('sumMode'), palette: 'blue' },
+  { value: 'pool', label: 'Pool', tip: tipForId('poolMode'), palette: 'purple' },
+  { value: 'check', label: 'Check', tip: tipForId('checkMode'), palette: 'orange' },
+];
+
+export function ExpressionModeToggle({ mode, onSelect }: ExpressionModeToggleProps) {
   return (
-    <HStack gap={1} display="inline-flex" role="group" aria-label="Sum or pool">
-      <Tooltip content={tipForId('sumMode')}>
-        <Button
-          size="xs"
-          variant={isPool ? 'ghost' : 'subtle'}
-          colorPalette={isPool ? 'gray' : 'blue'}
-          aria-pressed={!isPool}
-          _focusVisible={chipFocusRing}
-          onClick={() => onSelect('sum')}
-        >
-          Sum
-        </Button>
-      </Tooltip>
-      <Tooltip content={tipForId('poolMode')}>
-        <Button
-          size="xs"
-          variant={isPool ? 'subtle' : 'ghost'}
-          colorPalette={isPool ? 'purple' : 'gray'}
-          aria-pressed={isPool}
-          _focusVisible={chipFocusRing}
-          onClick={() => onSelect('pool')}
-        >
-          Pool
-        </Button>
-      </Tooltip>
+    <HStack gap={1} display="inline-flex" role="group" aria-label="Roll style">
+      {MODE_CHIPS.map((chip) => {
+        const active = mode === chip.value;
+        return (
+          <Tooltip key={chip.value} content={chip.tip}>
+            <Button
+              size="xs"
+              variant={active ? 'subtle' : 'ghost'}
+              colorPalette={active ? chip.palette : 'gray'}
+              aria-pressed={active}
+              _focusVisible={chipFocusRing}
+              onClick={() => onSelect(chip.value)}
+            >
+              {chip.label}
+            </Button>
+          </Tooltip>
+        );
+      })}
     </HStack>
   );
 }

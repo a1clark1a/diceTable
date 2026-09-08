@@ -71,11 +71,16 @@ export function HitDeltaValue({
         tone={tone}
         fill={deltaToneColor(tone)}
       />
+      {/* Fixed column so stacked Hit % deltas line up under each other; a
+          shorter delta would otherwise pull its whole line right. */}
       <Text
         as="span"
         fontSize="xs"
         color={deltaToneColor(tone)}
         aria-label={hitDeltaAria(delta, tone)}
+        display="inline-block"
+        minW="52px"
+        textAlign="end"
       >
         {formatPercentDelta(delta)}
       </Text>
