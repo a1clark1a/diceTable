@@ -4,18 +4,27 @@ import {
   Button,
   Popover,
   Portal,
+  Separator,
   Stack,
 } from '@chakra-ui/react';
-import { Clipboard, Download, Link2, Share2 } from 'lucide-react';
+import {
+  Clipboard,
+  Download,
+  Image as ImageIcon,
+  Link2,
+  Share2,
+} from 'lucide-react';
 import { useApp } from '../../state/useApp';
 import {
   encodeRollsToBlob,
-  encodeRollsToHash,
   encodeRollsToJson,
+  shareUrlFor,
 } from '../../share/encode';
+import { downloadBlob } from '../../share/download';
 import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { toaster } from './toaster-store';
+import { useShareImage } from '../../share/image/useShareImage';
 
 async function writeToClipboard(text: string): Promise<boolean> {
   if (
@@ -49,32 +58,28 @@ async function writeToClipboard(text: string): Promise<boolean> {
   return ok;
 }
 
-function buildShareUrl(hashFragment: string): string {
-  const { origin, pathname, search } = window.location;
-  return `${origin}${pathname}${search}${hashFragment}`;
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
 export function SharePopover() {
   const { expressions } = useApp();
   const [open, setOpen] = useState(false);
   const disabled = expressions.length === 0;
+  const image = useShareImage();
 
   const close = useCallback(() => setOpen(false), []);
 
+  // The chart panel's Image button is where a title can be typed; here the two
+  // most common actions are mirrored untitled, so Share holds everything.
+  const onCopyImage = useCallback(async () => {
+    await image.copyImage('');
+    close();
+  }, [image, close]);
+
+  const onSaveImage = useCallback(async () => {
+    await image.savePng('');
+    close();
+  }, [image, close]);
+
   const onCopyLink = useCallback(async () => {
-    const url = buildShareUrl(encodeRollsToHash(expressions));
+    const url = shareUrlFor(expressions);
     const ok = await writeToClipboard(url);
     if (ok) {
       toaster.create({ type: 'success', title: 'Link copied' });
@@ -169,6 +174,29 @@ export function SharePopover() {
                   <Download size={16} />
                   Download file
                 </Button>
+                {image.cardState === 'ready' && (
+                  <>
+                    <Separator my={1} />
+                    <Button
+                      variant="ghost"
+                      justifyContent="flex-start"
+                      loading={image.busy}
+                      onClick={() => void onCopyImage()}
+                    >
+                      <ImageIcon size={16} />
+                      Copy image
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      justifyContent="flex-start"
+                      loading={image.busy}
+                      onClick={() => void onSaveImage()}
+                    >
+                      <Download size={16} />
+                      Save PNG
+                    </Button>
+                  </>
+                )}
               </Stack>
             </Popover.Body>
           </Popover.Content>

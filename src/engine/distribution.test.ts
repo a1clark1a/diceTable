@@ -3,6 +3,7 @@ import {
   convolve,
   convolveMany,
   emptyDistribution,
+  halveFloor,
   normalise,
   shift,
   sortedKeys,
@@ -44,6 +45,42 @@ describe('shift', () => {
     const s = shift(d, 2);
     expect(sortedKeys(s)).toEqual([3, 4, 5, 6, 7, 8]);
     expect(s.get(3)).toBeCloseTo(1 / 6, 12);
+  });
+
+  it('returns empty for a non-finite offset', () => {
+    expect(shift(uniformDistribution(6), Number.NaN).size).toBe(0);
+    expect(shift(uniformDistribution(6), Number.POSITIVE_INFINITY).size).toBe(0);
+  });
+
+  it('returns a fresh copy for an offset of 0', () => {
+    const d = uniformDistribution(6);
+    const s = shift(d, 0);
+    expect(s).not.toBe(d);
+    expect(sortedKeys(s)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(s.get(1)).toBeCloseTo(1 / 6, 12);
+  });
+});
+
+describe('halveFloor', () => {
+  it('merges two totals one apart onto the same halved value', () => {
+    const h = halveFloor(new Map([[2, 0.25], [3, 0.25], [4, 0.5]]));
+    // 2 and 3 both floor to 1, so their mass adds rather than overwrites.
+    expect(h.size).toBe(2);
+    expect(h.get(1)).toBeCloseTo(0.5, 12);
+    expect(h.get(2)).toBeCloseTo(0.5, 12);
+    expect(totalMass(h)).toBeCloseTo(1, 12);
+  });
+
+  it('rounds toward negative infinity, so -1 stays apart from 0 and 1', () => {
+    const h = halveFloor(new Map([[-1, 0.25], [0, 0.25], [1, 0.5]]));
+    // Truncation would send -1 to 0 and pile everything onto one key.
+    expect(h.size).toBe(2);
+    expect(h.get(-1)).toBeCloseTo(0.25, 12);
+    expect(h.get(0)).toBeCloseTo(0.75, 12);
+  });
+
+  it('returns empty for empty input', () => {
+    expect(halveFloor(emptyDistribution()).size).toBe(0);
   });
 });
 

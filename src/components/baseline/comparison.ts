@@ -15,8 +15,8 @@ export interface BaselineComparison {
   isPool: boolean;
   stats: RowStats;
   /**
-   * Sum baseline: one entry per toolbar target. Pool baseline: a single entry
-   * against the shared pool target. Null when no targets are set.
+   * Sum baseline: one entry per toolbar target. Pool baseline: one entry per
+   * shared pool target. Null when no targets are set.
    */
   hits: number[] | null;
   /**
@@ -27,8 +27,8 @@ export interface BaselineComparison {
   maxSigmaDelta: number;
   /**
    * Largest absolute Hit % delta across every comparing row (hit chances stay
-   * comparable across scales, so cross-scale rows count too). Zero when no
-   * targets are set.
+   * comparable across scales, so cross-scale rows count too). Zero when the
+   * baseline has no hit chance to compare against.
    */
   maxHitDelta: number;
 }
@@ -38,7 +38,7 @@ export function buildBaselineComparison(
   expressions: Expression[],
   baselineId: string | null,
   target: TargetState,
-  poolTarget: number,
+  poolTargets: number[],
 ): BaselineComparison | null {
   if (baselineId === null) return null;
   const baseline = expressions.find((e) => e.id === baselineId);
@@ -47,12 +47,11 @@ export function buildBaselineComparison(
   if (!stats.hasDist || tooComplex) return null;
 
   const isPool = baseline.mode === 'pool';
-  const hits =
-    target.values.length === 0
+  const hits = isPool
+    ? poolTargets.map((n) => hitProbability(stats.dist, n, 'gte'))
+    : target.values.length === 0
       ? null
-      : isPool
-        ? [hitProbability(stats.dist, poolTarget, 'gte')]
-        : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
+      : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
 
   let maxMeanDelta = 0;
   let maxSigmaDelta = 0;
@@ -75,16 +74,16 @@ export function buildBaselineComparison(
     }
 
     if (hits !== null) {
-      // Mirror what the Hit % cells display: a pool row compares its single
-      // pool-target hit against the baseline's first hit; a sum row compares
-      // per target (a pool baseline offers only its first).
+      // Mirror what the Hit % cells display: a row sharing the baseline's scale
+      // compares target for target down the list; across scales the two lists
+      // measure different things, so both fall back to their first entry.
       const rowHits = rowIsPool
-        ? [hitProbability(row.stats.dist, poolTarget, 'gte')]
+        ? poolTargets.map((n) => hitProbability(row.stats.dist, n, 'gte'))
         : target.values.map((v) =>
             hitProbability(row.stats.dist, v, target.ruling),
           );
       for (const [i, rowHit] of rowHits.entries()) {
-        const baseHit = isPool ? hits[0] : hits[i];
+        const baseHit = rowIsPool === isPool ? hits[i] : hits[0];
         if (baseHit === undefined) continue;
         maxHitDelta = Math.max(maxHitDelta, Math.abs(rowHit - baseHit));
       }

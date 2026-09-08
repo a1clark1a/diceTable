@@ -90,5 +90,12 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     pool: 'forks',
+    // Vitest defaults to 5s, which suits a pure unit test and is too tight for
+    // the component tests here: each one mounts the whole provider tree in
+    // jsdom, and the chart tests pull recharts through the transform pipeline.
+    // Those take about a second and a half idle and several times that whenever
+    // the machine is busy, so the default turned a slow test into a coin flip.
+    // A hung test still fails, just later.
+    testTimeout: 15000,
   },
 });

@@ -38,7 +38,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 2,
     title: 'Read dice notation',
     plain:
-      'DiceTable uses standard tabletop shorthand. Tap any token to edit it inline. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the Sum / Pool toggle under the dice and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher".',
+      'DiceTable uses standard tabletop shorthand. Tap any token to edit it inline. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the Sum / Pool / Check toggle under the dice to Pool and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher". Check is the third setting, for rolls that decide whether something happens: 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4".',
     body: (
       <Stack gap={2}>
         <Text>
@@ -59,9 +59,16 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         </List.Root>
         <Text>
           A roll can also <strong>count successes</strong> instead of adding.
-          Switch the <strong>Sum / Pool</strong> toggle under the dice and the
-          notation reads like <Code>7d10 · count ≥8</Code>: out of seven
-          d10s, how many show 8 or higher?
+          Switch the <strong>Sum / Pool / Check</strong> toggle under the dice
+          to <strong>Pool</strong> and the notation reads like{' '}
+          <Code>7d10 · count ≥8</Code>: out of seven d10s, how many show 8 or
+          higher?
+        </Text>
+        <Text>
+          <strong>Check</strong> is the third setting, for rolls that decide
+          whether something happens: <Code>1d20 + 7 ≥15 → 1d8 + 4</Code> reads
+          as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4". Step 6
+          covers it.
         </Text>
       </Stack>
     ),
@@ -70,7 +77,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 3,
     title: 'Read the chart',
     plain:
-      'The bottom panel overlays every row. Switch views with the toggle above the chart: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set.',
+      'The bottom panel overlays every row. Switch views with the toggle above the chart: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -89,13 +96,18 @@ export const quickstartSteps: readonly QuickstartStep[] = [
             “beat the DC” questions).
           </List.Item>
           <List.Item>
-            <strong>TARGET</strong>. Appears once you set a target (Step 7);
+            <strong>TARGET</strong>. Appears once you set a target (Step 8);
             shows a hit-rate bar per row.
           </List.Item>
         </List.Root>
         <Text>
           The <strong>Shape</strong> sparkline in each row mirrors the active
           view. Click it (or the Mean / σ values) to open a larger inspector.
+        </Text>
+        <Text color="fg.muted" fontSize="sm">
+          A check roll that misses often would pile all of that chance onto one
+          bar and flatten everything else. On PMF that bar is cut off and
+          labelled with the real number, which is also on the tooltip.
         </Text>
       </Stack>
     ),
@@ -128,7 +140,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 5,
     title: 'Per-die modifiers: keep, reroll, explode',
     plain:
-      'Each die part in the expanded row has its own modifiers: keep the highest or lowest N (kh3, kl1), reroll specific faces once or always, or explode a chosen face to roll again and add.',
+      'Each die part in the expanded row has its own modifiers: keep the highest or lowest N (kh3, kl1), reroll specific faces once or always, or explode a chosen face to roll again and add. Below the parts, Keep across parts lifts keeping to the whole roll so dice of different sizes can be weighed against each other: 1d8 + 1d6 · keep highest 1 rolls both and counts only the better one, and turning it on switches the per-part Keep chips off.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -148,11 +160,62 @@ export const quickstartSteps: readonly QuickstartStep[] = [
             and add (open-ended rolls).
           </List.Item>
         </List.Root>
+        <Text>
+          Below the parts, <strong>Keep across parts</strong> lifts keeping to
+          the whole roll, so dice of different sizes can be weighed against
+          each other: <Code>1d8 + 1d6 · keep highest 1</Code> rolls both and
+          counts only the better one. Turning it on switches the per-part Keep
+          chips off, since the two say the same thing twice.
+        </Text>
       </Stack>
     ),
   },
   {
     n: 6,
+    title: 'Roll a check, then apply an effect',
+    plain:
+      'Switch a row to Check when the roll decides whether something happens: it rolls against a number you set, then applies an effect scaled by how it went. Fill in the check die and its modifier, the number it has to clear, the effect dice, and what lands on a success and on a failure. Full on a success and nothing on a failure is an attack; half on a success and full on a failure is a save-for-half spell. On a single check die you can also add a critical: pick the faces and whether it doubles the dice, adds one more, or adds the highest the dice can show. The row average then counts the misses too, which is the number worth balancing.',
+    body: (
+      <Stack gap={2}>
+        <Text>
+          Some rolls decide whether something happens rather than how much.
+          Switch a row to <strong>Check</strong> and it rolls against a number
+          first, then applies an effect scaled by how that went. The expanded
+          row asks for three things:
+        </Text>
+        <List.Root pl={5}>
+          <List.Item>
+            <strong>Check</strong>. The die you roll, its modifier, and the
+            number it has to clear. The percentage beside it updates as you
+            change either side.
+          </List.Item>
+          <List.Item>
+            <strong>Effect</strong>. The dice that land, with their own
+            modifier. Add parts the same way you would on any roll.
+          </List.Item>
+          <List.Item>
+            <strong>Outcomes</strong>. How much of the effect applies on a
+            success and on a failure: all of it, half of it, or none.
+          </List.Item>
+        </List.Root>
+        <Text>
+          Full on a success and nothing on a failure is an attack:{' '}
+          <Code>1d20 + 7 ≥15 → 1d8 + 4</Code>. Half on a success and full on a
+          failure is a save-for-half spell. On a check of exactly one die you
+          can add a <strong>Critical</strong> as well: pick the faces, then
+          whether it rolls double the dice, one extra die, or adds the highest
+          the dice can show.
+        </Text>
+        <Text color="fg.muted" fontSize="sm">
+          A check row’s average counts the misses, so it is the average per
+          attempt rather than the average when it lands. That is the number to
+          balance two mechanics against each other with.
+        </Text>
+      </Stack>
+    ),
+  },
+  {
+    n: 7,
     title: 'Compare rolls',
     plain:
       'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Hover or tab to a name in the legend to dim the others and focus a single series.',
@@ -165,7 +228,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     ),
   },
   {
-    n: 7,
+    n: 8,
     title: 'Set targets and read Hit %',
     plain:
       'Type one or more targets in the toolbar, for example AC 14 or save DC 16. A Hit % column shows how often each row clears each target, using the comparison you pick: at least, greater than, at most, less than, or exactly.',
@@ -204,7 +267,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     ),
   },
   {
-    n: 8,
+    n: 9,
     title: 'Switch workshop views',
     plain:
       'The chips above the table switch between four views of the same rolls. Table & chart is the editable list with the overlay chart. Target hit compares every roll against your targets as a grid, curves, or bars. Roll-off shows each roll’s chance of having the single highest result if every roll rolled once. Head-to-head is a matrix of one-on-one odds: how often the row roll beats the column roll, ignoring everyone else.',
@@ -222,7 +285,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           <List.Item>
             <strong>Target hit</strong>. Every roll against every target at
             once, as a sortable grid, curves, or bars (needs a target from
-            Step 7).
+            Step 8).
           </List.Item>
           <List.Item>
             <strong>Roll-off</strong>. If every roll rolled once, each one’s
@@ -244,7 +307,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     ),
   },
   {
-    n: 9,
+    n: 10,
     title: 'Roll the dice',
     plain:
       'Click the dice icon on any Sum roll to roll it. The result appears next to the row, and the popover can roll a batch of 1 to 1000 to show the average, the range, and recent history. The roller uses the same odds the chart shows.',
@@ -260,17 +323,30 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     ),
   },
   {
-    n: 10,
+    n: 11,
     title: 'Share and import',
     plain:
-      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it.',
+      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button in the toolbar makes a picture of the view you are on, following the sub-view, filter and sort you have set (Curves always plots the sum rolls, whatever the filter says), and copying it puts the link on the clipboard as text at the same time.',
     body: (
-      <Text>
-        Use <strong>Share</strong> in the top bar to copy a link, copy raw
-        JSON, or download a <Code>.json</Code> file. Anyone opening the link
-        gets the same rolls; importing a file or JSON lets you merge into the
-        current table or replace it.
-      </Text>
+      <Stack gap={2}>
+        <Text>
+          Use <strong>Share</strong> in the top bar to copy a link, copy raw
+          JSON, or download a <Code>.json</Code> file. Anyone opening the link
+          gets the same rolls; importing a file or JSON lets you merge into the
+          current table or replace it.
+        </Text>
+        <Text>
+          The <strong>Image</strong> button in the toolbar, and{' '}
+          <strong>Copy image</strong> in the Share menu, make a picture of what
+          you are looking at, with an optional title. It follows the controls
+          you set, so the Target hit picture uses the Grid, Curves or Bars you
+          picked, and Grid and Bars honour the All / Sum / Pools filter and any
+          column sort. Curves always plots the sum rolls, whatever the filter
+          says. The Roll-off picture keeps the order its sort chip is on. Copying it puts the link
+          on the clipboard as text at the same time, so pasting into a message
+          box gives the picture and pasting into a text field gives the link.
+        </Text>
+      </Stack>
     ),
   },
 ];

@@ -6,6 +6,10 @@ import { AppProvider } from '../../state/AppContext';
 import { InspectChart } from './InspectChart';
 import InspectChartBody from './InspectChartBody';
 import { uniformDistribution } from '../../engine/distribution';
+import type { TargetState } from '../../types';
+
+const noTarget: TargetState = { values: [], ruling: 'gte' };
+const target4: TargetState = { values: [4], ruling: 'gte' };
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class {
@@ -61,6 +65,7 @@ describe('InspectChart trigger', () => {
           exprName="Greatsword"
           dist={uniformDistribution(6)}
           color="#000"
+          target={noTarget}
         >
           <span>sparkline-trigger</span>
         </InspectChart>
@@ -79,6 +84,7 @@ describe('InspectChart trigger', () => {
           exprName="Greatsword"
           dist={uniformDistribution(6)}
           color="#000"
+          target={noTarget}
         >
           <span>sparkline-trigger</span>
         </InspectChart>
@@ -95,6 +101,7 @@ describe('InspectChart trigger', () => {
           exprName="Greatsword"
           dist={uniformDistribution(6)}
           color="#000"
+          target={noTarget}
         >
           <span>sparkline-trigger</span>
         </InspectChart>
@@ -114,6 +121,31 @@ describe('InspectChart trigger', () => {
       within(dialog).queryByRole('status', { name: /loading chart/i }),
     ).toBeNull();
   });
+
+  it('hands the target it was given to the lazily loaded body', async () => {
+    // No numeric target is persisted, so the body can only reach the target
+    // view through the prop the dialog forwards.
+    seed('target', null);
+    render(
+      <AllProviders>
+        <InspectChart
+          exprName="Greatsword"
+          dist={uniformDistribution(6)}
+          color="#000"
+          target={target4}
+        >
+          <span>sparkline-trigger</span>
+        </InspectChart>
+      </AllProviders>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /inspect chart for greatsword/i }),
+    );
+
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('Target')).toBeInTheDocument();
+  });
 });
 
 describe('InspectChartBody view label', () => {
@@ -121,7 +153,7 @@ describe('InspectChartBody view label', () => {
     seed('pmf');
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(6)} color="#000" />
+        <InspectChartBody dist={uniformDistribution(6)} color="#000" target={noTarget} />
       </AllProviders>,
     );
     expect(screen.getByText('PMF')).toBeInTheDocument();
@@ -131,7 +163,7 @@ describe('InspectChartBody view label', () => {
     seed('cdf');
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(6)} color="#000" />
+        <InspectChartBody dist={uniformDistribution(6)} color="#000" target={noTarget} />
       </AllProviders>,
     );
     expect(screen.getByText('CDF')).toBeInTheDocument();
@@ -141,7 +173,11 @@ describe('InspectChartBody view label', () => {
     seed('target', 4);
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(6)} color="#000" />
+        <InspectChartBody
+          dist={uniformDistribution(6)}
+          color="#000"
+          target={target4}
+        />
       </AllProviders>,
     );
     expect(screen.getByText('Target')).toBeInTheDocument();
@@ -151,7 +187,35 @@ describe('InspectChartBody view label', () => {
     seed('target', null);
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(6)} color="#000" />
+        <InspectChartBody dist={uniformDistribution(6)} color="#000" target={noTarget} />
+      </AllProviders>,
+    );
+    expect(screen.getByText('PMF')).toBeInTheDocument();
+  });
+
+  it('shows Target from the target prop even when the saved numeric target list is empty', () => {
+    seed('target', null);
+    render(
+      <AllProviders>
+        <InspectChartBody
+          dist={uniformDistribution(6)}
+          color="#000"
+          target={target4}
+        />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Target')).toBeInTheDocument();
+  });
+
+  it('falls back to PMF when the target prop is empty even though a numeric target is saved', () => {
+    seed('target', 4);
+    render(
+      <AllProviders>
+        <InspectChartBody
+          dist={uniformDistribution(6)}
+          color="#000"
+          target={noTarget}
+        />
       </AllProviders>,
     );
     expect(screen.getByText('PMF')).toBeInTheDocument();
@@ -163,7 +227,7 @@ describe('InspectChartBody top results', () => {
     seed('pmf');
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(6)} color="#000" />
+        <InspectChartBody dist={uniformDistribution(6)} color="#000" target={noTarget} />
       </AllProviders>,
     );
     expect(screen.getByText(/most likely results/i)).toBeInTheDocument();
@@ -173,7 +237,7 @@ describe('InspectChartBody top results', () => {
     seed('pmf');
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(6)} color="#000" />
+        <InspectChartBody dist={uniformDistribution(6)} color="#000" target={noTarget} />
       </AllProviders>,
     );
     // Each entry renders a "16.7%" percent (1/6 ≈ 0.1667). Axis ticks use
@@ -186,7 +250,7 @@ describe('InspectChartBody top results', () => {
     seed('pmf');
     render(
       <AllProviders>
-        <InspectChartBody dist={uniformDistribution(20)} color="#000" />
+        <InspectChartBody dist={uniformDistribution(20)} color="#000" target={noTarget} />
       </AllProviders>,
     );
     // 1d20 → all values at 5% (formatted "5.0%"). Top 10 shown.
@@ -208,7 +272,7 @@ describe('InspectChartBody top results', () => {
     ]);
     const { container } = render(
       <AllProviders>
-        <InspectChartBody dist={dist} color="#000" />
+        <InspectChartBody dist={dist} color="#000" target={noTarget} />
       </AllProviders>,
     );
     // Find the "Most likely results" panel and read the value column in order.

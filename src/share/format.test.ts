@@ -90,3 +90,51 @@ describe('validateExportPayload', () => {
     expect(validateExportPayload(round)).toEqual([sampleExpr]);
   });
 });
+
+describe('export format — keepAcross rows', () => {
+  const keepAcrossExpr: Expression = {
+    ...sampleExpr,
+    parts: [
+      { id: 'part-1', count: 1, sides: 8 },
+      { id: 'part-2', count: 1, sides: 6 },
+    ],
+    keepAcross: { type: 'highest', n: 1 },
+  };
+
+  it('is on export version 3', () => {
+    expect(EXPORT_VERSION).toBe(3);
+  });
+
+  it('round-trips the rule through JSON', () => {
+    const env = buildExportEnvelope([keepAcrossExpr]);
+    const round = JSON.parse(JSON.stringify(env)) as unknown;
+    expect(validateExportPayload(round)).toEqual([keepAcrossExpr]);
+  });
+
+  it('still imports links and files written before the rule existed', () => {
+    for (const exportVersion of [1, 2]) {
+      expect(
+        validateExportPayload({
+          format: EXPORT_FORMAT_TAG,
+          exportVersion,
+          rolls: [sampleExpr],
+        }),
+      ).toEqual([sampleExpr]);
+    }
+  });
+
+  it('rejects a payload whose rule contradicts its dice', () => {
+    expect(
+      validateExportPayload({
+        format: EXPORT_FORMAT_TAG,
+        exportVersion: EXPORT_VERSION,
+        rolls: [
+          {
+            ...keepAcrossExpr,
+            parts: [{ id: 'part-1', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }],
+          },
+        ],
+      }),
+    ).toBeNull();
+  });
+});

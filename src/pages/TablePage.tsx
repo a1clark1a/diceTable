@@ -8,8 +8,8 @@ import { TargetToolbar } from '../components/TargetToolbar';
 import { TargetHitView } from '../components/target/TargetHitView';
 import { RollOffView } from '../components/compare/RollOffView';
 import { HeadToHeadView } from '../components/compare/HeadToHeadView';
-import { ViewBar } from '../components/ViewBar';
-import { WorkshopHeader } from '../components/WorkshopHeader';
+import { WorkshopToolbar } from '../components/WorkshopToolbar';
+import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
@@ -30,11 +30,11 @@ export default function TablePage() {
       id: 'table',
       label: 'Table & chart',
       mobileLabel: 'Rolls',
-      // The toolbar keeps its old slot inside a gap-3 stack so the table view
-      // renders exactly as it did when RollsTable/RollsCards owned it.
+      // The target row keeps its old slot inside a gap-3 stack so the table
+      // view renders exactly as it did when RollsTable/RollsCards owned it.
       render: () => (
         <>
-          <ViewBar chartRef={chartRef} />
+          <WorkshopToolbar chartRef={chartRef} />
           <Stack gap={3}>
             <TargetToolbar />
             <BaselineCaption />
@@ -47,22 +47,37 @@ export default function TablePage() {
     {
       id: 'target',
       label: 'Target hit',
+      mobileLabel: 'Target',
       render: () => (
-        <Stack gap={3}>
-          <TargetToolbar />
-          <TargetHitView />
-        </Stack>
+        <>
+          <WorkshopToolbar />
+          <Stack gap={3}>
+            <TargetToolbar />
+            <TargetHitView />
+          </Stack>
+        </>
       ),
     },
     {
       id: 'rolloff',
       label: 'Roll-off',
-      render: () => <RollOffView />,
+      render: () => (
+        <>
+          <WorkshopToolbar />
+          <RollOffView />
+        </>
+      ),
     },
     {
       id: 'matrix',
       label: 'Head-to-head',
-      render: () => <HeadToHeadView />,
+      mobileLabel: 'Versus',
+      render: () => (
+        <>
+          <WorkshopToolbar />
+          <HeadToHeadView />
+        </>
+      ),
     },
   ];
 
@@ -76,23 +91,26 @@ export default function TablePage() {
         path="/"
       />
       <Stack gap={1}>
-        <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
+        <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
           Compare dice rolls side by side
         </Heading>
         <Text
-          fontSize="sm"
+          fontSize={{ base: 'xs', md: 'sm' }}
           color="fg.muted"
           maxW="620px"
+          // Two lines is the whole pitch on a phone; the rest is chrome
+          // standing between the reader and the first roll.
+          lineClamp={{ base: 2, md: 'none' }}
           css={{ textWrap: 'pretty' }}
         >
           Build a table of named rolls, set a target number, and see the exact
           probability for every result on one chart.
         </Text>
       </Stack>
-      <WorkshopHeader
+      <WorkshopViewSwitcher
         views={registry}
-        activeView={active.id}
-        onSelectView={setView}
+        active={active.id}
+        onSelect={setView}
       />
       {expressions.length === 0 ? <StartExamplesPanel /> : active.render()}
     </Stack>

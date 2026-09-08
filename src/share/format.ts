@@ -2,11 +2,12 @@ import type { Expression } from '../types';
 import { validateExpression } from '../state/persistedSchema';
 
 export const EXPORT_FORMAT_TAG = 'dicetable-rolls' as const;
-export const EXPORT_VERSION = 2 as const;
+export const EXPORT_VERSION = 3 as const;
 
 // v1 predates pool mode. Its rows carry no `mode`, which validateExpression reads
-// as a sum row, so old links and files keep importing unchanged.
-const ACCEPTED_EXPORT_VERSIONS: readonly number[] = [1, 2];
+// as a sum row, so old links and files keep importing unchanged. v3 rows may carry
+// `keepAcross` and `check`, optional fields older readers simply never wrote.
+const ACCEPTED_EXPORT_VERSIONS: readonly number[] = [1, 2, 3];
 
 export interface ExportEnvelope {
   format: typeof EXPORT_FORMAT_TAG;

@@ -111,3 +111,56 @@ export function percentile(dist: Distribution, p: number): number {
   }
   return keys[keys.length - 1] ?? 0;
 }
+
+// hitProbability(dist, v, ruling) for every integer v in [min..max], computed
+// in one cumulative pass instead of one full-distribution scan per point.
+export function hitSeries(
+  dist: Distribution,
+  min: number,
+  max: number,
+  ruling: TargetRuling,
+): number[] {
+  if (dist.size === 0) return [];
+  // A fractional bound would index the buckets off by a fraction, and an
+  // inverted one would ask for an array of negative length; both are answered
+  // the way hitProbability answers a target it cannot read, with no chance.
+  if (!Number.isInteger(min) || !Number.isInteger(max) || max < min) return [];
+  const size = max - min + 1;
+  const pmf = new Array<number>(size).fill(0);
+  // A window narrower than the distribution still has mass on either side of
+  // it, and that mass counts toward a cumulative reading inside the window, so
+  // it seeds the running total rather than falling out of the array.
+  let below = 0;
+  let above = 0;
+  for (const [v, p] of dist) {
+    if (v < min) below += p;
+    else if (v > max) above += p;
+    else pmf[v - min] = p;
+  }
+  if (ruling === 'eq') return pmf;
+  const out = new Array<number>(size).fill(0);
+  if (ruling === 'gte' || ruling === 'gt') {
+    let acc = above;
+    for (let i = size - 1; i >= 0; i--) {
+      if (ruling === 'gt') {
+        out[i] = acc;
+        acc += pmf[i] ?? 0;
+      } else {
+        acc += pmf[i] ?? 0;
+        out[i] = acc;
+      }
+    }
+  } else {
+    let acc = below;
+    for (let i = 0; i < size; i++) {
+      if (ruling === 'lt') {
+        out[i] = acc;
+        acc += pmf[i] ?? 0;
+      } else {
+        acc += pmf[i] ?? 0;
+        out[i] = acc;
+      }
+    }
+  }
+  return out;
+}

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Box, HStack, Table, Text } from '@chakra-ui/react';
 import { useApp } from '../../state/useApp';
-import { beatChance, type BeatChance } from '../../engine/compare';
+import { beatMatrix, type BeatChance } from '../../engine/compare';
 import { EM_DASH, formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
 import { HelpTerm } from '../ui/help-term';
@@ -20,10 +20,7 @@ export function HeadToHeadView() {
 
   const rows = useMemo(() => toCompareRows(expressions), [expressions]);
   const matrix = useMemo<(BeatChance | null)[][]>(
-    () =>
-      rows.map((r, i) =>
-        rows.map((o, j) => (i === j ? null : beatChance(r.dist, o.dist))),
-      ),
+    () => beatMatrix(rows.map((r) => r.dist)),
     [rows],
   );
 

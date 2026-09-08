@@ -7,7 +7,7 @@ import {
   Portal,
   chakra,
 } from '@chakra-ui/react';
-import type { Distribution } from '../../types';
+import type { Distribution, TargetState } from '../../types';
 import { ChartFallback } from '../chart/ChartFallback';
 
 const InspectChartBody = lazy(() => import('./InspectChartBody'));
@@ -16,6 +16,7 @@ interface InspectChartProps {
   exprName: string;
   dist: Distribution;
   color: string;
+  target: TargetState;
   children: ReactNode;
 }
 
@@ -23,6 +24,7 @@ export function InspectChart({
   exprName,
   dist,
   color,
+  target,
   children,
 }: InspectChartProps) {
   return (
@@ -73,7 +75,7 @@ export function InspectChart({
             </Dialog.Header>
             <Dialog.Body>
               <Suspense fallback={<ChartFallback variant="inspect" />}>
-                <InspectChartBody dist={dist} color={color} />
+                <InspectChartBody dist={dist} color={color} target={target} />
               </Suspense>
             </Dialog.Body>
             <Dialog.CloseTrigger asChild>

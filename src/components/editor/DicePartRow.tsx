@@ -4,14 +4,13 @@ import {
   Field,
   HStack,
   IconButton,
-  Input,
   NativeSelect,
   Stack,
   Text,
   Wrap,
 } from '@chakra-ui/react';
-import { Check, Minus, Plus, Trash2 } from 'lucide-react';
-import { memo, useCallback, useState, type ReactNode } from 'react';
+import { Trash2 } from 'lucide-react';
+import { memo, useCallback, useState } from 'react';
 import type {
   DicePart,
   ExplodeRule,
@@ -20,20 +19,11 @@ import type {
   RerollRule,
 } from '../../types';
 import type { PartPatch } from '../../state/useApp';
-import { Tooltip } from '../ui/tooltip';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
-import { useBufferedValue } from '../../hooks/useBufferedValue';
 import { validatePart } from './validatePart';
-
-function parseInteger(raw: string): number {
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function formatInteger(n: number): string {
-  return String(n);
-}
+import { FacePicker, NumberStepper, RuleCard, RuleChip } from './controls';
+import { chipFocusRing } from './focusRings';
 
 function defaultKeep(part: DicePart): KeepRule {
   const safeCount = Math.max(1, part.count);
@@ -55,178 +45,6 @@ function clampFacesToSides(faces: number[], sides: number): number[] {
 }
 
 const STANDARD_DICE: readonly number[] = [4, 6, 8, 10, 12, 20, 100];
-
-// The stepper sits inside an overflow:hidden pill, which clips an outer
-// (positive-offset) focus ring down to a sliver. An inset ring stays inside the
-// pill and visible; boxShadow:none drops the default ring so only this shows.
-const focusRingInset = {
-  outline: '2px solid',
-  outlineColor: 'blue.solid',
-  outlineOffset: '-2px',
-  boxShadow: 'none',
-};
-
-// Chips track colorPalette, so an unselected (gray) chip would show a gray focus
-// ring while a selected (blue) chip shows blue. Pin the ring to blue so the
-// keyboard cue reads the same regardless of selection state.
-const chipFocusRing = {
-  outlineWidth: '2px',
-  outlineStyle: 'solid',
-  outlineColor: 'blue.solid',
-  outlineOffset: '2px',
-};
-
-const MAX_PICKER_FACES = 30;
-
-interface NumberStepperProps {
-  value: number;
-  onCommit: (next: number) => void;
-  min: number;
-  max?: number;
-  ariaLabel: string;
-  invalid?: boolean;
-}
-
-function NumberStepper({
-  value,
-  onCommit,
-  min,
-  max,
-  ariaLabel,
-  invalid,
-}: NumberStepperProps) {
-  const buf = useBufferedValue<number>({
-    committed: value,
-    commit: onCommit,
-    parse: parseInteger,
-    format: formatInteger,
-  });
-  const step = (delta: number) => {
-    const next = value + delta;
-    if (next < min || (max !== undefined && next > max)) return;
-    onCommit(next);
-  };
-  return (
-    <HStack
-      gap={0}
-      h="40px"
-      w="fit-content"
-      align="stretch"
-      borderWidth="1px"
-      borderColor={invalid ? 'red.solid' : 'border.subtle'}
-      borderRadius="md"
-      overflow="hidden"
-    >
-      <IconButton
-        aria-label={`Decrease ${ariaLabel}`}
-        size="sm"
-        variant="ghost"
-        color="fg"
-        borderRadius="0"
-        h="full"
-        w="40px"
-        disabled={value <= min}
-        _disabled={{ opacity: 0.4, color: 'fg.muted', cursor: 'not-allowed' }}
-        _focusVisible={focusRingInset}
-        onClick={() => step(-1)}
-      >
-        <Minus size={16} />
-      </IconButton>
-      <Input
-        aria-label={ariaLabel}
-        value={buf.value}
-        onChange={(e) => buf.setValue(e.target.value)}
-        onBlur={buf.onBlur}
-        onKeyDown={buf.onKeyDown}
-        inputMode="numeric"
-        textAlign="center"
-        fontFamily="mono"
-        h="full"
-        w="52px"
-        px={0}
-        border="none"
-        borderRadius="0"
-        bg="transparent"
-        _focusVisible={focusRingInset}
-        style={{ fontVariantNumeric: 'tabular-nums' }}
-      />
-      <IconButton
-        aria-label={`Increase ${ariaLabel}`}
-        size="sm"
-        variant="ghost"
-        color="fg"
-        borderRadius="0"
-        h="full"
-        w="40px"
-        disabled={max !== undefined && value >= max}
-        _disabled={{ opacity: 0.4, color: 'fg.muted', cursor: 'not-allowed' }}
-        _focusVisible={focusRingInset}
-        onClick={() => step(1)}
-      >
-        <Plus size={16} />
-      </IconButton>
-    </HStack>
-  );
-}
-
-interface FacePickerProps {
-  sides: number;
-  selected: number[];
-  onChange: (next: number[]) => void;
-  ariaLabel: string;
-}
-
-function FacePicker({ sides, selected, onChange, ariaLabel }: FacePickerProps) {
-  if (!Number.isInteger(sides) || sides < 2) {
-    return (
-      <Text fontSize="xs" color="fg.muted">
-        Set valid sides first.
-      </Text>
-    );
-  }
-  if (sides > MAX_PICKER_FACES) {
-    return (
-      <Text fontSize="xs" color="fg.muted">
-        d{sides} has too many faces to list here. Pick a die with {MAX_PICKER_FACES}{' '}
-        sides or fewer.
-      </Text>
-    );
-  }
-  const faces = Array.from({ length: sides }, (_, i) => i + 1);
-  return (
-    <Wrap gap={1.5} role="group" aria-label={ariaLabel}>
-      {faces.map((face) => {
-        const checked = selected.includes(face);
-        return (
-          <Button
-            key={face}
-            type="button"
-            size="sm"
-            h="40px"
-            minW="40px"
-            px={2}
-            fontFamily="mono"
-            variant={checked ? 'subtle' : 'outline'}
-            colorPalette={checked ? 'blue' : 'gray'}
-            aria-pressed={checked}
-            aria-label={`Face ${face}`}
-            _focusVisible={chipFocusRing}
-            onClick={() =>
-              onChange(
-                checked
-                  ? selected.filter((v) => v !== face)
-                  : [...selected, face].sort((a, b) => a - b),
-              )
-            }
-            style={{ fontVariantNumeric: 'tabular-nums' }}
-          >
-            {face}
-          </Button>
-        );
-      })}
-    </Wrap>
-  );
-}
 
 interface KeepRuleEditorProps {
   keep: KeepRule;
@@ -334,94 +152,26 @@ function ExplodeRuleEditor({
   );
 }
 
-interface RuleChipProps {
-  label: string;
-  tip: string;
-  active: boolean;
-  onToggle: (on: boolean) => void;
-  disabled?: boolean;
-  disabledTip?: string;
-}
-
-// Disabled chips use aria-disabled + data-disabled instead of the native
-// attribute: a natively disabled button drops out of the tab order and swallows
-// hover, so the "why is this off" tooltip could never be discovered by mouse or
-// keyboard. data-disabled applies the recipe's disabled styling and suppresses
-// hover feedback without blocking pointer events.
-function RuleChip({
-  label,
-  tip,
-  active,
-  onToggle,
-  disabled,
-  disabledTip,
-}: RuleChipProps) {
-  return (
-    <Tooltip content={disabled ? disabledTip : tip}>
-      <Button
-        size="sm"
-        h="40px"
-        px={4}
-        borderRadius="full"
-        fontWeight="semibold"
-        variant={active ? 'subtle' : 'outline'}
-        colorPalette={active ? 'blue' : 'gray'}
-        aria-pressed={active}
-        aria-disabled={disabled || undefined}
-        data-disabled={disabled ? '' : undefined}
-        _focusVisible={chipFocusRing}
-        onClick={() => {
-          if (!disabled) onToggle(!active);
-        }}
-      >
-        {active && <Check size={14} />}
-        {label}
-      </Button>
-    </Tooltip>
-  );
-}
-
-interface RuleCardProps {
-  heading: string;
-  children: ReactNode;
-}
-
-function RuleCard({ heading, children }: RuleCardProps) {
-  return (
-    <Box
-      bg="bg.subtle"
-      borderWidth="1px"
-      borderColor="border.emphasized"
-      borderRadius="md"
-      p={3}
-    >
-      <HStack gap={2}>
-        <Box boxSize="7px" borderRadius="full" bg="blue.solid" flexShrink={0} />
-        <Text fontSize="sm" fontWeight="semibold">
-          {heading}
-        </Text>
-      </HStack>
-      {children}
-    </Box>
-  );
-}
-
 interface DicePartRowProps {
   part: DicePart;
   mode: ExpressionMode;
+  keepAcrossActive: boolean;
   onChange: (patch: PartPatch) => void;
-  onRemove: () => void;
+  /** Omitted where a part cannot belong to a list at all, such as a check die. */
+  onRemove?: () => void;
   canRemove: boolean;
 }
 
 export const DicePartRow = memo(function DicePartRow({
   part,
   mode,
+  keepAcrossActive,
   onChange,
   onRemove,
   canRemove,
 }: DicePartRowProps) {
   const isPool = mode === 'pool';
+  const keepBlocked = isPool || keepAcrossActive;
   const errors = validatePart(part);
 
   const commitCount = useCallback(
@@ -494,17 +244,19 @@ export const DicePartRow = memo(function DicePartRow({
           />
         </HStack>
 
-        <IconButton
-          aria-label="Remove part"
-          size="sm"
-          variant="ghost"
-          colorPalette="red"
-          disabled={!canRemove}
-          _disabled={{ opacity: 0.4, color: 'fg.muted', cursor: 'not-allowed' }}
-          onClick={onRemove}
-        >
-          <Trash2 size={16} />
-        </IconButton>
+        {onRemove && (
+          <IconButton
+            aria-label="Remove part"
+            size="sm"
+            variant="ghost"
+            colorPalette="red"
+            disabled={!canRemove}
+            _disabled={{ opacity: 0.4, color: 'fg.muted', cursor: 'not-allowed' }}
+            onClick={onRemove}
+          >
+            <Trash2 size={16} />
+          </IconButton>
+        )}
       </HStack>
       {errors.count !== undefined && (
         <Text fontSize="xs" color="red.solid" mt={1}>
@@ -602,8 +354,10 @@ export const DicePartRow = memo(function DicePartRow({
                 tip={tipForId('keep')}
                 active={part.keep !== undefined}
                 onToggle={toggleKeep}
-                disabled={isPool}
-                disabledTip={tipForId('keepDisabledInPool')}
+                disabled={keepBlocked}
+                disabledTip={tipForId(
+                  isPool ? 'keepDisabledInPool' : 'keepDisabledByKeepAcross',
+                )}
               />
               <RuleChip
                 label="Reroll"

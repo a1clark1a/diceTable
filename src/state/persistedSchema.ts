@@ -2,36 +2,52 @@ import {
   MAX_EXPRESSIONS,
   MAX_TARGETS,
   type ChartView,
+  type CheckEffect,
+  type CheckSpec,
+  type CritEffect,
+  type CritRule,
   type DicePart,
+  type EffectScale,
   type Expression,
   type ExpressionMode,
+  type GridSort,
   type ExplodeRule,
   type KeepRule,
   type PersistedState,
   type RerollRule,
   type RollMode,
+  type RollOffSort,
   type SuccessThreshold,
+  type TargetKindFilter,
   type TargetRuling,
   type TargetState,
+  type TargetSubView,
   type WorkshopView,
 } from '../types';
+import { isSingleDieCheck } from '../engine/critEffect';
 
 // The inner schema version, deliberately decoupled from the useLocalStorage
 // envelope version in AppContext. The envelope gate rejects any version it does
 // not recognise before validation ever runs, so bumping both together would wipe
 // every saved table instead of migrating it.
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 5;
 
-const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3];
+const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4, 5];
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
-const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool'];
+const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool', 'check'];
 const THRESHOLD_DIRECTIONS: readonly SuccessThreshold['direction'][] = ['gte', 'lte'];
 const CHART_VIEWS: readonly ChartView[] = ['pmf', 'cdf', 'ccdf', 'target'];
 const WORKSHOP_VIEWS: readonly WorkshopView[] = ['table', 'target', 'rolloff', 'matrix'];
+const TARGET_SUB_VIEWS: readonly TargetSubView[] = ['grid', 'curves', 'bars'];
+const TARGET_FILTERS: readonly TargetKindFilter[] = ['all', 'sum', 'pool'];
+const ROLL_OFF_SORTS: readonly RollOffSort[] = ['win', 'table'];
+const SORT_DIRECTIONS: readonly GridSort['dir'][] = ['desc', 'asc'];
 const TARGET_RULINGS: readonly TargetRuling[] = ['gte', 'gt', 'lte', 'lt', 'eq'];
 const KEEP_TYPES: readonly KeepRule['type'][] = ['highest', 'lowest'];
 const REROLL_MODES: readonly RerollRule['mode'][] = ['once', 'always'];
+const EFFECT_SCALES: readonly EffectScale[] = ['none', 'half', 'full'];
+const CRIT_EFFECTS: readonly CritEffect[] = ['doubleDice', 'extraDie', 'maxPlusRoll'];
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -107,6 +123,73 @@ function validatePart(v: unknown): DicePart | null {
   return part;
 }
 
+function validateCritRule(v: unknown): CritRule | null {
+  if (!isRecord(v)) return null;
+  if (!isOneOf(v.effect, CRIT_EFFECTS)) return null;
+  // An empty face list is a critical that can never happen: a rule the math
+  // would ignore, which is the one thing the stored shape must never hold.
+  if (!isIntArray(v.onFaces) || v.onFaces.length === 0) return null;
+  if (v.onFaces.some((f) => f < 1)) return null;
+  return { onFaces: [...v.onFaces], effect: v.effect };
+}
+
+function validateCheckEffect(v: unknown): CheckEffect | null {
+  if (!isRecord(v)) return null;
+  if (!Array.isArray(v.parts) || v.parts.length === 0) return null;
+  if (typeof v.flatModifier !== 'number' || !Number.isFinite(v.flatModifier)) {
+    return null;
+  }
+
+  const parts: DicePart[] = [];
+  for (const rawPart of v.parts) {
+    const part = validatePart(rawPart);
+    if (part === null) return null;
+    parts.push(part);
+  }
+
+  const effect: CheckEffect = { parts, flatModifier: v.flatModifier };
+
+  if (v.keepAcross !== undefined) {
+    const keepAcross = validateKeep(v.keepAcross);
+    if (keepAcross === null) return null;
+    if (parts.some((p) => p.keep !== undefined)) return null;
+    effect.keepAcross = keepAcross;
+  }
+
+  return effect;
+}
+
+function validateCheckSpec(v: unknown, checkParts: readonly DicePart[]): CheckSpec | null {
+  if (!isRecord(v)) return null;
+
+  const threshold = validateSuccessThreshold(v.threshold);
+  if (threshold === null) return null;
+
+  const effect = validateCheckEffect(v.effect);
+  if (effect === null) return null;
+
+  if (!isOneOf(v.onSuccess, EFFECT_SCALES)) return null;
+  if (!isOneOf(v.onFailure, EFFECT_SCALES)) return null;
+
+  const spec: CheckSpec = {
+    threshold,
+    effect,
+    onSuccess: v.onSuccess,
+    onFailure: v.onFailure,
+  };
+
+  if (v.crit !== undefined) {
+    const crit = validateCritRule(v.crit);
+    if (crit === null) return null;
+    // A critical is read off the face one die shows, so there is no face to read
+    // on a check rolling more than one die.
+    if (!isSingleDieCheck(checkParts)) return null;
+    spec.crit = crit;
+  }
+
+  return spec;
+}
+
 export function validateExpression(v: unknown): Expression | null {
   if (!isRecord(v)) return null;
   if (!isNonEmptyString(v.id)) return null;
@@ -152,6 +235,28 @@ export function validateExpression(v: unknown): Expression | null {
     expression.successThreshold = threshold;
   }
 
+  if (v.keepAcross !== undefined) {
+    const keepAcross = validateKeep(v.keepAcross);
+    if (keepAcross === null) return null;
+    // Counting successes never reads keepAcross, and keeping across parts
+    // replaces the per-part rule rather than stacking with it. Either pairing
+    // would store a rule the math ignores, so both are corruption.
+    if (mode !== 'sum') return null;
+    if (parts.some((p) => p.keep !== undefined)) return null;
+    expression.keepAcross = keepAcross;
+  }
+
+  // A check row without a check has no effect to apply, and a check on any other
+  // row is a rule nothing reads. Both are corruption rather than something to
+  // patch up, so the row is rejected either way.
+  if (mode === 'check') {
+    const check = validateCheckSpec(v.check, parts);
+    if (check === null) return null;
+    expression.check = check;
+  } else if (v.check !== undefined) {
+    return null;
+  }
+
   return expression;
 }
 
@@ -177,17 +282,58 @@ function validateTarget(v: unknown): TargetState {
   return { values, ruling };
 }
 
-function validateUi(v: unknown): PersistedState['ui'] {
-  if (!isRecord(v)) {
-    return {
-      expandedId: null,
-      chartView: 'pmf',
-      target: { values: [], ruling: 'gte' },
-      view: 'table',
-      poolTarget: 1,
-      baselineId: null,
-    };
+// Mirrors validateTarget's list handling, minus the ruling: pool targets are
+// always "at least n successes". A pool row's Hit % is not opt-in the way a sum
+// row's is, so anything unreadable lands on [1] rather than an empty list.
+function validatePoolTargets(v: Record<string, unknown>): number[] {
+  if (Array.isArray(v.poolTargets)) {
+    const seen = new Set<number>();
+    const values: number[] = [];
+    for (const raw of v.poolTargets) {
+      if (!isInt(raw)) continue;
+      const value = Math.max(1, raw);
+      if (seen.has(value)) continue;
+      seen.add(value);
+      values.push(value);
+      if (values.length >= MAX_TARGETS) break;
+    }
+    if (values.length > 0) return values.sort((a, b) => a - b);
   }
+  // Envelopes written before the list existed carry a single scalar.
+  if (isInt(v.poolTarget) && v.poolTarget >= 1) return [v.poolTarget];
+  return [1];
+}
+
+// The grid's sort points at a columnKey, which goes stale as targets and
+// filters change. The view already drops a sort whose column is gone, so the
+// only job here is to reject a shape that is not a sort at all.
+function validateGridSort(v: unknown): GridSort | null {
+  if (!isRecord(v)) return null;
+  if (!isNonEmptyString(v.key)) return null;
+  if (!isOneOf(v.dir, SORT_DIRECTIONS)) return null;
+  return { key: v.key, dir: v.dir };
+}
+
+// A function, not a shared constant: validatePersistedState edits the ui object
+// it returns (it drops a dangling baselineId), so every caller has to get its
+// own arrays and objects rather than aliases into one module-level default.
+function defaultUi(): PersistedState['ui'] {
+  return {
+    expandedId: null,
+    chartView: 'pmf',
+    target: { values: [], ruling: 'gte' },
+    view: 'table',
+    poolTargets: [1],
+    baselineId: null,
+    targetSubView: 'grid',
+    targetFilter: 'all',
+    targetSort: null,
+    rollOffSort: 'win',
+  };
+}
+
+function validateUi(v: unknown): PersistedState['ui'] {
+  if (!isRecord(v)) return defaultUi();
   const expandedId =
     v.expandedId === null
       ? null
@@ -197,9 +343,32 @@ function validateUi(v: unknown): PersistedState['ui'] {
   const chartView = isOneOf(v.chartView, CHART_VIEWS) ? v.chartView : 'pmf';
   const target = validateTarget(v.target);
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
-  const poolTarget = isInt(v.poolTarget) && v.poolTarget >= 1 ? v.poolTarget : 1;
+  const poolTargets = validatePoolTargets(v);
   const baselineId = typeof v.baselineId === 'string' ? v.baselineId : null;
-  return { expandedId, chartView, target, view, poolTarget, baselineId };
+  // Envelopes written before these existed fall back to the view's own
+  // defaults, which is what an untouched control shows anyway.
+  const targetSubView = isOneOf(v.targetSubView, TARGET_SUB_VIEWS)
+    ? v.targetSubView
+    : 'grid';
+  const targetFilter = isOneOf(v.targetFilter, TARGET_FILTERS)
+    ? v.targetFilter
+    : 'all';
+  const targetSort = validateGridSort(v.targetSort);
+  const rollOffSort = isOneOf(v.rollOffSort, ROLL_OFF_SORTS)
+    ? v.rollOffSort
+    : 'win';
+  return {
+    expandedId,
+    chartView,
+    target,
+    view,
+    poolTargets,
+    baselineId,
+    targetSubView,
+    targetFilter,
+    targetSort,
+    rollOffSort,
+  };
 }
 
 export function validatePersistedState(raw: unknown): PersistedState | null {

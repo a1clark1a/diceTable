@@ -1,9 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
-import type { Expression, RollMode } from '../types';
+import { validateExpression, validatePersistedState } from './persistedSchema';
+import { MAX_TARGETS, type Expression, type RollMode } from '../types';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AppProvider>{children}</AppProvider>
@@ -11,6 +12,9 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 afterEach(() => {
   window.localStorage.clear();
+  // A reload test fakes timers to land the debounced write; restoring here
+  // keeps a failure inside that test from leaking fake timers into the rest.
+  vi.useRealTimers();
 });
 
 describe('AppContext first run', () => {
@@ -446,70 +450,94 @@ describe('AppContext updateExpression mode switching', () => {
   });
 });
 
-describe('AppContext setPoolTarget', () => {
-  it('defaults to 1', () => {
+describe('AppContext setPoolTargets', () => {
+  it('defaults to a single target of 1', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([1]);
   });
 
-  it('stores a positive integer as given', () => {
+  it('stores positive integers as given', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(4);
+      result.current.setPoolTargets([4]);
     });
-    expect(result.current.poolTarget).toBe(4);
+    expect(result.current.poolTargets).toEqual([4]);
   });
 
-  it('floors a fractional value down to the nearest integer', () => {
+  it('sorts the list ascending', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(3.9);
+      result.current.setPoolTargets([5, 1, 3]);
     });
-    expect(result.current.poolTarget).toBe(3);
+    expect(result.current.poolTargets).toEqual([1, 3, 5]);
+  });
+
+  it('drops duplicates', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTargets([3, 3, 1]);
+    });
+    expect(result.current.poolTargets).toEqual([1, 3]);
+  });
+
+  it(`keeps at most ${MAX_TARGETS} targets`, () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTargets([1, 2, 3, 4, 5, 6, 7]);
+    });
+    expect(result.current.poolTargets).toHaveLength(MAX_TARGETS);
   });
 
   it('clamps zero up to 1', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([5]);
     });
     act(() => {
-      result.current.setPoolTarget(0);
+      result.current.setPoolTargets([0]);
     });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([1]);
   });
 
   it('clamps a negative value up to 1', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([5]);
     });
     act(() => {
-      result.current.setPoolTarget(-3);
+      result.current.setPoolTargets([-3]);
     });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([1]);
   });
 
-  it('falls back to 1 for NaN', () => {
+  it('drops a fractional value', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([3.9, 4]);
     });
-    act(() => {
-      result.current.setPoolTarget(NaN);
-    });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([4]);
   });
 
-  it('falls back to 1 for Infinity', () => {
+  it('keeps the current list when nothing in the new one is usable', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
-      result.current.setPoolTarget(5);
+      result.current.setPoolTargets([5]);
     });
     act(() => {
-      result.current.setPoolTarget(Infinity);
+      result.current.setPoolTargets([NaN, Infinity]);
     });
-    expect(result.current.poolTarget).toBe(1);
+    expect(result.current.poolTargets).toEqual([5]);
+  });
+
+  it('never empties the list', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setPoolTargets([5]);
+    });
+    act(() => {
+      result.current.setPoolTargets([]);
+    });
+    expect(result.current.poolTargets).toEqual([5]);
   });
 
   it('leaves expressions and target values untouched', () => {
@@ -519,7 +547,7 @@ describe('AppContext setPoolTarget', () => {
     });
     const beforeExpressions = result.current.expressions;
     act(() => {
-      result.current.setPoolTarget(3);
+      result.current.setPoolTargets([3]);
     });
     expect(result.current.expressions).toEqual(beforeExpressions);
     expect(result.current.target.values).toEqual([13, 16]);
@@ -619,5 +647,440 @@ describe('AppContext baseline lifecycle', () => {
     expect(
       result.current.expressions.filter((e) => e.id === 'e0'),
     ).toHaveLength(1);
+  });
+});
+
+// keepAcross and a per-part keep must never coexist: validatePersistedState
+// rejects a row carrying both, and a rejected envelope drops the whole table
+// back to empty on the next load. These cover the invariant at the mutation
+// boundary, not just in the UI that hides the chip.
+describe('AppContext keepAcross', () => {
+  function seedRow(result: { current: ReturnType<typeof useApp> }): string {
+    act(() => {
+      result.current.addExpression();
+    });
+    return result.current.expressions[0]!.id;
+  }
+
+  it('sets the rule on a row', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'highest',
+      n: 1,
+    });
+  });
+
+  it('clears the rule when the patch passes undefined', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: undefined });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toBeUndefined();
+  });
+
+  it('leaves the rule alone when the patch does not mention it', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'lowest', n: 2 } });
+    });
+    act(() => {
+      result.current.updateExpression(id, { flatModifier: 4 });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'lowest',
+      n: 2,
+    });
+  });
+
+  it('strips every per-part keep when the rule turns on', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    const partId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.updatePart(id, partId, { keep: { type: 'highest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.parts[0]!.keep).toBeDefined();
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.parts[0]!.keep).toBeUndefined();
+  });
+
+  // The editor disables the per-part Keep chip while the across-parts rule is
+  // on, so a keep patch arriving anyway is a bypass; the normalize step lets
+  // the across-parts rule win, the same direction the UI shows.
+  it('refuses a per-part keep while the across-parts rule is on', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    const partId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    act(() => {
+      result.current.updatePart(id, partId, { keep: { type: 'lowest', n: 1 } });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'highest',
+      n: 1,
+    });
+    expect(result.current.expressions[0]!.parts[0]!.keep).toBeUndefined();
+  });
+
+  it('drops the rule when the row switches to counting successes', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'highest', n: 1 } });
+    });
+    act(() => {
+      result.current.updateExpression(id, { mode: 'pool' });
+    });
+    expect(result.current.expressions[0]!.keepAcross).toBeUndefined();
+  });
+
+  it('survives a reload rather than dropping the table', () => {
+    vi.useFakeTimers();
+    const { result, unmount } = renderHook(() => useApp(), { wrapper });
+    const id = seedRow(result);
+    act(() => {
+      result.current.updateExpression(id, { keepAcross: { type: 'lowest', n: 2 } });
+    });
+    // Writes are debounced, and unmount clears the pending timer instead of
+    // flushing it, so the write has to land before the provider goes away.
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    unmount();
+    vi.useRealTimers();
+
+    const second = renderHook(() => useApp(), { wrapper });
+    expect(second.result.current.expressions).toHaveLength(1);
+    expect(second.result.current.expressions[0]!.keepAcross).toEqual({
+      type: 'lowest',
+      n: 2,
+    });
+  });
+});
+
+// Imports bypass updateExpressionInList, so the two entry points carry their
+// own repair pass; a shared table with an unshowable crit face must land here
+// the same way it would after a hydration.
+describe('AppContext import repair', () => {
+  function importedCheckRow(onFaces: number[]): Expression {
+    return {
+      id: 'i0',
+      name: 'Imported',
+      parts: [{ id: 'p0', count: 1, sides: 6 }],
+      flatModifier: 0,
+      rollMode: 'normal',
+      mode: 'check',
+      check: {
+        threshold: { direction: 'gte', value: 10 },
+        effect: { parts: [{ id: 'fx', count: 1, sides: 6 }], flatModifier: 0 },
+        onSuccess: 'full',
+        onFailure: 'none',
+        crit: { onFaces, effect: 'doubleDice' },
+      },
+    };
+  }
+
+  function afterReload(expr: Expression): Expression | null {
+    return validateExpression(JSON.parse(JSON.stringify(expr)) as unknown);
+  }
+
+  it('replaceExpressions clamps a crit face the d6 cannot show', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.replaceExpressions([importedCheckRow([5, 20])]);
+    });
+    const landed = result.current.expressions[0]!;
+    expect(landed.check?.crit).toEqual({ onFaces: [5], effect: 'doubleDice' });
+    expect(afterReload(landed)).not.toBeNull();
+  });
+
+  it('replaceExpressions drops the crit when no face survives but keeps the rest of the spec', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.replaceExpressions([importedCheckRow([19, 20])]);
+    });
+    const landed = result.current.expressions[0]!;
+    expect(landed.check?.crit).toBeUndefined();
+    expect(landed.check?.threshold).toEqual({ direction: 'gte', value: 10 });
+    expect(landed.check?.onSuccess).toBe('full');
+    expect(afterReload(landed)).not.toBeNull();
+  });
+
+  it('addExpressions clamps a crit face the d6 cannot show', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.addExpressions([importedCheckRow([5, 20])]);
+    });
+    expect(result.current.expressions).toHaveLength(1);
+    const landed = result.current.expressions[0]!;
+    expect(landed.check?.crit).toEqual({ onFaces: [5], effect: 'doubleDice' });
+    expect(afterReload(landed)).not.toBeNull();
+  });
+
+  // A hand-edited share file can carry both keeps on one sum row; the
+  // validator rejects that pairing outright, so letting it land would wipe the
+  // table on the next reload.
+  it('replaceExpressions lets the across-parts keep win over a per-part keep on an imported sum row', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.replaceExpressions([
+        sumRow({
+          parts: [
+            { id: 'p0', count: 4, sides: 6, keep: { type: 'highest', n: 3 } },
+            { id: 'p1', count: 1, sides: 8 },
+          ],
+          keepAcross: { type: 'highest', n: 2 },
+        }),
+      ]);
+    });
+    const landed = result.current.expressions[0]!;
+    expect(landed.keepAcross).toEqual({ type: 'highest', n: 2 });
+    expect(landed.parts[0]!.keep).toBeUndefined();
+    expect(landed.parts[0]).toMatchObject({ count: 4, sides: 6 });
+    expect(afterReload(landed)).not.toBeNull();
+  });
+});
+
+describe('AppContext row lifecycle', () => {
+  function addRow(result: { current: ReturnType<typeof useApp> }) {
+    act(() => {
+      result.current.addExpression();
+    });
+  }
+
+  it('names added rows with the lowest free suffix', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    addRow(result);
+    addRow(result);
+    expect(result.current.expressions.map((e) => e.name)).toEqual([
+      'New roll',
+      'New roll 2',
+      'New roll 3',
+    ]);
+  });
+
+  it('reuses the suffix a deleted row left free instead of counting on', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    addRow(result);
+    addRow(result);
+    const second = result.current.expressions.find((e) => e.name === 'New roll 2')!;
+    act(() => {
+      result.current.deleteExpression(second.id);
+    });
+    addRow(result);
+    expect(result.current.expressions.map((e) => e.name)).toEqual([
+      'New roll',
+      'New roll 3',
+      'New roll 2',
+    ]);
+  });
+
+  it('expands the newest row after each add', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    expect(result.current.expandedId).toBe(result.current.expressions[0]!.id);
+    addRow(result);
+    expect(result.current.expandedId).toBe(result.current.expressions[1]!.id);
+  });
+
+  it('renameExpression trims surrounding whitespace', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '  Fireball ');
+    });
+    expect(result.current.expressions[0]!.name).toBe('Fireball');
+  });
+
+  it('renameExpression substitutes Untitled for a whitespace-only name', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '   ');
+    });
+    expect(result.current.expressions[0]!.name).toBe('Untitled');
+  });
+
+  it('renameExpression substitutes Untitled for an empty name', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '');
+    });
+    expect(result.current.expressions[0]!.name).toBe('Untitled');
+  });
+
+  it('renameExpression leaves the dice, modifier and mode alone', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    act(() => {
+      result.current.renameExpression(id, '  Fireball ');
+    });
+    act(() => {
+      result.current.renameExpression(id, '');
+    });
+    const row = result.current.expressions[0]!;
+    expect(row.parts).toHaveLength(1);
+    expect(row.parts[0]!.sides).toBe(20);
+    expect(row.flatModifier).toBe(0);
+    expect(row.mode).toBe('sum');
+  });
+
+  it('duplicateExpression inserts the copy directly after its source', () => {
+    seedRows([
+      sumRow({ parts: [{ id: 'p0', count: 2, sides: 6 }] }),
+      sumRow({ id: 'e1', name: 'Row 1', parts: [{ id: 'p1', count: 1, sides: 6 }] }),
+    ]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    expect(result.current.expressions.map((e) => e.name)).toEqual([
+      'Row 0',
+      'Row 0 (copy)',
+      'Row 1',
+    ]);
+  });
+
+  it('duplicateExpression gives the copy fresh row and part ids but the same dice', () => {
+    seedRows([sumRow({ parts: [{ id: 'p0', count: 2, sides: 6 }] })]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    const copy = result.current.expressions[1]!;
+    expect(copy.id).not.toBe('e0');
+    expect(copy.parts[0]!.id).not.toBe('p0');
+    expect(copy.parts[0]).toMatchObject({ count: 2, sides: 6 });
+    expect(result.current.expressions[0]!.name).toBe('Row 0');
+  });
+
+  it('duplicateExpression expands the copy', () => {
+    seedRows([sumRow()]);
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.duplicateExpression('e0');
+    });
+    expect(result.current.expandedId).toBe(result.current.expressions[1]!.id);
+  });
+
+  it('deleting a different row leaves the expanded row expanded', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setExpandedId('e0');
+    });
+    act(() => {
+      result.current.deleteExpression('e1');
+    });
+    expect(result.current.expandedId).toBe('e0');
+    expect(result.current.expressions.map((e) => e.id)).toEqual(['e0']);
+  });
+
+  // A stale expandedId is persisted, and RollExpand would look up a missing
+  // row on the next reload.
+  it('deleting the expanded row collapses the expansion', () => {
+    seedTwoRows();
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.setExpandedId('e0');
+    });
+    act(() => {
+      result.current.deleteExpression('e0');
+    });
+    expect(result.current.expandedId).toBeNull();
+    expect(result.current.expressions.map((e) => e.id)).toEqual(['e1']);
+  });
+
+  it('addPart appends a fresh d20 with its own id', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    const firstPartId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.addPart(id);
+    });
+    const parts = result.current.expressions[0]!.parts;
+    expect(parts).toHaveLength(2);
+    expect(parts[1]).toMatchObject({ count: 1, sides: 20 });
+    expect(parts[1]!.id).toMatch(/^part-/);
+    expect(parts[1]!.id).not.toBe(firstPartId);
+  });
+
+  function setupRulesOnFirstPart() {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    addRow(result);
+    const id = result.current.expressions[0]!.id;
+    const partId = result.current.expressions[0]!.parts[0]!.id;
+    act(() => {
+      result.current.updatePart(id, partId, {
+        reroll: { values: [1], mode: 'once' },
+        explode: { onFaces: [20], depthCap: 3 },
+      });
+    });
+    return { result, id, partId };
+  }
+
+  it('updatePart removes the reroll key when the patch passes undefined', () => {
+    const { result, id, partId } = setupRulesOnFirstPart();
+    act(() => {
+      result.current.updatePart(id, partId, { reroll: undefined });
+    });
+    const part = result.current.expressions[0]!.parts[0]!;
+    expect('reroll' in part).toBe(false);
+    expect(part.explode).toEqual({ onFaces: [20], depthCap: 3 });
+  });
+
+  it('updatePart removes the explode key when the patch passes undefined', () => {
+    const { result, id, partId } = setupRulesOnFirstPart();
+    act(() => {
+      result.current.updatePart(id, partId, { reroll: undefined });
+    });
+    act(() => {
+      result.current.updatePart(id, partId, { explode: undefined });
+    });
+    const part = result.current.expressions[0]!.parts[0]!;
+    expect('explode' in part).toBe(false);
+    expect(Object.keys(part).sort()).toEqual(['count', 'id', 'sides']);
+  });
+
+  it('leaves the table valid for the next reload after both rules are cleared', () => {
+    const { result, id, partId } = setupRulesOnFirstPart();
+    act(() => {
+      result.current.updatePart(id, partId, { reroll: undefined, explode: undefined });
+    });
+    const persisted = {
+      version: 5,
+      expressions: result.current.expressions,
+      ui: {
+        expandedId: result.current.expandedId,
+        chartView: result.current.chartView,
+        target: result.current.target,
+        view: result.current.view,
+        poolTargets: result.current.poolTargets,
+        baselineId: result.current.baselineId,
+      },
+    };
+    const round = JSON.parse(JSON.stringify(persisted)) as unknown;
+    expect(validatePersistedState(round)).not.toBeNull();
   });
 });

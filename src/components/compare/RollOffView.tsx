@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Box, Button, Flex, HStack, Stack, Text } from '@chakra-ui/react';
 import { useApp } from '../../state/useApp';
 import { winChances } from '../../engine/compare';
@@ -7,16 +7,17 @@ import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { ExpressionDiceText } from '../editor/ExpressionRender';
 import { useIsDesktop } from '../../hooks/useBreakpoint';
+import type { RollOffSort } from '../../types';
 import {
   MIXED_SCALE_NOTE,
+  TIE_FLOOR,
   hasMixedScales,
+  rollOffHeadline,
   toCompareRows,
   type CompareRow,
 } from './compareRows';
 
-type SortOrder = 'win' | 'table';
-
-const SORT_ORDERS: { value: SortOrder; label: string }[] = [
+const SORT_ORDERS: { value: RollOffSort; label: string }[] = [
   { value: 'win', label: 'Win chance' },
   { value: 'table', label: 'Table order' },
 ];
@@ -30,9 +31,10 @@ interface ScoredRow {
 }
 
 export function RollOffView() {
-  const { expressions } = useApp();
+  // The sort lives in app state, not here, so the share image can picture the
+  // order actually on screen.
+  const { expressions, rollOffSort, setRollOffSort } = useApp();
   const isDesktop = useIsDesktop();
-  const [sortOrder, setSortOrder] = useState<SortOrder>('win');
 
   const rows = useMemo(() => toCompareRows(expressions), [expressions]);
   const scored = useMemo<ScoredRow[]>(() => {
@@ -49,19 +51,18 @@ export function RollOffView() {
   );
 
   const enough = rows.length >= 2;
-  const shown = sortOrder === 'win' ? byWin : scored;
+  const shown = rollOffSort === 'win' ? byWin : scored;
   const top = byWin[0];
   const second = byWin[1];
   const maxWin = Math.max(top?.win ?? 0, 1e-9);
-  const anyTies = scored.some((s) => s.tie >= 0.005);
+  const anyTies = scored.some((s) => s.tie >= TIE_FLOOR);
 
-  // The gap between the top two decides the phrasing; below one percentage
-  // point the race reads as even.
   const headline =
     top && second
-      ? top.win - second.win < 0.01
-        ? `It’s nearly a coin flip between ${top.row.expr.name} and ${second.row.expr.name}.`
-        : `${top.row.expr.name} is most likely to come out on top.`
+      ? rollOffHeadline(
+          { name: top.row.expr.name, win: top.win },
+          { name: second.row.expr.name, win: second.win },
+        )
       : '';
 
   return (
@@ -96,14 +97,14 @@ export function RollOffView() {
             aria-label="Sort rolls"
           >
             {SORT_ORDERS.map((s) => {
-              const isActive = sortOrder === s.value;
+              const isActive = rollOffSort === s.value;
               return (
                 <Button
                   key={s.value}
                   size="sm"
                   variant={isActive ? 'solid' : 'ghost'}
                   colorPalette={isActive ? 'blue' : 'gray'}
-                  onClick={() => setSortOrder(s.value)}
+                  onClick={() => setRollOffSort(s.value)}
                   aria-pressed={isActive}
                   minH="40px"
                 >
@@ -131,7 +132,8 @@ export function RollOffView() {
               // does not exist.
               const barWidth =
                 win > 0 ? `${Math.max(1, (win / maxWin) * 100)}%` : '0';
-              const tieText = tie >= 0.005 ? `ties ${formatPercent(tie)}` : '';
+              const tieText =
+                tie >= TIE_FLOOR ? `ties ${formatPercent(tie)}` : '';
               return isDesktop ? (
                 <HStack key={row.expr.id} gap={3} align="center">
                   <Box

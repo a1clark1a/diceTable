@@ -17,6 +17,19 @@ export function formatPercentCompact(value: number): string {
   return formatPercent(value).replace('.0%', '%');
 }
 
+/**
+ * Whole-percent display that never claims a certainty it does not have: only
+ * an exactly impossible or certain value prints as 0% / 100%; near-certain
+ * values hedge so a 1-in-400 outcome is not rounded out of existence.
+ */
+export function formatWholePercent(value: number): string {
+  if (value <= 0) return '0%';
+  if (value >= 1) return '100%';
+  if (value < 0.005) return '<1%';
+  if (value >= 0.995) return '>99%';
+  return `${Math.round(value * 100)}%`;
+}
+
 // True minus (U+2212), same advance width as + in tabular figures; a hyphen
 // would make negative deltas visually narrower than positive ones.
 const MINUS_SIGN = '−';
