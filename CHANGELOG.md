@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-07
+
 ### Added
 
 - Check mode: a third setting beside Sum and Pool for rolls that decide whether something happens. A check row rolls against a number you set, then applies an effect scaled by how it went, which covers attack-then-damage, save-for-half, and any if-then mechanic without typing a formula. The expanded row asks for three things: the Check (die, modifier, and the number to clear, with a live success percentage), the Effect (its own dice and modifier), and the Outcomes (all of it, half rounded down, or none, on a success and on a failure). A check of exactly one die can also carry a Critical: chosen faces that always succeed and either roll double the dice, roll one extra die, or add the highest the dice can show. The row's average counts the misses, so it reads as the result per attempt.
@@ -152,7 +154,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0
 [1.9.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.9.0
 [1.8.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.8.0
 [1.7.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.7.0
