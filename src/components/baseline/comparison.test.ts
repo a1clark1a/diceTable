@@ -137,32 +137,4 @@ describe('buildBaselineComparison', () => {
     expect(c!.hits![0]).toBeCloseTo(0.75, 12);
   });
 
-  it('takes the column maxima over same-scale rows only, excluding pool rows from a sum baseline', () => {
-    const c = buildBaselineComparison(allRows, 'base', noTargets, [2]);
-    // 1d20 delta 3.5 beats 1d6+5 delta 1.5; the pool row's delta of 6 would
-    // dominate if it were wrongly included.
-    expect(c!.maxMeanDelta).toBeCloseTo(3.5, 12);
-    expect(c!.maxSigmaDelta).toBeCloseTo(
-      Math.sqrt(399 / 12) - Math.sqrt(35 / 6),
-      12,
-    );
-  });
-
-  it('takes the column maxima over pool rows only for a pool baseline', () => {
-    const pool3d6 = poolExpr('q', 3, 6, 4);
-    const c = buildBaselineComparison(
-      [pool2d6, pool3d6, base2d6],
-      'p',
-      noTargets,
-      [2],
-    );
-    // 3d6 pool mean 1.5 vs 1: delta 0.5. The 2d6 sum row's delta of 6 would
-    // dominate if sum rows leaked into a pool baseline's maxima.
-    expect(c!.maxMeanDelta).toBeCloseTo(0.5, 12);
-  });
-
-  it('excludes the baseline row itself from the maxima', () => {
-    const c = buildBaselineComparison([base2d6, row1d6p5], 'base', noTargets, [2]);
-    expect(c!.maxMeanDelta).toBeCloseTo(1.5, 12);
-  });
 });

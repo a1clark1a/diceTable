@@ -1,6 +1,7 @@
 import { Box, Button } from '@chakra-ui/react';
 import type { WorkshopView } from '../types';
 import { useIsDesktop } from '../hooks/useBreakpoint';
+import { chipFocusRing } from './editor/focusRings';
 
 export interface WorkshopViewChip {
   id: WorkshopView;
@@ -59,6 +60,7 @@ export function WorkshopViewSwitcher({
             // and read as a double edge.
             mb="-1px"
             _hover={{ color: 'fg' }}
+            _focusVisible={chipFocusRing}
           >
             {label}
           </Button>

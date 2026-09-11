@@ -20,12 +20,6 @@ export interface BaselineComparison {
    */
   hits: number[] | null;
   /**
-   * Largest absolute delta among same-scale rows, shared so bar lengths in a
-   * column are comparable between rows.
-   */
-  maxMeanDelta: number;
-  maxSigmaDelta: number;
-  /**
    * Largest absolute Hit % delta across every comparing row (hit chances stay
    * comparable across scales, so cross-scale rows count too). Zero when the
    * baseline has no hit chance to compare against.
@@ -53,8 +47,6 @@ export function buildBaselineComparison(
       ? null
       : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
 
-  let maxMeanDelta = 0;
-  let maxSigmaDelta = 0;
   let maxHitDelta = 0;
   for (const expr of expressions) {
     if (expr.id === baselineId) continue;
@@ -62,17 +54,6 @@ export function buildBaselineComparison(
     if (!row.stats.hasDist || row.tooComplex) continue;
 
     const rowIsPool = expr.mode === 'pool';
-    if (rowIsPool === isPool) {
-      maxMeanDelta = Math.max(
-        maxMeanDelta,
-        Math.abs(row.stats.mean - stats.mean),
-      );
-      maxSigmaDelta = Math.max(
-        maxSigmaDelta,
-        Math.abs(row.stats.stddev - stats.stddev),
-      );
-    }
-
     if (hits !== null) {
       // Mirror what the Hit % cells display: a row sharing the baseline's scale
       // compares target for target down the list; across scales the two lists
@@ -96,8 +77,6 @@ export function buildBaselineComparison(
     isPool,
     stats,
     hits,
-    maxMeanDelta,
-    maxSigmaDelta,
     maxHitDelta,
   };
 }

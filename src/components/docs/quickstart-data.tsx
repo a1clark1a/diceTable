@@ -29,7 +29,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         </Text>
         <Text color="fg.muted" fontSize="sm">
           The colored swatch on the left of each row matches that row’s color
-          in the comparison chart below.
+          in the comparison chart.
         </Text>
       </Stack>
     ),
@@ -270,11 +270,11 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 9,
     title: 'Switch workshop views',
     plain:
-      'The chips above the table switch between four views of the same rolls. Table & chart is the editable list with the overlay chart. Target hit compares every roll against your targets as a grid, curves, or bars. Roll-off shows each roll’s chance of having the single highest result if every roll rolled once. Head-to-head is a matrix of one-on-one odds: how often the row roll beats the column roll, ignoring everyone else.',
+      'The tabs above the table switch between four views of the same rolls. Table & chart is the editable list with the overlay chart. Target hit compares every roll against your targets as a grid, curves, or bars. Roll-off shows each roll’s chance of having the single highest result if every roll rolled once. Head-to-head is a matrix of one-on-one odds: how often the row roll beats the column roll, ignoring everyone else.',
     body: (
       <Stack gap={2}>
         <Text>
-          The chips above the table switch between four views of the same
+          The tabs above the table switch between four views of the same
           rolls:
         </Text>
         <List.Root pl={5}>

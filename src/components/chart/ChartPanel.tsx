@@ -6,6 +6,7 @@ import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { Tooltip } from '../ui/tooltip';
+import { chipFocusRing } from '../editor/focusRings';
 import type { ChartUnit } from './OverlayChartImpl';
 import type { ChartPanelData } from './useChartPanels';
 
@@ -87,7 +88,15 @@ function PanelViewChips({ active, hasTarget, groupLabel }: PanelViewChipsProps) 
     (v) => v.value !== 'target' || hasTarget,
   );
   return (
-    <HStack gap="2px" p="2px" bg="bg.subtle" borderRadius="4px" role="group" aria-label={groupLabel}>
+    <HStack
+      gap="2px"
+      p="2px"
+      bg="bg.subtle"
+      borderRadius="4px"
+      flexWrap="wrap"
+      role="group"
+      aria-label={groupLabel}
+    >
       {options.map((v) => {
         const isActive = active === v.value;
         return (
@@ -98,7 +107,9 @@ function PanelViewChips({ active, hasTarget, groupLabel }: PanelViewChipsProps) 
             colorPalette={isActive ? 'blue' : 'gray'}
             onClick={() => setChartView(v.value)}
             aria-pressed={isActive}
-            h="20px"
+            // 20px is the rail's density; a phone stacks the cards and has the
+            // room for a real touch target.
+            h={{ base: '40px', md: '20px' }}
             minW={0}
             px={2}
             borderRadius="3px"
@@ -106,6 +117,7 @@ function PanelViewChips({ active, hasTarget, groupLabel }: PanelViewChipsProps) 
             fontSize="10px"
             fontWeight="500"
             _hover={{ bg: isActive ? 'colorPalette.solid/90' : 'bg.muted' }}
+            _focusVisible={chipFocusRing}
           >
             {v.label}
           </Button>

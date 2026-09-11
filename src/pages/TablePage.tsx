@@ -40,7 +40,7 @@ export default function TablePage() {
             flex="1"
             minH={0}
             gap={{ base: 4, xl: 6 }}
-            alignItems="start"
+            alignItems="stretch"
             templateColumns={{
               base: '1fr',
               xl: 'minmax(0, 1fr) minmax(300px, 340px)',

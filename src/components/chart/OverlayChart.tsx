@@ -50,8 +50,7 @@ export function OverlayChart({ ref }: OverlayChartProps) {
         <EmptyChartCard>
           <Text fontSize="sm" maxW="52ch">
             Comparison chart is disabled past {CHART_ROW_LIMIT} rolls (currently{' '}
-            {rowCount}). The view toggle still drives the Shape column in the
-            table.
+            {rowCount}). Each row still draws its own curve in the Shape column.
           </Text>
         </EmptyChartCard>
       ) : panels.length === 0 ? (

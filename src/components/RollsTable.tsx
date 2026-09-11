@@ -74,6 +74,10 @@ const COLUMN_HEADER_TYPE = {
   color: 'fg.muted',
 } as const;
 
+// Uppercasing is a CSS transform, so anything that is already a distinct
+// glyph or a name the user typed has to opt out of it.
+const KEEP_CASE = { textTransform: 'none' } as const;
+
 function DeltaSubLabel({ tip, children }: { tip: string; children: ReactNode }) {
   return (
     <HelpTerm tip={tip}>
@@ -176,7 +180,10 @@ export function RollsTable() {
                 {comparison !== null ? (
                   <Stack gap={0.5} align="flex-end">
                     <HelpTerm tip={tipForId('baseline')}>
-                      vs {comparison.name}
+                      vs{' '}
+                      <Text as="span" css={KEEP_CASE}>
+                        {comparison.name}
+                      </Text>
                     </HelpTerm>
                     <HStack as="span" gap={4} justify="flex-end">
                       <DeltaSubLabel tip={tipForId('deltaAvg')}>Avg</DeltaSubLabel>
@@ -186,7 +193,12 @@ export function RollsTable() {
                     </HStack>
                   </Stack>
                 ) : (
-                  <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
+                  <HelpTerm tip={tipForId('meanSigma')}>
+                    Mean ±{' '}
+                    <Text as="span" css={KEEP_CASE}>
+                      σ
+                    </Text>
+                  </HelpTerm>
                 )}
               </Table.ColumnHeader>
               <Table.ColumnHeader textAlign="end">

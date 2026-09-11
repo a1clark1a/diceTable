@@ -14,7 +14,10 @@ export function AppShell() {
           maxW="1440px"
           mx="auto"
           w="100%"
-          minH="100%"
+          // A definite height, not a floor: a view can only divide the shell's
+          // remaining space and scroll inside itself if there is a real height
+          // to divide. Taller pages overflow this box and main scrolls them.
+          h="100%"
           display="flex"
           flexDirection="column"
           px={{ base: 3, md: 6 }}
