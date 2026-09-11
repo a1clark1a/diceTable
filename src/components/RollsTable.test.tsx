@@ -480,9 +480,9 @@ describe('RollsTable baseline pin round trip', () => {
     expect(screen.getByText('7.00')).toBeInTheDocument();
     expect(screen.getByText('16.7%')).toBeInTheDocument();
 
-    // The sibling swaps to labeled delta lines and a signed hit delta.
-    expect(screen.getByText('avg')).toBeInTheDocument();
-    expect(screen.getByText('spread')).toBeInTheDocument();
+    // The sibling swaps to deltas under the header's Avg / Spread slots.
+    expect(screen.getByText('Avg')).toBeInTheDocument();
+    expect(screen.getByText('Spread')).toBeInTheDocument();
     expect(screen.getByText('+1.50')).toBeInTheDocument();
     expect(screen.getByText('−0.71')).toBeInTheDocument();
     expect(screen.getByText('+16.7%')).toBeInTheDocument();
@@ -491,7 +491,7 @@ describe('RollsTable baseline pin round trip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear baseline' }));
 
     expect(screen.queryByText('Baseline')).toBeNull();
-    expect(screen.queryByText('avg')).toBeNull();
+    expect(screen.queryByText('Avg')).toBeNull();
     expect(screen.queryByText('+1.50')).toBeNull();
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });
@@ -514,7 +514,7 @@ describe('RollsTable baseline pin round trip', () => {
     ).toBeInTheDocument();
   });
 
-  it('writes a verdict line under the sibling name', () => {
+  it('titles the sibling deltas with the verdict', () => {
     seedTwoSumRows();
     renderTable();
     fireEvent.click(
@@ -522,8 +522,10 @@ describe('RollsTable baseline pin round trip', () => {
     );
 
     expect(
-      screen.getByText('Averages 1.5 higher · steadier · hits 17% more often'),
-    ).toBeInTheDocument();
+      document.querySelector(
+        '[title="Averages 1.5 higher · steadier · hits 17% more often"]',
+      ),
+    ).not.toBeNull();
   });
 
   it('pinning a second row moves the baseline instead of adding one', () => {
@@ -553,8 +555,8 @@ describe('RollsTable baseline pin round trip', () => {
     expect(screen.getByText('+1.50')).toBeInTheDocument();
     expect(screen.queryByText('+16.7%')).toBeNull();
     expect(
-      screen.getByText('Averages 1.5 higher · steadier'),
-    ).toBeInTheDocument();
+      document.querySelector('[title="Averages 1.5 higher · steadier"]'),
+    ).not.toBeNull();
   });
 });
 

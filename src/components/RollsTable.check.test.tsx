@@ -376,7 +376,7 @@ describe('baseline deltas treat a check row as sum scale', () => {
     seed([POOL_ROW, CHECK_ROW], { baselineId: 'pool-row' });
     renderIn(<RollsTable />);
     expect(
-      screen.getByText('different scale from the baseline'),
+      screen.getByText('different scale'),
     ).toBeInTheDocument();
   });
 });

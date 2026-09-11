@@ -1,11 +1,10 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import {
   Badge,
   Box,
   Button,
   HStack,
   IconButton,
-  Input,
   Stack,
   Table,
   Text,
@@ -49,15 +48,57 @@ import {
   type BaselineComparison,
 } from './baseline/comparison';
 import { buildVerdict } from './baseline/verdict';
-import { DeltaLine } from './baseline/DeltaLine';
+import { DELTA_SLOT, DeltaValue } from './baseline/DeltaLine';
 import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
+import { FlushedInput } from './FlushedInput';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
+
+// A row is one line of content plus 6px either side. Stacking anything inside a
+// cell is what used to make rows 74px.
+const CELL_RHYTHM = {
+  '& td, & th': { paddingTop: '1.5', paddingBottom: '1.5', paddingInline: '2' },
+} as const;
+
+const COLUMN_HEADER_TYPE = {
+  fontFamily: 'mono',
+  fontSize: '11px',
+  fontWeight: '600',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'fg.muted',
+} as const;
+
+function DeltaSubLabel({ tip, children }: { tip: string; children: ReactNode }) {
+  return (
+    <HelpTerm tip={tip}>
+      <Text
+        as="span"
+        fontSize="9px"
+        fontWeight="500"
+        letterSpacing="0.09em"
+        color="fg.subtle"
+        display="inline-block"
+        minW={DELTA_SLOT}
+        textAlign="end"
+      >
+        {children}
+      </Text>
+    </HelpTerm>
+  );
+}
+
+// The cell shows two words; the sentence they stand for lives in the title so
+// the row keeps its height.
+const DIFFERENT_SCALE_HIT =
+  'This roll counts successes and the baseline totals dice, so their averages are not comparable. Compare Hit % instead.';
+const DIFFERENT_SCALE =
+  'This roll and the baseline are on different scales, so their averages are not comparable.';
 
 function parseMod(raw: string): number {
   const trimmed = raw.trim();
@@ -109,17 +150,17 @@ export function RollsTable() {
     <Stack gap={3}>
       <Box
         bg="bg.panel"
-        borderWidth="1px"
+        borderBottomWidth="1px"
         borderColor="border.subtle"
-        borderRadius="md"
+        flex="0 1 auto"
         overflow="hidden"
       >
         {/* Tables cannot shrink below min-content; without a scroll fallback
             the overflow:hidden panel would clip the rightmost columns
             unreachably at narrow desktop widths. */}
         <Table.ScrollArea>
-          <Table.Root size="sm" variant="line" striped={false}>
-          <Table.Header>
+          <Table.Root size="sm" variant="line" striped={false} css={CELL_RHYTHM}>
+          <Table.Header css={COLUMN_HEADER_TYPE}>
             <Table.Row bg="bg.subtle">
               <Table.ColumnHeader
                 borderLeftWidth="3px"
@@ -133,9 +174,17 @@ export function RollsTable() {
               </Table.ColumnHeader>
               <Table.ColumnHeader textAlign="end">
                 {comparison !== null ? (
-                  <HelpTerm tip={tipForId('baseline')}>
-                    vs {comparison.name}
-                  </HelpTerm>
+                  <Stack gap={0.5} align="flex-end">
+                    <HelpTerm tip={tipForId('baseline')}>
+                      vs {comparison.name}
+                    </HelpTerm>
+                    <HStack as="span" gap={4} justify="flex-end">
+                      <DeltaSubLabel tip={tipForId('deltaAvg')}>Avg</DeltaSubLabel>
+                      <DeltaSubLabel tip={tipForId('deltaSpread')}>
+                        Spread
+                      </DeltaSubLabel>
+                    </HStack>
+                  </Stack>
                 ) : (
                   <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
                 )}
@@ -374,49 +423,37 @@ const RollTableRow = memo(function RollTableRow({
                   : 'transparent'
           }
         >
-          <Stack gap={1} align="flex-start">
-            <HStack gap={2} minW="200px">
-              <Box
-                w="10px"
-                h="10px"
-                borderRadius="2px"
-                bg={color}
-                flexShrink={0}
-              />
-              <Input
-                size="sm"
-                variant="subtle"
-                value={nameBuf.value}
-                onChange={(e) => nameBuf.setValue(e.target.value)}
-                onBlur={nameBuf.onBlur}
-                onKeyDown={nameBuf.onKeyDown}
-                maxW="220px"
-                aria-label="Roll name"
-              />
-              {isBaseline && (
-                <Tooltip content={tipForId('baseline')}>
-                  <Badge colorPalette="blue" variant="surface" flexShrink={0}>
-                    Baseline
-                  </Badge>
-                </Tooltip>
-              )}
-              {isPool && <PoolBadge />}
-              {isCheck && <CheckBadge />}
-            </HStack>
-            {verdict !== null && (
-              <Text
-                fontSize="xs"
-                color="fg.muted"
-                maxW="260px"
-                css={{ textWrap: 'pretty' }}
-              >
-                {verdict}
-              </Text>
+          <HStack gap={2} minW="200px">
+            <Box
+              w="10px"
+              h="10px"
+              borderRadius="2px"
+              bg={color}
+              flexShrink={0}
+            />
+            <FlushedInput
+              size="sm"
+              h="32px"
+              value={nameBuf.value}
+              onChange={(e) => nameBuf.setValue(e.target.value)}
+              onBlur={nameBuf.onBlur}
+              onKeyDown={nameBuf.onKeyDown}
+              maxW="220px"
+              aria-label="Roll name"
+            />
+            {isBaseline && (
+              <Tooltip content={tipForId('baseline')}>
+                <Badge colorPalette="blue" variant="surface" flexShrink={0}>
+                  Baseline
+                </Badge>
+              </Tooltip>
             )}
-          </Stack>
+            {isPool && <PoolBadge />}
+            {isCheck && <CheckBadge />}
+          </HStack>
         </Table.Cell>
         <Table.Cell>
-          <Stack gap={1} align="flex-start">
+          <HStack gap={3} align="center" flexWrap="wrap">
             <Box fontFamily="mono" fontSize="xs" color="fg">
               <InspectDistribution
                 exprName={expr.name}
@@ -443,15 +480,16 @@ const RollTableRow = memo(function RollTableRow({
               )}
               {isCheck && <CheckSucceedsChip chances={checkChances} />}
             </HStack>
-          </Stack>
+          </HStack>
         </Table.Cell>
         <Table.Cell textAlign="end">
           <Tooltip
             content={tipForId(isPool ? 'poolAutoSuccess' : 'checkModifier')}
             disabled={!isPool && !isCheck}
           >
-            <Input
+            <FlushedInput
               size="sm"
+              h="32px"
               type="text"
               inputMode="numeric"
               value={modBuf.value}
@@ -474,33 +512,32 @@ const RollTableRow = memo(function RollTableRow({
           {!stats.hasDist ? (
             EM_DASH
           ) : deltasActive && sameScale ? (
-            <Stack gap={0.5} align="flex-end">
-              <DeltaLine
-                label="avg"
+            <HStack
+              as="span"
+              gap={4}
+              justify="flex-end"
+              {...(verdict !== null ? { title: verdict } : {})}
+            >
+              <DeltaValue
                 tip={tipForId('deltaAvg')}
                 text={formatDelta(meanDelta, 2)}
                 ariaLabel={avgDeltaAria(
                   meanDelta,
                   deltaTone(meanDelta, STAT_DELTA_EPS),
                 )}
-                delta={meanDelta}
-                maxDelta={comparison.maxMeanDelta}
                 tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
               />
-              <DeltaLine
-                label="spread"
+              <DeltaValue
                 tip={tipForId('deltaSpread')}
                 text={formatDelta(sigmaDelta, 2)}
                 ariaLabel={spreadDeltaAria(
                   sigmaDelta,
                   deltaTone(sigmaDelta, STAT_DELTA_EPS),
                 )}
-                delta={sigmaDelta}
-                maxDelta={comparison.maxSigmaDelta}
                 tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
-                neutralBar
+                neutral
               />
-            </Stack>
+            </HStack>
           ) : (
             <>
               <InspectMean
@@ -528,11 +565,10 @@ const RollTableRow = memo(function RollTableRow({
                   fontSize="xs"
                   color="fg.muted"
                   fontFamily="body"
-                  css={{ textWrap: 'pretty' }}
+                  whiteSpace="nowrap"
+                  title={hasHitValue ? DIFFERENT_SCALE_HIT : DIFFERENT_SCALE}
                 >
-                  {hasHitValue
-                    ? 'different scale, compare Hit % instead'
-                    : 'different scale from the baseline'}
+                  different scale
                 </Text>
               )}
             </>
@@ -688,9 +724,11 @@ const RollTableRow = memo(function RollTableRow({
             borderLeftColor={
               isPool
                 ? 'purple.solid'
-                : baselineAccent
-                  ? 'blue.solid'
-                  : 'transparent'
+                : isCheck
+                  ? 'orange.solid'
+                  : baselineAccent
+                    ? 'blue.solid'
+                    : 'transparent'
             }
           >
             <RollExpand expression={expr} />

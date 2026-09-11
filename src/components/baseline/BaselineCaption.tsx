@@ -19,7 +19,7 @@ export function BaselineCaption() {
     const { stats, tooComplex } = getRowData(baseline);
     text =
       stats.hasDist && !tooComplex
-        ? `Comparing to ${baseline.name}. Green means better, red worse, grey shows spread change. Tap the pin again to clear.`
+        ? `Comparing to ${baseline.name}. Green means better, red worse. Tap the pin again to clear.`
         : `${baseline.name} has no numbers yet, so every row shows its own totals.`;
   }
 

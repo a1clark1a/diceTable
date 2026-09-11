@@ -248,12 +248,12 @@ function seedTwoSumCards(targetValues: number[] = [10]) {
 }
 
 describe('RollsCards baseline pin round trip', () => {
-  it('pinning swaps the sibling card to a vs-baseline pill and unpinning restores it', () => {
+  it('pinning swaps the sibling card to a delta pill and unpinning restores it', () => {
     seedTwoSumCards();
     renderCards();
 
     expect(screen.getByText('8.50')).toBeInTheDocument();
-    expect(screen.queryByText('vs baseline')).toBeNull();
+    expect(screen.queryByText('Avg')).toBeNull();
 
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
@@ -264,10 +264,9 @@ describe('RollsCards baseline pin round trip', () => {
     expect(screen.getByText('7.00')).toBeInTheDocument();
     expect(screen.getByText('16.7%')).toBeInTheDocument();
 
-    // Sibling card: the Mean ± σ pill becomes a vs-baseline delta pill.
-    expect(screen.getByText('vs baseline')).toBeInTheDocument();
-    expect(screen.getByText('avg')).toBeInTheDocument();
-    expect(screen.getByText('spread')).toBeInTheDocument();
+    // Sibling card: the Mean ± σ pill becomes a delta pill.
+    expect(screen.getByText('Avg')).toBeInTheDocument();
+    expect(screen.getByText('Spread')).toBeInTheDocument();
     expect(screen.getByText('+1.50')).toBeInTheDocument();
     expect(screen.getByText('−0.71')).toBeInTheDocument();
     expect(screen.getByText('+16.7%')).toBeInTheDocument();
@@ -275,7 +274,7 @@ describe('RollsCards baseline pin round trip', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear baseline' }));
 
-    expect(screen.queryByText('vs baseline')).toBeNull();
+    expect(screen.queryByText('Avg')).toBeNull();
     expect(screen.queryByText('Baseline')).toBeNull();
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });

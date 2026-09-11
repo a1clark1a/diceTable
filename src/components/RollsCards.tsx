@@ -6,7 +6,6 @@ import {
   Grid,
   HStack,
   IconButton,
-  Input,
   Stack,
   Text,
   type BoxProps,
@@ -50,12 +49,13 @@ import {
   type BaselineComparison,
 } from './baseline/comparison';
 import { buildVerdict } from './baseline/verdict';
-import { DeltaLine } from './baseline/DeltaLine';
+import { DELTA_SLOT, DeltaValue } from './baseline/DeltaLine';
 import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
+import { FlushedInput } from './FlushedInput';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
@@ -311,8 +311,10 @@ const RollCard = memo(function RollCard({
             bg={color}
             flexShrink={0}
           />
-          <Input
+          <FlushedInput
             size="sm"
+            fontSize="15px"
+            fontWeight="600"
             value={nameBuf.value}
             onChange={(e) => nameBuf.setValue(e.target.value)}
             onBlur={nameBuf.onBlur}
@@ -414,7 +416,7 @@ const RollCard = memo(function RollCard({
                 Mod
               </Text>
             </HelpTerm>
-            <Input
+            <FlushedInput
               size="xs"
               type="text"
               inputMode="numeric"
@@ -480,7 +482,14 @@ const RollCard = memo(function RollCard({
           <StatPill
             label={
               deltaMode ? (
-                'vs baseline'
+                <HStack as="span" gap={3} justify="center">
+                  <Box as="span" minW={DELTA_SLOT} textAlign="end">
+                    Avg
+                  </Box>
+                  <Box as="span" minW={DELTA_SLOT} textAlign="end">
+                    Spread
+                  </Box>
+                </HStack>
               ) : (
                 // The label is CSS-uppercased; σ must opt out or it renders
                 // as capital sigma, a different symbol.
@@ -497,35 +506,27 @@ const RollCard = memo(function RollCard({
               !stats.hasDist ? (
                 EM_DASH
               ) : deltaMode && comparison !== null ? (
-                // Left-aligned lines inside a shrink-wrapped block, centered
-                // by the pill: the fixed label column keeps both bars flush.
-                <Stack gap={0.5} align="flex-start" display="inline-flex">
-                  <DeltaLine
-                    label="avg"
+                <HStack as="span" gap={3} justify="center">
+                  <DeltaValue
                     tip={tipForId('deltaAvg')}
                     text={formatDelta(meanDelta, 2)}
                     ariaLabel={avgDeltaAria(
                       meanDelta,
                       deltaTone(meanDelta, STAT_DELTA_EPS),
                     )}
-                    delta={meanDelta}
-                    maxDelta={comparison.maxMeanDelta}
                     tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
                   />
-                  <DeltaLine
-                    label="spread"
+                  <DeltaValue
                     tip={tipForId('deltaSpread')}
                     text={formatDelta(sigmaDelta, 2)}
                     ariaLabel={spreadDeltaAria(
                       sigmaDelta,
                       deltaTone(sigmaDelta, STAT_DELTA_EPS),
                     )}
-                    delta={sigmaDelta}
-                    maxDelta={comparison.maxSigmaDelta}
                     tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
-                    neutralBar
+                    neutral
                   />
-                </Stack>
+                </HStack>
               ) : (
                 <>
                   <InspectMean

@@ -8,6 +8,9 @@ import {
 import { HIT_DELTA_EPS } from './comparison';
 import { deltaToneColor, hitDeltaAria } from './deltaText';
 
+/** Header sub-label and row value share this, or the columns drift apart. */
+export const DELTA_SLOT = '54px';
+
 interface DeltaBarProps {
   delta: number;
   /** Shared column maximum; bar lengths are proportional to it across rows. */
@@ -88,60 +91,41 @@ export function HitDeltaValue({
   );
 }
 
-interface DeltaLineProps {
-  label: string;
+interface DeltaValueProps {
   tip: string;
   text: string;
   ariaLabel: string;
-  delta: number;
-  maxDelta: number;
   tone: DeltaTone;
-  /** Spread has no good or bad direction, so its bar stays neutral. */
-  neutralBar?: boolean;
+  /** Spread has no good or bad direction, so it stays neutral. */
+  neutral?: boolean;
 }
 
-export function DeltaLine({
-  label,
+/**
+ * One delta under its AVG or SPREAD header slot. The slot width is what lines
+ * the two columns up now that the labels live in the header, so it has to match
+ * the header's.
+ */
+export function DeltaValue({
   tip,
   text,
   ariaLabel,
-  delta,
-  maxDelta,
   tone,
-  neutralBar = false,
-}: DeltaLineProps) {
+  neutral = false,
+}: DeltaValueProps) {
   return (
-    <HStack gap={1}>
-      <HelpTerm tip={tip}>
-        {/* Fixed label column keeps the avg and spread bars vertically
-            aligned; without it the longer "spread" label pushes its bar. */}
-        <Text
-          as="span"
-          fontSize="xs"
-          color="fg.muted"
-          fontFamily="body"
-          display="inline-block"
-          minW="42px"
-          textAlign="end"
-        >
-          {label}
-        </Text>
-      </HelpTerm>
-      <DeltaBar
-        delta={delta}
-        maxDelta={maxDelta}
-        tone={tone}
-        fill={neutralBar ? 'fg.muted' : deltaToneColor(tone)}
-      />
+    <HelpTerm tip={tip}>
       <Text
         as="span"
         fontSize="xs"
-        color="fg.muted"
+        color={neutral ? 'fg.muted' : deltaToneColor(tone)}
         aria-label={ariaLabel}
+        display="inline-block"
+        minW={DELTA_SLOT}
+        textAlign="end"
         style={{ fontVariantNumeric: 'tabular-nums' }}
       >
         {text}
       </Text>
-    </HStack>
+    </HelpTerm>
   );
 }

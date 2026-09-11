@@ -113,10 +113,11 @@ export function ExpressionModeToggle({ mode, onSelect }: ExpressionModeTogglePro
           <Tooltip key={chip.value} content={chip.tip}>
             <Button
               size="xs"
-              variant={active ? 'subtle' : 'ghost'}
+              variant={active ? 'subtle' : 'plain'}
               colorPalette={active ? chip.palette : 'gray'}
               aria-pressed={active}
               _focusVisible={chipFocusRing}
+              _hover={{ bg: active ? 'colorPalette.muted' : 'bg.subtle' }}
               onClick={() => onSelect(chip.value)}
             >
               {chip.label}

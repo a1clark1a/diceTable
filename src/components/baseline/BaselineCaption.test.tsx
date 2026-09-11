@@ -74,7 +74,7 @@ describe('BaselineCaption', () => {
     renderCaption();
     expect(
       screen.getByText(
-        'Comparing to Sum row. Green means better, red worse, grey shows spread change. Tap the pin again to clear.',
+        'Comparing to Sum row. Green means better, red worse. Tap the pin again to clear.',
       ),
     ).toBeInTheDocument();
   });

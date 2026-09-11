@@ -11,11 +11,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - New color palette, in both light and dark. The page ground is now a warm off-white (a near-black in dark mode) with panels raised a step above it, so the table, the chart cards and the toolbars read as separate surfaces instead of a stack of near-identical off-whites. Text, borders, the blue and purple accents, and the green / amber / red hit ramp all moved with it, and every color that carries text clears the 4.5:1 contrast floor in both modes. The exported share image follows the same palette, so a saved picture looks like the app it came from.
 - Quieter chrome. The bar carrying the DiceTable mark is a fixed 52px with the page links beside it, and the Target and Pool target rows lost their boxes, lining up against a shared label column instead of sitting in separate cards. The roll mode and chart view chips are shorter and lost their gray track, so the one that is selected is the only one with a fill.
 - The page heading now shows only while the table is empty. Once there are rolls the space goes to the table instead, and the heading stays in the page for screen readers and search engines.
+- Table rows are a third shorter, so more rolls fit on screen at once. Each roll sits on one line now: the name, the dice and the Sum / Pool / Check chips share a row, the boxes around the name and modifier fields are replaced by a single underline that washes on hover, and the avg and spread labels that repeated on every row moved up into the column header. The table also lost its card border, so the space under the last roll reads as page rather than as an empty panel.
+- Baseline comparisons read as two numbers side by side under Avg and Spread, in place of the two stacked bars. Green still means better and red worse. The plain-language summary that used to sit under a roll's name, such as "Averages 1.5 higher, steadier", now appears when you hover those numbers.
 
 ### Fixed
 
 - Dice editor warnings, such as the one that appears when a keep rule asks for more dice than the roll has, were too dark to read against the dark background. They now use the palette's text red instead of its button red.
 - Chart gridlines went missing in dark mode. They were being drawn in a tone meant for a darker surface than the chart card now uses.
+- Expanding a check row dropped its orange band until you collapsed it again.
 
 ## [2.0.0] - 2026-09-07
 
