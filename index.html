@@ -12,8 +12,8 @@
          renders a per-route <title> at runtime; React 19 hoists it ahead of this
          one, so document.title and Googlebot both see the route-correct title. -->
     <title>DiceTable — Dice probability comparison for tabletop gaming</title>
-    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f2f1ed" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131519" media="(prefers-color-scheme: dark)" />
 
     <!-- Applies the saved color mode before first paint so the pre-mount frame
          matches the app instead of flashing white. Mirrors next-themes exactly
@@ -38,19 +38,19 @@
 
     <!-- Pre-mount styles only. Chakra isn't loaded yet, so these hardcode the
          theme's resolved values (bg / fg / fg.muted, Inter stack, container
-         metrics) as hex; this file is the one place besides palette.ts where
-         hex is allowed. `.preboot` exists only in the static markup below and
-         disappears when React replaces #root, so nothing here can leak into
-         the mounted app. -->
+         metrics) as hex; this file is one of the three places hex is allowed,
+         beside theme.ts and palette.ts. `.preboot` exists only in the static
+         markup below and disappears when React replaces #root, so nothing here
+         can leak into the mounted app. -->
     <style>
       body {
         margin: 0;
       }
       html {
-        background-color: #ffffff;
+        background-color: #f2f1ed;
       }
       html.dark {
-        background-color: #09090b;
+        background-color: #131519;
         color-scheme: dark;
       }
       .preboot {
@@ -61,10 +61,10 @@
         padding: 69px 12px 12px;
         font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
           Helvetica, Arial, sans-serif;
-        color: #09090b;
+        color: #22221f;
       }
       html.dark .preboot {
-        color: #fafafa;
+        color: #e4e7eb;
       }
       .preboot h1 {
         margin: 0;
@@ -77,10 +77,10 @@
         margin: 4px 0 0;
         font-size: 1rem;
         line-height: 1.5rem;
-        color: #52525b;
+        color: #5c5952;
       }
       html.dark .preboot p {
-        color: #a1a1aa;
+        color: #a5acb6;
       }
       @media (min-width: 48em) {
         .preboot {

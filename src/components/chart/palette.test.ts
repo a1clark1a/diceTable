@@ -125,7 +125,7 @@ describe('shareCardPalette', () => {
 
   it('hands back the light card for the light theme', () => {
     expect(shareCardPalette('light')).toBe(SHARE_CARD_LIGHT);
-    expect(shareCardPalette('light').background).toBe('#ffffff');
+    expect(shareCardPalette('light').background).toBe('#f2f1ed');
   });
 
   it('keeps text readable against the background in both cards', () => {

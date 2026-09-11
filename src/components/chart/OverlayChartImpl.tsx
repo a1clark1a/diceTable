@@ -251,7 +251,7 @@ export default function OverlayChartImpl({
         >
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="var(--chakra-colors-border-muted)"
+            stroke="var(--chakra-colors-border-subtle)"
             vertical={false}
           />
           <XAxis

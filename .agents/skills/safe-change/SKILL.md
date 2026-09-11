@@ -24,7 +24,7 @@ description: How to make a code change in DiceTable without breaking conventions
 
 - `src/engine/**` is pure: no React, Chakra, recharts, or any UI import. Math is exact, via distribution enumeration and convolution. Never approximate, never simulate.
 - TypeScript strict: no `any`; `unknown` plus type guards or discriminated unions. Optional-field patches use the `'key' in patch` idiom (see `applyPartPatch` in `src/state/AppContext.tsx`).
-- UI: Chakra primitives, semantic theme tokens (`bg.subtle`, `fg.muted`), never hex outside `src/components/chart/palette.ts`. New jargon gets a tooltip via the existing tips system (`src/components/ui/tips.tsx`).
+- UI: Chakra primitives, semantic theme tokens (`bg.subtle`, `fg.muted`), never hex outside `src/theme.ts`, `src/components/chart/palette.ts`, and `index.html`. New jargon gets a tooltip via the existing tips system (`src/components/ui/tips.tsx`).
 - Mobile-first: desktop table changes need the card-layout equivalent (< 720 px) in the same edit, checked at 360 px in both color modes.
 - Persistence: a new persisted field extends the validator in `src/state/persistedSchema.ts` in the same edit.
 - Never touch `public/favicon.svg`, the package.json `version`, or `LICENSE`.

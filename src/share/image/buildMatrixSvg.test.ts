@@ -31,12 +31,12 @@ const BLANK = '\u2014';
 
 // The share card leaves the app, so it cannot carry theme tokens. These are the
 // literal hexes the two palettes ship instead.
-const LIGHT_GROUND = '#ffffff';
-const LIGHT_TEXT = '#0f172a';
-const LIGHT_MID = '#845209';
-const DARK_GROUND = '#0b1220';
-const DARK_TEXT = '#e2e8f0';
-const DARK_MID = '#facc15';
+const LIGHT_GROUND = '#f2f1ed';
+const LIGHT_TEXT = '#22221f';
+const LIGHT_MID = '#8a5e17';
+const DARK_GROUND = '#131519';
+const DARK_TEXT = '#e4e7eb';
+const DARK_MID = '#dda857';
 
 /** One plain die as a lattice row, built through the real engine. */
 function dieRow(name: string, sides: number, index: number): MatrixCardRow {

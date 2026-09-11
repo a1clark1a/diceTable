@@ -75,7 +75,7 @@ export interface ShareCardPalette {
   /**
    * The purple the target view marks its pool axis with (purple.fg). On screen
    * that axis is marked twice, purple.fg on the text and purple.solid on the
-   * rules, but the card collapses them: purple.solid measures only 3.5:1 on the
+   * rules, but the card collapses them: purple.solid measures only 3.2:1 on the
    * dark card ground, under the floor for text.
    */
   poolAccent: string;
@@ -83,33 +83,35 @@ export interface ShareCardPalette {
 
 // The exported image is a standalone file: it leaves the app, so it cannot
 // carry theme tokens with it. These are the two palettes it ships instead,
-// kept here with the chart fills rather than loose in the share code. The hit
-// ramp resolves what hitColor's tokens resolve to in src/theme.ts: green.700 /
-// yellow.700 / red.600 on light, and the 400 ramp on dark.
+// kept here with the chart fills rather than loose in the share code. Every
+// value mirrors the semantic token of the same role in src/theme.ts, so a card
+// saved from the app looks like the app it came from: background is bg, panel
+// is bg.panel, border is border, grid is border.subtle, text is fg, muted is
+// fg.muted, and the hit ramp is hit.good / hit.mid / hit.bad.
 export const SHARE_CARD_LIGHT: ShareCardPalette = {
-  background: '#ffffff',
-  panel: '#f8fafc',
-  border: '#e2e8f0',
-  text: '#0f172a',
-  muted: '#64748b',
-  grid: '#e2e8f0',
-  hitGood: '#116932',
-  hitMid: '#845209',
-  hitBad: '#dc2626',
-  poolAccent: '#641ba3',
+  background: '#f2f1ed',
+  panel: '#fbfaf8',
+  border: '#d6d2c9',
+  text: '#22221f',
+  muted: '#5c5952',
+  grid: '#e3e0d8',
+  hitGood: '#2c7454',
+  hitMid: '#8a5e17',
+  hitBad: '#a0403a',
+  poolAccent: '#5b3f94',
 };
 
 export const SHARE_CARD_DARK: ShareCardPalette = {
-  background: '#0b1220',
-  panel: '#111a2b',
-  border: '#243044',
-  text: '#e2e8f0',
-  muted: '#94a3b8',
-  grid: '#1e293b',
-  hitGood: '#4ade80',
-  hitMid: '#facc15',
-  hitBad: '#f87171',
-  poolAccent: '#d8b4fe',
+  background: '#131519',
+  panel: '#1a1d22',
+  border: '#303640',
+  text: '#e4e7eb',
+  muted: '#a5acb6',
+  grid: '#252a31',
+  hitGood: '#58be92',
+  hitMid: '#dda857',
+  hitBad: '#e4726a',
+  poolAccent: '#b7a2f0',
 };
 
 export function shareCardPalette(theme: 'light' | 'dark'): ShareCardPalette {

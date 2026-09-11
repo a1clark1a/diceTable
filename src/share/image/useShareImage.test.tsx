@@ -498,7 +498,7 @@ describe('useShareImage picture contents', () => {
     const svg = renderedSvg();
     expect(svg).toContain('>45%</text>');
     expect(svg).toContain(
-      '<circle cx="113.83" cy="46" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>',
+      '<circle cx="113.83" cy="46" r="4" fill="#2563eb" stroke="#f2f1ed" stroke-width="2"/>',
     );
   });
 });
@@ -514,7 +514,7 @@ describe('useShareImage theme', () => {
     });
 
     expect(renderedSvg()).toContain(
-      '<rect x="0" y="0" width="920" height="484" fill="#ffffff"/>',
+      '<rect x="0" y="0" width="920" height="484" fill="#f2f1ed"/>',
     );
   });
 
@@ -528,8 +528,8 @@ describe('useShareImage theme', () => {
     });
 
     const svg = renderedSvg();
-    expect(svg).toContain('<rect x="0" y="0" width="920" height="484" fill="#0b1220"/>');
-    expect(svg).not.toContain('#ffffff');
+    expect(svg).toContain('<rect x="0" y="0" width="920" height="484" fill="#131519"/>');
+    expect(svg).not.toContain('#f2f1ed');
   });
 });
 

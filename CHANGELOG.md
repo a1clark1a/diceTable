@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- New colour palette, in both light and dark. The page ground is now a warm off-white (a near-black in dark mode) with panels raised a step above it, so the table, the chart cards and the toolbars read as separate surfaces instead of a stack of near-identical off-whites. Text, borders, the blue and purple accents, and the green / amber / red hit ramp all moved with it, and every colour that carries text clears the 4.5:1 contrast floor in both modes. The exported share image follows the same palette, so a saved picture looks like the app it came from.
+
+### Fixed
+
+- Dice editor warnings, such as the one that appears when a keep rule asks for more dice than the roll has, were too dark to read against the dark background. They now use the palette's text red instead of its button red.
+- Chart gridlines went missing in dark mode. They were being drawn in a tone meant for a darker surface than the chart card now uses.
+
 ## [2.0.0] - 2026-09-07
 
 ### Added

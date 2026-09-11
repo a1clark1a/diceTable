@@ -14,7 +14,7 @@ const publicDir = resolve(here, '..', 'public');
 const svgPath = resolve(publicDir, 'favicon.svg');
 
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
-const APPLE_BG = { r: 250, g: 250, b: 250, alpha: 1 }; // #fafafa, matches light theme
+const APPLE_BG = { r: 242, g: 241, b: 237, alpha: 1 }; // #f2f1ed, matches the light bg token
 
 const pngTargets = [
   { name: 'apple-touch-icon.png', size: 180, background: APPLE_BG },

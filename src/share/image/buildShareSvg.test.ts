@@ -299,22 +299,22 @@ describe('buildShareSvg title', () => {
 describe('buildShareSvg themes', () => {
   const rows = [toRow(sumRow(1), 0)];
 
-  it('paints a light card on white', () => {
+  it('paints a light card on the light ground', () => {
     const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
     expect(image.svg).toContain(
-      '<rect x="0" y="0" width="920" height="484" fill="#ffffff"/>',
+      '<rect x="0" y="0" width="920" height="484" fill="#f2f1ed"/>',
     );
-    expect(image.svg).toContain('fill="#0f172a"');
-    expect(image.svg).not.toContain('#0b1220');
+    expect(image.svg).toContain('fill="#22221f"');
+    expect(image.svg).not.toContain('#131519');
   });
 
   it('paints a dark card on near-black', () => {
     const image = buildShareSvg({ rows, view: 'pmf', theme: 'dark' });
     expect(image.svg).toContain(
-      '<rect x="0" y="0" width="920" height="484" fill="#0b1220"/>',
+      '<rect x="0" y="0" width="920" height="484" fill="#131519"/>',
     );
-    expect(image.svg).toContain('fill="#e2e8f0"');
-    expect(image.svg).not.toContain('#ffffff');
+    expect(image.svg).toContain('fill="#e4e7eb"');
+    expect(image.svg).not.toContain('#f2f1ed');
   });
 
   it('keeps the row color the table gave it in both themes', () => {
@@ -471,7 +471,7 @@ describe('buildShareSvg capped zero spike', () => {
     // is 21 results across an 812px plot, so the inset is 812 / 42 = 19.33.
     expect(image.svg).toContain('>35%</text>');
     expect(image.svg).toContain(
-      '<circle cx="99.33" cy="46" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>',
+      '<circle cx="99.33" cy="46" r="4" fill="#2563eb" stroke="#f2f1ed" stroke-width="2"/>',
     );
   });
 

@@ -24,7 +24,7 @@ const TITLED_HEADLINE_Y = HEADLINE_Y + TITLE_HEIGHT;
 // The too-few-rows line takes the same band 24px down: 28 + 22 + 24.
 const EMPTY_Y = 74;
 // The light card's grid colour, which paints the empty track under every bar.
-const LIGHT_TRACK = '#e2e8f0';
+const LIGHT_TRACK = '#e3e0d8';
 
 /** Win and tie are stated rather than derived, so the card's own arithmetic is
  * the only thing under test. The colour index doubles as the table position. */
