@@ -128,7 +128,7 @@ export function TargetToolbar() {
     <Stack gap={2}>
       <HStack
         gap={2}
-        minH="46px"
+        minH={{ base: '44px', md: '46px' }}
         ps={3}
         borderLeftWidth="3px"
         borderLeftColor="transparent"
@@ -233,10 +233,15 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
   return (
     <HStack
       gap={2}
-      minH="46px"
+      minH={{ base: '44px', md: '46px' }}
       ps={3}
       borderLeftWidth="3px"
       borderLeftColor="purple.solid"
+      // Without the card there is nothing between the two parameter rows on a
+      // phone, where they stack instead of sitting side by side.
+      borderTopWidth={{ base: '1px', md: 0 }}
+      borderTopColor="border.subtle"
+      pt={{ base: 2, md: 0 }}
       flexWrap="wrap"
     >
       <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>

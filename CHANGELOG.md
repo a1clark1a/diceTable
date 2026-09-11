@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The All / Sum / Pools filter on Target hit is blue like the other view controls. Purple now means a pool roll and nothing else.
 - On a wide screen the comparison chart now sits beside the table instead of below it, so editing a roll and watching the curve move no longer means scrolling between the two. The table and the chart rail each scroll on their own and the page itself does not, so the header and footer stay put. Below roughly 1280px the chart drops back under the table as before.
 - Totals and Successes are separate cards, each with its own title and its own PMF / CDF / CCDF / TARGET control, and a card only appears when it has rolls to draw. Picking a view still changes both, and TARGET only offers itself on a card whose rolls have a target to measure against.
+- On a phone the roll cards are rounded a little more, and the Target and Pool target rows are separated by a hairline instead of by their own boxes. Filling both rows with the maximum five targets each now wraps onto more lines rather than running off the side.
 - Baseline comparisons read as two numbers side by side under Avg and Spread, in place of the two stacked bars. Green still means better and red worse. The plain-language summary that used to sit under a roll's name, such as "Averages 1.5 higher, steadier", now appears when you hover those numbers.
 
 ### Fixed

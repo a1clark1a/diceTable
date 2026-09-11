@@ -286,7 +286,7 @@ const RollCard = memo(function RollCard({
       bg={baselineAccent ? 'bg.subtle' : 'bg.panel'}
       borderWidth="1px"
       borderColor="border.subtle"
-      borderRadius="md"
+      borderRadius="10px"
       overflow="hidden"
       // Inset shadow instead of a thicker border so pool and check cards' content
       // stays aligned with sum cards in the stack (a 3px border would inset it
