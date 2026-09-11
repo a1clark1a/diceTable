@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import indexHtml from '../../index.html?raw';
 
 // The overlay chart lazy-loads recharts, which needs browser APIs jsdom does
 // not provide; the page-level seam under test is which sections render, not
@@ -25,7 +26,9 @@ function renderPage() {
   );
 }
 
-function seedOneRoll(view: 'table' | 'rolloff') {
+type WorkshopView = 'table' | 'target' | 'rolloff' | 'matrix';
+
+function seedOneRoll(view: WorkshopView) {
   const state = {
     version: 3,
     expressions: [
@@ -101,5 +104,74 @@ describe('TablePage first-run empty state', () => {
     renderPage();
     expect(screen.queryByText('Start with an example')).toBeNull();
     expect(screen.getByText(/at least two rolls/i)).toBeInTheDocument();
+  });
+});
+
+const HERO = 'Compare dice rolls side by side';
+
+
+
+describe('TablePage heading', () => {
+  it('shows the heading while the table is empty', () => {
+    renderPage();
+    expect(
+      screen.getByRole('heading', { level: 1, name: HERO }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the heading once the table has rows', () => {
+    // The heading is hidden visually, not unmounted: / would otherwise have no
+    // h1 at all for the whole time a table has rows in it.
+    seedOneRoll('table');
+    renderPage();
+    expect(
+      screen.getByRole('heading', { level: 1, name: HERO }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders exactly one h1 either way', () => {
+    seedOneRoll('table');
+    const { container } = renderPage();
+    expect(container.querySelectorAll('h1')).toHaveLength(1);
+  });
+
+  it('matches the copy index.html paints before React mounts', () => {
+    // index.html hardcodes this string for crawlers and the pre-mount frame,
+    // and cannot read it from here, so the two drift silently without a check.
+    const preboot = /<div id="root">[\s\S]*?<h1>([\s\S]*?)<\/h1>/.exec(indexHtml);
+    expect(preboot).not.toBeNull();
+    expect(preboot![1]!.replace(/\s+/g, ' ').trim()).toBe(HERO);
+  });
+
+  it('hides the preboot copy before mount when the table already has rows', () => {
+    // Without this the returning visitor watches the heading paint and vanish,
+    // because the store hydrates synchronously on the first render.
+    expect(indexHtml).toContain("localStorage.getItem('dicetable.v2')");
+    expect(indexHtml).toContain("classList.add('has-rolls')");
+    expect(indexHtml).toMatch(/html\.has-rolls \.preboot h1/);
+  });
+});
+
+describe('TablePage row actions', () => {
+  it.each(['table', 'target', 'rolloff', 'matrix'] as const)(
+    'offers Add roll on the %s view',
+    (view) => {
+      seedOneRoll(view);
+      renderPage();
+      expect(
+        screen.getAllByRole('button', { name: /add roll/i }).length,
+      ).toBeGreaterThan(0);
+    },
+  );
+
+  it('keeps Add roll on Target hit when no target is set', () => {
+    // That view's controls used to be gated on having a target, which left the
+    // one view that most needs a second roll with no way to add one.
+    seedOneRoll('target');
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'TARGET' })).toBeNull();
+    expect(
+      screen.getAllByRole('button', { name: /add roll/i }).length,
+    ).toBeGreaterThan(0);
   });
 });
