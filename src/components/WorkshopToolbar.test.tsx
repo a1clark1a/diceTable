@@ -110,84 +110,9 @@ afterEach(() => {
   Reflect.deleteProperty(window, 'matchMedia');
 });
 
-describe('WorkshopToolbar chart view', () => {
-  it('renders PMF, CDF, and CCDF and hides TARGET when no target is set', () => {
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'PMF' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'CDF' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'CCDF' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'TARGET' })).toBeNull();
-  });
-
-  it('shows the TARGET button when a target value is set', () => {
-    seedTable([{ rollMode: 'normal', mode: 'sum' }], { target: [10] });
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'TARGET' })).toBeInTheDocument();
-  });
-
-  it('marks PMF as pressed by default', () => {
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'CDF' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-  });
-
-  it('flips aria-pressed onto the clicked view button', () => {
-    renderToolbar();
-    fireEvent.click(screen.getByRole('button', { name: 'CDF' }));
-    expect(screen.getByRole('button', { name: 'CDF' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-  });
-
-  it('offers TARGET for a pool row even when no numeric target is set', () => {
-    seedTable([{ rollMode: 'normal', mode: 'pool' }]);
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'TARGET' })).toBeInTheDocument();
-  });
-
-  it('hides TARGET when the table holds only sum rows and no numeric target', () => {
-    seedTable([{ rollMode: 'normal', mode: 'sum' }]);
-    renderToolbar();
-    expect(screen.queryByRole('button', { name: 'TARGET' })).toBeNull();
-  });
-
-  it('keeps TARGET pressed on a pool-only table with no numeric target', () => {
-    seedTable([{ rollMode: 'normal', mode: 'pool' }]);
-    renderToolbar();
-    fireEvent.click(screen.getByRole('button', { name: 'TARGET' }));
-    expect(screen.getByRole('button', { name: 'TARGET' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-  });
-
-  it('shows TARGET active when a pool-only table is restored in target view', () => {
-    seedTable([{ rollMode: 'normal', mode: 'pool' }], { chartView: 'target' });
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'TARGET' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-  });
-
-  it('drops the chart chips and the chart jump on a view with no chart', () => {
+describe('WorkshopToolbar scroll buttons', () => {
+  it('drops the chart jump on a view with no chart', () => {
     renderToolbar({ withChart: false });
-    expect(screen.queryByRole('button', { name: 'PMF' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Jump to chart' })).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Scroll to top' }),
@@ -309,8 +234,9 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     seedRows(['normal', 'normal']);
     renderToolbar();
 
-    // The chart chips and both scroll buttons stay on the bar itself.
-    expect(screen.getByRole('button', { name: 'PMF' })).toBeInTheDocument();
+    // Both scroll buttons stay on the bar itself; the chart view control
+    // lives in the chart card headers now.
+    expect(screen.queryByRole('button', { name: 'PMF' })).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Scroll to top' }),
     ).toBeInTheDocument();

@@ -11,9 +11,12 @@ export function AppShell() {
       <Navbar />
       <Box as="main" flex="1" minH={0} overflowY="auto">
         <Box
-          maxW="1200px"
+          maxW="1440px"
           mx="auto"
           w="100%"
+          minH="100%"
+          display="flex"
+          flexDirection="column"
           px={{ base: 3, md: 6 }}
           py={{ base: 3, md: 6 }}
         >

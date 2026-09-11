@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { Flex, Heading, Stack, Text } from '@chakra-ui/react';
+import { Box, Flex, Grid, Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
 import { BaselineCaption } from '../components/baseline/BaselineCaption';
@@ -36,22 +36,36 @@ export default function TablePage() {
       render: () => (
         <>
           <WorkshopToolbar chartRef={chartRef} />
-          <Stack gap={3}>
-            <TargetToolbar />
-            <Flex
-              gap={3}
-              rowGap={2}
-              align="center"
-              justify="space-between"
-              wrap="wrap"
-              minH="48px"
-            >
-              <BaselineCaption />
-              <RowActions />
-            </Flex>
-            {isDesktop ? <RollsTable /> : <RollsCards />}
-          </Stack>
-          <OverlayChart ref={chartRef} />
+          <Grid
+            flex="1"
+            minH={0}
+            gap={{ base: 4, xl: 6 }}
+            alignItems="start"
+            templateColumns={{
+              base: '1fr',
+              xl: 'minmax(0, 1fr) minmax(300px, 340px)',
+              '2xl': 'minmax(0, 1fr) 400px',
+            }}
+          >
+            <Stack gap={3} minW={0} minH={0} overflowY={{ xl: 'auto' }}>
+              <TargetToolbar />
+              <Flex
+                gap={3}
+                rowGap={2}
+                align="center"
+                justify="space-between"
+                wrap="wrap"
+                minH="48px"
+              >
+                <BaselineCaption />
+                <RowActions />
+              </Flex>
+              {isDesktop ? <RollsTable /> : <RollsCards />}
+            </Stack>
+            <Box minW={0} minH={0} overflowY={{ xl: 'auto' }}>
+              <OverlayChart ref={chartRef} />
+            </Box>
+          </Grid>
         </>
       ),
     },
@@ -101,7 +115,7 @@ export default function TablePage() {
   const active = registry.find((v) => v.id === view) ?? registry[0]!;
 
   return (
-    <Stack gap={{ base: 4, md: 6 }}>
+    <Stack gap={{ base: 4, md: 6 }} flex="1" minH={0}>
       <RouteHead
         title="DiceTable — Dice probability comparison for tabletop gaming"
         description="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."

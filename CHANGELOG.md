@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Add roll, Examples and Clear moved out of the toolbar and onto the rolls themselves, so they now sit with the table on every view instead of only where the toolbar happened to be. Clear is a plain trash button at the end of the group rather than a red one next to the primary action, and it still asks before emptying the table. The view bar above them is now just the four tabs, marked by an underline instead of a filled chip.
 - Off-scale cells in the Target hit grid show a dash. A pool roll has no answer for a totals target and vice versa, and a blank cell read as a number that failed to load.
 - The All / Sum / Pools filter on Target hit is blue like the other view controls. Purple now means a pool roll and nothing else.
+- On a wide screen the comparison chart now sits beside the table instead of below it, so editing a roll and watching the curve move no longer means scrolling between the two. The table and the chart rail each scroll on their own and the page itself does not, so the header and footer stay put. Below roughly 1280px the chart drops back under the table as before.
+- Totals and Successes are separate cards, each with its own title and its own PMF / CDF / CCDF / TARGET control, and a card only appears when it has rolls to draw. Picking a view still changes both, and TARGET only offers itself on a card whose rolls have a target to measure against.
 - Baseline comparisons read as two numbers side by side under Avg and Spread, in place of the two stacked bars. Green still means better and red worse. The plain-language summary that used to sit under a roll's name, such as "Averages 1.5 higher, steadier", now appears when you hover those numbers.
 
 ### Fixed

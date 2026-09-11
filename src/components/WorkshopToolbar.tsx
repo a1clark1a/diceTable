@@ -1,6 +1,5 @@
 import {
   useCallback,
-  useMemo,
   useState,
   type RefObject,
 } from 'react';
@@ -24,11 +23,9 @@ import {
 } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import { isTotalsMode } from '../engine/expression';
-import { effectiveChartView, targetViewAvailable } from './chart/effectiveView';
 import { ParamLabel } from './ParamLabel';
 import {
   MAX_EXPRESSIONS,
-  type ChartView,
   type Expression,
   type RollMode,
 } from '../types';
@@ -49,18 +46,6 @@ interface SegmentedOption {
   ariaLabel: string;
   tip: string;
 }
-
-const CHART_VIEWS: readonly (SegmentedOption & { value: ChartView })[] = [
-  { value: 'pmf', label: 'PMF', ariaLabel: 'PMF', tip: tipForId('pmf') },
-  { value: 'cdf', label: 'CDF', ariaLabel: 'CDF', tip: tipForId('cdf') },
-  { value: 'ccdf', label: 'CCDF', ariaLabel: 'CCDF', tip: tipForId('ccdf') },
-  {
-    value: 'target',
-    label: 'TARGET',
-    ariaLabel: 'TARGET',
-    tip: tipForId('targetView'),
-  },
-];
 
 const ROLL_MODES: readonly (SegmentedOption & { value: RollMode })[] = [
   {
@@ -182,9 +167,6 @@ interface WorkshopToolbarProps {
 export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
   const isDesktop = useIsDesktop();
   const {
-    chartView,
-    setChartView,
-    target,
     expressions,
     setAllRollModes,
     addExpression,
@@ -193,12 +175,6 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
   const [clearOpen, setClearOpen] = useState(false);
 
   const showChartView = chartRef !== undefined;
-  const hasTarget = targetViewAvailable(target, expressions);
-  const effectiveView = effectiveChartView(chartView, hasTarget);
-  const chartOptions = useMemo(
-    () => CHART_VIEWS.filter((v) => v.value !== 'target' || hasTarget),
-    [hasTarget],
-  );
 
   const hasRows = expressions.length > 0;
   const atCap = expressions.length >= MAX_EXPRESSIONS;
@@ -211,14 +187,6 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
   const scrollToChart = useCallback(() => {
     chartRef?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [chartRef]);
-
-  const onChartSelect = useCallback(
-    (value: string) => {
-      const match = CHART_VIEWS.find((v) => v.value === value);
-      if (match) setChartView(match.value);
-    },
-    [setChartView],
-  );
 
   const onModeSelect = useCallback(
     (value: string) => {
@@ -258,6 +226,9 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
             onClick={scrollToChart}
             minW="40px"
             minH="40px"
+            // Above xl the chart already sits beside the table, so there is
+            // nothing to jump to.
+            display={{ base: 'inline-flex', xl: 'none' }}
           >
             <ArrowDown size={16} />
           </IconButton>
@@ -280,20 +251,7 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
       borderColor="border"
     >
       <Flex gap={2} rowGap={2} align="center" wrap="wrap">
-        {showChartView && (
-          <>
-            <Box display={{ base: 'none', md: 'inline-flex' }}>
-              <ParamLabel>View</ParamLabel>
-            </Box>
-            <Segmented
-              options={chartOptions}
-              active={effectiveView}
-              onSelect={onChartSelect}
-              groupLabel="Chart view"
-              grow={!isDesktop}
-            />
-          </>
-        )}
+
         {/* ms="auto" rather than a flexible spacer: it still right-aligns this
             cluster when it wraps onto a row of its own, which is what keeps
             Clear all reachable between 768px and roughly 1030px. */}
