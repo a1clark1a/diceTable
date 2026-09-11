@@ -214,13 +214,14 @@ function poolChipLabels(): string[] {
     .map((b) => b.getAttribute('aria-label') ?? '');
 }
 
-// Matches whichever guidance sentence the toolbar is currently showing, so a
-// test can read the hint back without naming the one it expects.
-const HINT_PATTERN =
-  /^(Add a target to show Hit % per row\.|Add a target to show Hit % for sum rows\.|Pool rows use the pool target below\.|Add another target or clear to hide Hit %\.|Up to \d+ targets\. Remove one to add another\.)$/;
-
+// The guidance rides the control it describes rather than sitting inline, so
+// it is read off the input instead of out of the document body.
 function hintText(): string {
-  return screen.getByText(HINT_PATTERN).textContent ?? '';
+  return screen.getByLabelText('Add target value').getAttribute('title') ?? '';
+}
+
+function poolHintText(): string {
+  return screen.getByLabelText('Add pool target').getAttribute('title') ?? '';
 }
 
 describe('TargetToolbar pool target row', () => {
@@ -347,9 +348,9 @@ describe('TargetToolbar pool target row', () => {
     seedPoolRow({ targetValues: [10], poolTargets: [1, 2, 3, 4, 5] });
     renderToolbar();
     expect(getPoolInput().disabled).toBe(true);
-    expect(
-      screen.getByText('Up to 5 pool targets. Remove one to add another.'),
-    ).toBeInTheDocument();
+    expect(poolHintText()).toBe(
+      'Up to 5 pool targets. Remove one to add another.',
+    );
   });
 
   it('adds a pool target when no numeric target is set', () => {
@@ -365,9 +366,7 @@ describe('TargetToolbar pool target row', () => {
   it('asks for a target for the sum rows when a table holds both kinds', () => {
     seedPoolRow({ rows: ['pool', 'sum'] });
     renderToolbar();
-    expect(
-      screen.getByText('Add a target to show Hit % for sum rows.'),
-    ).toBeInTheDocument();
+    expect(hintText()).toBe('Add a target to show Hit % for sum rows.');
   });
 
   it('asks a sum-only table for a target but a pool-only table for neither', () => {
@@ -389,25 +388,17 @@ describe('TargetToolbar pool target row', () => {
   it('points a pool-only table at the pool target instead of a numeric one', () => {
     seedPoolRow({ rows: ['pool'] });
     renderToolbar();
-    expect(
-      screen.getByText('Pool rows use the pool target below.'),
-    ).toBeInTheDocument();
+    expect(hintText()).toBe('Pool rows use the pool target below.');
   });
 
   it('swaps the pool wording out and back as the last numeric target comes and goes', () => {
     seedPoolRow({ rows: ['pool'] });
     renderToolbar();
     addValue('4');
-    expect(
-      screen.getByText('Add another target or clear to hide Hit %.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Pool rows use the pool target below.'),
-    ).toBeNull();
+    expect(hintText()).toBe('Add another target or clear to hide Hit %.');
+    expect(hintText()).not.toBe('Pool rows use the pool target below.');
     fireEvent.click(screen.getByRole('button', { name: 'Remove target ≥ 4' }));
-    expect(
-      screen.getByText('Pool rows use the pool target below.'),
-    ).toBeInTheDocument();
+    expect(hintText()).toBe('Pool rows use the pool target below.');
   });
 });
 

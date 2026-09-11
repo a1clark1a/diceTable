@@ -122,7 +122,7 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
       py={2}
       // At xl the columns scroll inside themselves and the parameters bar
       // carries every global control, so this band has nothing left to hold.
-      display={{ base: 'block', '2xl': 'none' }}
+      display={{ base: 'block', md: 'none' }}
       borderBottomWidth="1px"
       // Not border.subtle: rows scrolling under a sticky bar need a visible
       // edge or the top one looks like it is bleeding into the toolbar.

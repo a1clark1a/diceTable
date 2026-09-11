@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Box, Button, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { useApp } from '../../state/useApp';
 import type { ChartView, Distribution } from '../../types';
@@ -135,6 +135,10 @@ interface ChartPanelProps {
   hoveredId: string | null;
   onHover: (id: string | null) => void;
   unit: ChartUnit;
+  /** Set by the enlarged copy, which has more room than the rail. */
+  height?: string;
+  /** The rail's card offers it; the enlarged copy is already enlarged. */
+  enlarge?: ReactNode;
 }
 
 export function ChartPanel({
@@ -144,6 +148,8 @@ export function ChartPanel({
   hoveredId,
   onHover,
   unit,
+  height,
+  enlarge,
 }: ChartPanelProps) {
   // Focus stays panel-local: hovering a pool row highlights it among pool
   // series without dimming the other panel's rows.
@@ -173,11 +179,14 @@ export function ChartPanel({
             {panel.title}
           </Text>
         </HelpTerm>
-        <PanelViewChips
-          active={panel.effectiveView}
-          hasTarget={panel.hasTarget}
-          groupLabel={`${panel.title} chart view`}
-        />
+        <HStack gap={1}>
+          <PanelViewChips
+            active={panel.effectiveView}
+            hasTarget={panel.hasTarget}
+            groupLabel={`${panel.title} chart view`}
+          />
+          {enlarge}
+        </HStack>
       </HStack>
       <PanelLegend
         entries={panel.entries}
@@ -193,6 +202,7 @@ export function ChartPanel({
           target={panel.target}
           hoveredId={hoveredId}
           unit={unit}
+          {...(height !== undefined ? { height } : {})}
         />
       </Suspense>
     </Stack>

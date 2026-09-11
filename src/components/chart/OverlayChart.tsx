@@ -3,6 +3,7 @@ import { Box, Stack, Text } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
 import { CHART_ROW_LIMIT } from '../../types';
 import { ChartPanel } from './ChartPanel';
+import { ChartEnlargeDialog } from './ChartEnlargeDialog';
 import { useChartPanels } from './useChartPanels';
 
 interface OverlayChartProps {
@@ -71,6 +72,14 @@ export function OverlayChart({ ref }: OverlayChartProps) {
                 hoveredId={hoveredId}
                 onHover={setHoveredId}
                 unit={panel.key === 'successes' ? 'successes' : 'totals'}
+                enlarge={
+                  <ChartEnlargeDialog
+                    panel={panel}
+                    dists={dists}
+                    colors={colors}
+                    unit={panel.key === 'successes' ? 'successes' : 'totals'}
+                  />
+                }
               />
             </Box>
           ))}

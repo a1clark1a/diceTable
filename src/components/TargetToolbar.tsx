@@ -18,6 +18,7 @@ import { X } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import { MAX_TARGETS, type TargetRuling } from '../types';
 import { HelpTerm } from './ui/help-term';
+import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
@@ -127,23 +128,25 @@ export function TargetToolbar() {
 
   return (
     <Flex
-      gap={{ base: 2, xl: 6 }}
-      rowGap={0}
+      columnGap={{ base: 2, xl: 6 }}
+      rowGap={2}
       align="center"
       wrap="wrap"
       minH={{ base: '44px', md: '46px' }}
+      // A flex item in a column parent shrinks to its min-height by default,
+      // which pinned this bar at one row while its chips wrapped to three and
+      // painted over the table underneath.
+      flexShrink={0}
     >
       <HStack
         gap={2}
         minH={{ base: '44px', md: '46px' }}
-        ps={3}
-        borderLeftWidth="3px"
-        borderLeftColor="transparent"
-        flexWrap={{ base: 'wrap', xl: 'nowrap' }}
+        flexShrink={0}
+        flexWrap="wrap"
       >
         <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
           <HelpTerm tip={tipForId('target')}>
-            <ParamLabel>Target</ParamLabel>
+            <ParamLabel color="blue.fg">Target</ParamLabel>
           </HelpTerm>
         </Box>
         <NativeSelect.Root size="sm" maxW={{ base: "180px", xl: "150px" }}>
@@ -174,30 +177,27 @@ export function TargetToolbar() {
             </WrapItem>
           ))}
         </Wrap>
-        <Input
-          size="sm"
-          type="text"
-          inputMode="numeric"
-          placeholder={isFull ? '—' : 'Add'}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitDraft}
-          onKeyDown={onKeyDown}
-          disabled={isFull}
-          maxW="80px"
-          textAlign="right"
-          fontFamily="mono"
-          aria-label="Add target value"
-        />
-        {/* Guidance is desktop-only noise until the row is full, where the
-            hint is the only thing explaining the dead input beside it. */}
-        <Text
-          fontSize="xs"
-          color="fg.muted"
-          display={isFull ? 'inline' : { base: 'none', md: 'inline', '2xl': 'none' }}
-        >
-          {hint}
-        </Text>
+        {/* The hint rides the control it describes. Inline it was a block of
+            prose between two groups, and it is what pushed the bar to three
+            ragged lines once the chips filled up. */}
+        <Tooltip content={hint}>
+          <Input
+            size="sm"
+            type="text"
+            inputMode="numeric"
+            placeholder={isFull ? '—' : 'Add'}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitDraft}
+            onKeyDown={onKeyDown}
+            disabled={isFull}
+            maxW="80px"
+            textAlign="right"
+            fontFamily="mono"
+            aria-label="Add target value"
+            title={hint}
+          />
+        </Tooltip>
       </HStack>
       {hasPoolRow && (
         <PoolTargetRow
@@ -242,14 +242,8 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       gap={2}
       minH={{ base: '44px', md: '46px' }}
       ps={3}
-      borderLeftWidth="3px"
-      borderLeftColor="purple.solid"
-      // Without the card there is nothing between the two parameter rows on a
-      // phone, where they stack instead of sitting side by side.
-      borderTopWidth={{ base: '1px', md: 0 }}
-      borderTopColor="border.subtle"
-      pt={{ base: 2, md: 0 }}
-      flexWrap={{ base: 'wrap', xl: 'nowrap' }}
+      flexShrink={0}
+      flexWrap="wrap"
     >
       <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
         <HelpTerm tip={tipForId('poolTarget')}>
@@ -272,31 +266,27 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
           </WrapItem>
         ))}
       </Wrap>
-      <Input
-        size="sm"
-        type="text"
-        inputMode="numeric"
-        placeholder={isFull ? '—' : 'Add'}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commitDraft}
-        onKeyDown={onKeyDown}
-        disabled={isFull}
-        maxW="80px"
-        textAlign="right"
-        fontFamily="mono"
-        aria-label="Add pool target"
-        style={{ fontVariantNumeric: 'tabular-nums' }}
-      />
+      <Tooltip content={hint}>
+        <Input
+          size="sm"
+          type="text"
+          inputMode="numeric"
+          placeholder={isFull ? '—' : 'Add'}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitDraft}
+          onKeyDown={onKeyDown}
+          disabled={isFull}
+          maxW="80px"
+          textAlign="right"
+          fontFamily="mono"
+          aria-label="Add pool target"
+          title={hint}
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        />
+      </Tooltip>
       <Text fontSize="xs" color="fg.muted">
         successes
-      </Text>
-      <Text
-        fontSize="xs"
-        color="fg.muted"
-        display={isFull ? 'inline' : { base: 'none', md: 'inline', '2xl': 'none' }}
-      >
-        {hint}
       </Text>
     </HStack>
   );

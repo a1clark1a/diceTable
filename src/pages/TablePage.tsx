@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Box, Flex, Grid, Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
@@ -12,6 +12,8 @@ import { WorkshopToolbar } from '../components/WorkshopToolbar';
 import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
 import { RowActions } from '../components/RowActions';
+import { RailSplitter } from '../components/layout/RailSplitter';
+import { ScrollButtons } from '../components/ScrollButtons';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
 import { useIsDesktop } from '../hooks/useBreakpoint';
@@ -24,6 +26,9 @@ interface WorkshopViewEntry extends WorkshopViewChip {
 export default function TablePage() {
   const isDesktop = useIsDesktop();
   const chartRef = useRef<HTMLDivElement>(null);
+  // Session-only: a remembered pixel width is wrong the moment the viewport
+  // changes, so this resets with the tab rather than persisting.
+  const [railWidth, setRailWidth] = useState(340);
   const { expressions, view, setView } = useApp();
 
   const registry: WorkshopViewEntry[] = [
@@ -39,11 +44,11 @@ export default function TablePage() {
           <Grid
             flex="1"
             minH={0}
-            gap={{ base: 4, '2xl': 6 }}
+            gap={{ base: 4, '2xl': 0 }}
             alignItems="stretch"
             templateColumns={{
               base: '1fr',
-              '2xl': 'minmax(0, 1fr) minmax(320px, 340px)',
+              '2xl': `minmax(0, 1fr) auto ${railWidth}px`,
             }}
           >
             <Stack gap={3} minW={0} minH={0} overflowY={{ '2xl': 'auto' }}>
@@ -57,11 +62,20 @@ export default function TablePage() {
                 minH="48px"
               >
                 <BaselineCaption />
-                <RowActions />
+                <Flex gap={2} align="center" ms="auto">
+                  <RowActions />
+                  <ScrollButtons chartRef={chartRef} />
+                </Flex>
               </Flex>
               {isDesktop ? <RollsTable /> : <RollsCards />}
             </Stack>
-            <Box minW={0} minH={0} overflowY={{ '2xl': 'auto' }}>
+            <RailSplitter width={railWidth} onWidth={setRailWidth} />
+            <Box
+              minW={0}
+              minH={0}
+              overflowY={{ '2xl': 'auto' }}
+              ps={{ base: 0, '2xl': 6 }}
+            >
               <OverlayChart ref={chartRef} />
             </Box>
           </Grid>

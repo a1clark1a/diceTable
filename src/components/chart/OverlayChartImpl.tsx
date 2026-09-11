@@ -68,6 +68,8 @@ interface OverlayChartImplProps {
   hoveredId: string | null;
   colors: Map<string, string>;
   unit?: ChartUnit;
+  /** Overridden when the same panel is rendered somewhere with more room. */
+  height?: string;
 }
 
 function buildSeries(
@@ -196,6 +198,7 @@ export default function OverlayChartImpl({
   hoveredId,
   colors,
   unit = 'totals',
+  height,
 }: OverlayChartImplProps) {
   const series = useMemo(
     () => buildSeries(expressions, dists, colors),
@@ -226,6 +229,7 @@ export default function OverlayChartImpl({
         target={target}
         focusedId={focusedId}
         unit={unit}
+        height={height}
       />
     );
   }
@@ -239,7 +243,7 @@ export default function OverlayChartImpl({
 
   return (
     <>
-      <Box w="100%" h={{ base: '260px', md: '320px' }}>
+      <Box w="100%" h={height ?? { base: '260px', md: '320px' }}>
       <ResponsiveContainer
         width="100%"
         height="100%"
@@ -372,6 +376,7 @@ interface TargetHitViewProps {
   target: TargetState;
   focusedId: string | null;
   unit: ChartUnit;
+  height?: string | undefined;
 }
 
 interface TargetChartDatum {
@@ -430,7 +435,13 @@ function targetOpacity(targetIndex: number, totalTargets: number): number {
   return max - step * targetIndex;
 }
 
-function TargetHitView({ rows, target, focusedId, unit }: TargetHitViewProps) {
+function TargetHitView({
+  rows,
+  target,
+  focusedId,
+  unit,
+  height,
+}: TargetHitViewProps) {
   if (target.values.length === 0) return null;
   const symbol = RULING_SYMBOL[target.ruling];
   const targetCount = target.values.length;
@@ -502,7 +513,7 @@ function TargetHitView({ rows, target, focusedId, unit }: TargetHitViewProps) {
       </HStack>
       <Box
         w="100%"
-        h={{ base: '260px', md: '320px' }}
+        h={height ?? { base: '260px', md: '320px' }}
         maxW={`${rows.length * (targetCount * 40 + 40) + 96}px`}
         mx="auto"
         role="img"
