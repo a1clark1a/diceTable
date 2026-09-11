@@ -11,8 +11,6 @@ export function AppShell() {
       <Navbar />
       <Box as="main" flex="1" minH={0} overflowY="auto">
         <Box
-          maxW="1440px"
-          mx="auto"
           w="100%"
           minH="100%"
           // A definite height only where a view divides it and scrolls inside

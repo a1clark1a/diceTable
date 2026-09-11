@@ -59,6 +59,11 @@ import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
 
+// The notation's own column inside the Dice cell. Fixed, because a mode chip
+// that starts wherever the expression happens to end reads as a different
+// control on every row.
+const EXPRESSION_COLUMN = '165px';
+
 // A row is one line of content plus 6px either side. Stacking anything inside a
 // cell is what used to make rows 74px.
 const CELL_RHYTHM = {
@@ -466,8 +471,15 @@ const RollTableRow = memo(function RollTableRow({
           </HStack>
         </Table.Cell>
         <Table.Cell>
-          <HStack gap={3} align="center" flexWrap="wrap">
-            <Box fontFamily="mono" fontSize="xs" color="fg">
+          <HStack gap={3} align="center" flexWrap="nowrap">
+            <Box
+              w={EXPRESSION_COLUMN}
+              flexShrink={0}
+              fontFamily="mono"
+              fontSize="xs"
+              color="fg"
+              truncate
+            >
               <InspectDistribution
                 exprName={expr.name}
                 dist={stats.dist}
