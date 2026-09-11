@@ -4,7 +4,8 @@ import { useApp } from '../../state/useApp';
 import { RULING_SYMBOL } from '../targetRulingMeta';
 import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
-import { formatPercent } from '../chart/format';
+import { EM_DASH, formatPercent } from '../chart/format';
+import { RowActions } from '../RowActions';
 import { hitColor } from '../chart/palette';
 import type {
   GridSort,
@@ -95,9 +96,12 @@ export function TargetHitView() {
   // ignore, while the toolbar next to it offers the pool target.
   if (rows.length === 0) {
     return (
-      <Text fontSize="sm" color="fg.muted" px={1}>
-        Add a roll with valid dice to see hit chances against your targets.
-      </Text>
+      <Stack gap={3} align="flex-start">
+        <RowActions />
+        <Text fontSize="sm" color="fg.muted" px={1}>
+          Add a roll with valid dice to see hit chances against your targets.
+        </Text>
+      </Stack>
     );
   }
 
@@ -162,7 +166,7 @@ export function TargetHitView() {
                   key={f.value}
                   size="sm"
                   variant={isActive ? 'solid' : 'ghost'}
-                  colorPalette={isActive ? 'purple' : 'gray'}
+                  colorPalette={isActive ? 'blue' : 'gray'}
                   onClick={() => setFilter(f.value)}
                   aria-pressed={isActive}
                   minH="40px"
@@ -176,6 +180,9 @@ export function TargetHitView() {
         <Text fontSize="xs" color="fg.muted">
           {hint}
         </Text>
+        <Box ms="auto">
+          <RowActions />
+        </Box>
       </HStack>
       {/* Curves need no target of their own: they plot the hit chance for every
           possible target, and the target list only adds markers. Asking for a
@@ -359,8 +366,12 @@ function TargetGrid({
                       <Table.Cell
                         key={columnKey(column)}
                         py={1.5}
+                        textAlign="end"
+                        color="fg.subtle"
                         {...axisDivider(index)}
-                      />
+                      >
+                        {EM_DASH}
+                      </Table.Cell>
                     );
                   }
                   return (

@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { Heading, Stack, Text } from '@chakra-ui/react';
+import { Flex, Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
 import { BaselineCaption } from '../components/baseline/BaselineCaption';
@@ -11,6 +11,7 @@ import { HeadToHeadView } from '../components/compare/HeadToHeadView';
 import { WorkshopToolbar } from '../components/WorkshopToolbar';
 import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
+import { RowActions } from '../components/RowActions';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
 import { useIsDesktop } from '../hooks/useBreakpoint';
@@ -37,7 +38,17 @@ export default function TablePage() {
           <WorkshopToolbar chartRef={chartRef} />
           <Stack gap={3}>
             <TargetToolbar />
-            <BaselineCaption />
+            <Flex
+              gap={3}
+              rowGap={2}
+              align="center"
+              justify="space-between"
+              wrap="wrap"
+              minH="48px"
+            >
+              <BaselineCaption />
+              <RowActions />
+            </Flex>
             {isDesktop ? <RollsTable /> : <RollsCards />}
           </Stack>
           <OverlayChart ref={chartRef} />
@@ -64,7 +75,10 @@ export default function TablePage() {
       render: () => (
         <>
           <WorkshopToolbar />
-          <RollOffView />
+          <Stack gap={3} align="flex-start">
+            <RowActions />
+            <RollOffView />
+          </Stack>
         </>
       ),
     },
@@ -75,7 +89,10 @@ export default function TablePage() {
       render: () => (
         <>
           <WorkshopToolbar />
-          <HeadToHeadView />
+          <Stack gap={3} align="flex-start">
+            <RowActions />
+            <HeadToHeadView />
+          </Stack>
         </>
       ),
     },

@@ -293,70 +293,13 @@ describe('WorkshopToolbar roll mode', () => {
     expect(screen.queryByText(/mixed/i)).toBeNull();
   });
 
-  it('hides the roll-mode chips and Clear on an empty table, keeping Add', () => {
+  it('hides the roll-mode chips on an empty table', () => {
     seedRows([]);
     renderToolbar();
     expect(screen.queryByText('Roll mode')).toBeNull();
     for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
-    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
-    expect(
-      screen.getByRole('button', { name: /add roll/i }),
-    ).toBeInTheDocument();
-  });
-});
-
-describe('WorkshopToolbar add and clear', () => {
-  it('appends a row when Add roll is clicked', () => {
-    seedRows(['normal', 'normal']);
-    renderToolbar();
-    expect(screen.getByTestId('row-count')).toHaveTextContent('2');
-    fireEvent.click(screen.getByRole('button', { name: /add roll/i }));
-    expect(screen.getByTestId('row-count')).toHaveTextContent('3');
-  });
-
-  it('disables Add roll at the 100-roll cap', () => {
-    seedRows(Array.from({ length: 100 }, () => 'normal' as const));
-    renderToolbar();
-    expect(screen.getByTestId('row-count')).toHaveTextContent('100');
-    expect(screen.getByRole('button', { name: /add roll/i })).toBeDisabled();
-  });
-
-  // The dialog machine opens a beat after the trigger click, so every test
-  // waits on the alertdialog role appearing rather than querying synchronously.
-  async function openClearDialog() {
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
-    return await screen.findByRole('alertdialog');
-  }
-
-  it('opens a confirmation dialog naming the roll count', async () => {
-    seedRows(['normal', 'normal']);
-    renderToolbar();
-    await openClearDialog();
-    expect(screen.getByText('Clear the table?')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Clear 2 rolls' }),
-    ).toBeInTheDocument();
-  });
-
-  it('Cancel closes the dialog and keeps every roll', async () => {
-    seedRows(['normal', 'normal']);
-    renderToolbar();
-    await openClearDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByTestId('row-count')).toHaveTextContent('2');
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-  });
-
-  it('confirming empties the table and hides the Clear button', async () => {
-    seedRows(['normal', 'normal', 'normal']);
-    renderToolbar();
-    await openClearDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear 3 rolls' }));
-    expect(screen.getByTestId('row-count')).toHaveTextContent('0');
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
   });
 });
 

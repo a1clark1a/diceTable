@@ -22,20 +22,17 @@ export function WorkshopViewSwitcher({
   const isDesktop = useIsDesktop();
   return (
     <Box
-      gap={1}
-      p={1}
-      bg="bg.subtle"
-      borderRadius="lg"
-      // Four chips outgrow a 360px viewport. A fixed column per chip keeps the
+      // Four tabs outgrow a 360px viewport. A fixed column per tab keeps the
       // bar one row high at every width, where wrapping made the header jump
-      // between one and two rows as labels changed. Stretching stops at sm:
-      // carried up to the 768px desktop switch it gave a 40px word a 165px chip.
+      // between one and two rows as labels changed.
       display={{ base: 'grid', sm: 'inline-flex' }}
       gridTemplateColumns={{
         base: `repeat(${views.length}, minmax(0, 1fr))`,
         sm: 'none',
       }}
       alignSelf={{ base: 'stretch', sm: 'flex-start' }}
+      borderBottomWidth="1px"
+      borderColor="border.subtle"
       role="group"
       aria-label="Workshop view"
     >
@@ -46,14 +43,22 @@ export function WorkshopViewSwitcher({
           <Button
             key={v.id}
             size="sm"
-            variant={isActive ? 'solid' : 'ghost'}
-            colorPalette={isActive ? 'blue' : 'gray'}
+            variant="plain"
             onClick={() => onSelect(v.id)}
             aria-pressed={isActive}
-            minH="40px"
+            minH="44px"
             minW={0}
             px={{ base: 2, md: 3 }}
-            fontSize={{ base: 'xs', md: 'sm' }}
+            borderRadius="0"
+            fontSize={{ base: '14px', md: '13px' }}
+            fontWeight="500"
+            color={isActive ? 'fg' : 'fg.muted'}
+            borderBottomWidth="2px"
+            borderBottomColor={isActive ? 'blue.solid' : 'transparent'}
+            // The bar's own 1px rule and this 2px one would otherwise stack
+            // and read as a double edge.
+            mb="-1px"
+            _hover={{ color: 'fg' }}
           >
             {label}
           </Button>

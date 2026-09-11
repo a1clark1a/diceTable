@@ -7,14 +7,11 @@ import {
 import {
   Box,
   Button,
-  CloseButton,
-  Dialog,
   Flex,
   HStack,
   IconButton,
   Menu,
   Portal,
-  Text,
 } from '@chakra-ui/react';
 import {
   ArrowDown,
@@ -36,6 +33,7 @@ import {
   type RollMode,
 } from '../types';
 import { ExamplesDialog } from './presets/ExamplesDialog';
+import { ClearAllDialog } from './ClearAllDialog';
 import { ShareImagePopover } from './share/ShareImagePopover';
 import { Tooltip } from './ui/tooltip';
 import { HelpTerm } from './ui/help-term';
@@ -317,48 +315,7 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
                   groupLabel="Global roll mode"
                   grow={false}
                 />
-                <Tooltip content={tipForId('examples')}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    minH="40px"
-                    onClick={() => setExamplesOpen(true)}
-                  >
-                    <Dices size={16} />
-                    Examples
-                  </Button>
-                </Tooltip>
               </>
-            )}
-            <Tooltip
-              content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
-              disabled={!atCap}
-            >
-              <Button
-                size="sm"
-                variant="outline"
-                minH="40px"
-                onClick={addExpression}
-                disabled={atCap}
-                aria-label="Add roll"
-              >
-                <Plus size={16} />
-                Add
-              </Button>
-            </Tooltip>
-            {hasRows && (
-              <Tooltip content={tipForId('clearAll')}>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  colorPalette="red"
-                  minH="40px"
-                  onClick={() => setClearOpen(true)}
-                >
-                  <Trash2 size={16} />
-                  Clear all
-                </Button>
-              </Tooltip>
             )}
             <ShareImagePopover />
             {scrollButtons}
@@ -450,62 +407,5 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
       <ExamplesDialog open={examplesOpen} onOpenChange={setExamplesOpen} />
       <ClearAllDialog open={clearOpen} onOpenChange={setClearOpen} />
     </Box>
-  );
-}
-
-interface ClearAllDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-function ClearAllDialog({ open, onOpenChange }: ClearAllDialogProps) {
-  const { expressions, replaceExpressions } = useApp();
-  const count = expressions.length;
-
-  return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(e) => onOpenChange(e.open)}
-      lazyMount
-      unmountOnExit
-      placement="center"
-      role="alertdialog"
-      size="xs"
-    >
-      <Portal>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Content>
-            <Dialog.Header>
-              <Dialog.Title>Clear the table?</Dialog.Title>
-            </Dialog.Header>
-            <Dialog.Body>
-              <Text>
-                This removes{' '}
-                {count === 1 ? 'the only roll' : `all ${count} rolls`} and
-                can't be undone.
-              </Text>
-            </Dialog.Body>
-            <Dialog.Footer>
-              <Dialog.ActionTrigger asChild>
-                <Button variant="outline">Cancel</Button>
-              </Dialog.ActionTrigger>
-              <Button
-                colorPalette="red"
-                onClick={() => {
-                  replaceExpressions([]);
-                  onOpenChange(false);
-                }}
-              >
-                {count === 1 ? 'Clear 1 roll' : `Clear ${count} rolls`}
-              </Button>
-            </Dialog.Footer>
-            <Dialog.CloseTrigger asChild>
-              <CloseButton size="sm" />
-            </Dialog.CloseTrigger>
-          </Dialog.Content>
-        </Dialog.Positioner>
-      </Portal>
-    </Dialog.Root>
   );
 }
