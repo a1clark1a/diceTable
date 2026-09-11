@@ -29,6 +29,57 @@ import { RollModeControl } from './RollModeControl';
 // the store will actually keep, rather than on a raw draft the store then
 // floors out from under them. Garbage and out-of-range input landing on the
 // nearest bound is the same trade NumberStepper.parseClamped makes.
+interface AddTargetInputProps {
+  draft: string;
+  setDraft: (raw: string) => void;
+  commitDraft: () => void;
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+  isFull: boolean;
+  hint: string;
+  ariaLabel: string;
+}
+
+function AddTargetInput({
+  draft,
+  setDraft,
+  commitDraft,
+  onKeyDown,
+  isFull,
+  hint,
+  ariaLabel,
+}: AddTargetInputProps) {
+  return (
+    <Tooltip content={hint}>
+      <Input
+        size="sm"
+        type="text"
+        inputMode="numeric"
+        placeholder={isFull ? '−' : '+'}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commitDraft}
+        onKeyDown={onKeyDown}
+        disabled={isFull}
+        w="36px"
+        h="28px"
+        px={0}
+        flexShrink={0}
+        textAlign="center"
+        fontFamily="mono"
+        fontSize="14px"
+        bg="bg.subtle"
+        borderWidth="1px"
+        borderColor="border"
+        borderRadius="4px"
+        aria-label={ariaLabel}
+        title={hint}
+        _placeholder={{ color: 'fg.muted', opacity: 1 }}
+        style={{ fontVariantNumeric: 'tabular-nums' }}
+      />
+    </Tooltip>
+  );
+}
+
 function parseDraft(raw: string, minValue?: number): number | null {
   const trimmed = raw.trim();
   if (trimmed === '') return null;
@@ -141,7 +192,7 @@ export function TargetToolbar() {
       <HStack
         gap={2}
         minH={{ base: '44px', md: '46px' }}
-        flexShrink={0}
+        minW={0}
         flexWrap="wrap"
       >
         <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
@@ -149,7 +200,7 @@ export function TargetToolbar() {
             <ParamLabel color="blue.fg">Target</ParamLabel>
           </HelpTerm>
         </Box>
-        <NativeSelect.Root size="sm" maxW={{ base: "180px", xl: "150px" }}>
+        <NativeSelect.Root size="sm" maxW="150px" minW="110px" flexShrink={1}>
           <NativeSelect.Field
             value={target.ruling}
             onChange={(e) => {
@@ -166,7 +217,7 @@ export function TargetToolbar() {
           </NativeSelect.Field>
           <NativeSelect.Indicator />
         </NativeSelect.Root>
-        <Wrap gap={1} flexShrink={1}>
+        <Wrap gap={1} minW={0} align="center">
           {target.values.map((v) => (
             <WrapItem key={v}>
               <TargetChip
@@ -176,28 +227,18 @@ export function TargetToolbar() {
               />
             </WrapItem>
           ))}
+          <WrapItem>
+            <AddTargetInput
+              draft={draft}
+              setDraft={setDraft}
+              commitDraft={commitDraft}
+              onKeyDown={onKeyDown}
+              isFull={isFull}
+              hint={hint}
+              ariaLabel="Add target value"
+            />
+          </WrapItem>
         </Wrap>
-        {/* The hint rides the control it describes. Inline it was a block of
-            prose between two groups, and it is what pushed the bar to three
-            ragged lines once the chips filled up. */}
-        <Tooltip content={hint}>
-          <Input
-            size="sm"
-            type="text"
-            inputMode="numeric"
-            placeholder={isFull ? '—' : 'Add'}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitDraft}
-            onKeyDown={onKeyDown}
-            disabled={isFull}
-            maxW="80px"
-            textAlign="right"
-            fontFamily="mono"
-            aria-label="Add target value"
-            title={hint}
-          />
-        </Tooltip>
       </HStack>
       {hasPoolRow && (
         <PoolTargetRow
@@ -242,7 +283,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       gap={2}
       minH={{ base: '44px', md: '46px' }}
       ps={3}
-      flexShrink={0}
+      minW={0}
       flexWrap="wrap"
     >
       <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
@@ -250,7 +291,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
           <ParamLabel color="purple.fg">Pool target</ParamLabel>
         </HelpTerm>
       </Box>
-      <Wrap gap={1} flexShrink={1}>
+      <Wrap gap={1} minW={0} align="center">
         {poolTargets.map((v) => (
           <WrapItem key={v}>
             <TargetChip
@@ -265,26 +306,18 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
             />
           </WrapItem>
         ))}
+        <WrapItem>
+          <AddTargetInput
+            draft={draft}
+            setDraft={setDraft}
+            commitDraft={commitDraft}
+            onKeyDown={onKeyDown}
+            isFull={isFull}
+            hint={hint}
+            ariaLabel="Add pool target"
+          />
+        </WrapItem>
       </Wrap>
-      <Tooltip content={hint}>
-        <Input
-          size="sm"
-          type="text"
-          inputMode="numeric"
-          placeholder={isFull ? '—' : 'Add'}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitDraft}
-          onKeyDown={onKeyDown}
-          disabled={isFull}
-          maxW="80px"
-          textAlign="right"
-          fontFamily="mono"
-          aria-label="Add pool target"
-          title={hint}
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        />
-      </Tooltip>
       <Text fontSize="xs" color="fg.muted">
         successes
       </Text>
