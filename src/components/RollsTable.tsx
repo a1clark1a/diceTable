@@ -64,6 +64,13 @@ import { InspectMean, InspectSigma } from './inspect/InspectStat';
 // control on every row.
 const EXPRESSION_COLUMN = '165px';
 
+// The chips' slot beside it. Fixed for the same reason, and wide enough that a
+// pool or check row never wraps its extra chip onto a second line and grows
+// the row. A table of nothing but sum rows has no extra chip to fit, so it
+// gets the narrow slot instead of reserving room nothing will use.
+const STYLE_COLUMN = '260px';
+const STYLE_COLUMN_SUM_ONLY = '160px';
+
 // A row is one line of content plus 6px either side. Stacking anything inside a
 // cell is what used to make rows 74px.
 const CELL_RHYTHM = {
@@ -149,6 +156,9 @@ export function RollsTable() {
   // even with the numeric target list empty.
   const showHit =
     target.values.length > 0 || expressions.some((e) => e.mode === 'pool');
+  const styleColumn = expressions.some((e) => e.mode !== 'sum')
+    ? STYLE_COLUMN
+    : STYLE_COLUMN_SUM_ONLY;
   const atCap = expressions.length >= MAX_EXPRESSIONS;
   const comparison = useMemo(
     () => buildBaselineComparison(expressions, baselineId, target, poolTargets),
@@ -171,14 +181,30 @@ export function RollsTable() {
           <Table.Root size="sm" variant="line" striped={false} css={CELL_RHYTHM}>
           <Table.Header css={COLUMN_HEADER_TYPE}>
             <Table.Row bg="bg.subtle">
+              {/* The one elastic column. Every other column sizes to its
+                  content, so a table wider than it needs puts the surplus
+                  into the roll names rather than between two columns. */}
               <Table.ColumnHeader
                 borderLeftWidth="3px"
                 borderLeftColor="transparent"
-                w="190px"
+                w="100%"
+                minW="190px"
               >
                 Name
               </Table.ColumnHeader>
-              <Table.ColumnHeader>Dice</Table.ColumnHeader>
+              <Table.ColumnHeader>
+                {/* Two labels over one column: the chips sit in a fixed slot
+                    beside the notation, so without a second label they read as
+                    an unnamed column of their own. */}
+                <HStack as="span" gap={3}>
+                  <Box as="span" w={EXPRESSION_COLUMN} flexShrink={0}>
+                    Dice
+                  </Box>
+                  <Box as="span" w={styleColumn} flexShrink={0}>
+                    <HelpTerm tip={tipForId('rollStyle')}>Style</HelpTerm>
+                  </Box>
+                </HStack>
+              </Table.ColumnHeader>
               <Table.ColumnHeader textAlign="end" w="58px">
                 <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
               </Table.ColumnHeader>
@@ -247,6 +273,7 @@ export function RollsTable() {
                 poolTargets={poolTargets}
                 baselineId={baselineId}
                 comparison={comparison}
+                styleColumn={styleColumn}
                 setExpandedId={setExpandedId}
                 setBaselineId={setBaselineId}
                 deleteExpression={deleteExpression}
@@ -297,6 +324,7 @@ interface RollTableRowProps {
   poolTargets: number[];
   baselineId: string | null;
   comparison: BaselineComparison | null;
+  styleColumn: string;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
@@ -314,6 +342,7 @@ const RollTableRow = memo(function RollTableRow({
   poolTargets,
   baselineId,
   comparison,
+  styleColumn,
   setExpandedId,
   setBaselineId,
   deleteExpression,
@@ -456,7 +485,8 @@ const RollTableRow = memo(function RollTableRow({
               onChange={(e) => nameBuf.setValue(e.target.value)}
               onBlur={nameBuf.onBlur}
               onKeyDown={nameBuf.onKeyDown}
-              maxW="150px"
+              flex="1"
+              minW="150px"
               aria-label="Roll name"
             />
             {isBaseline && (
@@ -495,7 +525,7 @@ const RollTableRow = memo(function RollTableRow({
                 </Text>
               )}
             </Box>
-            <HStack gap={1} flexWrap="wrap">
+            <HStack gap={1} w={styleColumn} flexShrink={0}>
               <ExpressionModeToggle mode={expr.mode} onSelect={onModeChange} />
               {isPool && expr.successThreshold && (
                 <PoolThresholdEditor

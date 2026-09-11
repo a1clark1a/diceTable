@@ -408,6 +408,8 @@ const uiTips: Record<string, string> = {
   inspectMode: 'The results most likely to come up, ordered by chance.',
   inspectSigma:
     'The shaded band is one σ either side of the mean. Most rolls land here.',
+  rollStyle:
+    'What the roll does with its dice: add them up, count successes, or roll a check. Click Sum, Pool or Check to switch.',
   sumMode:
     'Add the faces together into one total. The classic damage-roll style.',
   poolMode:

@@ -1,8 +1,16 @@
 import { useCallback, useRef, type KeyboardEvent, type PointerEvent } from 'react';
 import { Box } from '@chakra-ui/react';
 
-export const RAIL_MIN = 300;
-export const RAIL_MAX = 900;
+// The chart takes whatever the table leaves, so this floor is what stops a
+// wide table squeezing the chart out of usable existence.
+export const RAIL_MIN = 340;
+// The table's own width is what the drag changes. The floor is about where
+// the fixed columns stop fitting; the ceiling is past any content it has.
+export const TABLE_MIN = 900;
+export const TABLE_MAX = 1800;
+// Where the table stops needing width: measured as the point past which a
+// check row's chips no longer wrap beside its dice notation.
+export const TABLE_WIDTH = 1280;
 const STEP = 32;
 
 interface RailSplitterProps {
@@ -10,12 +18,14 @@ interface RailSplitterProps {
   onWidth: (next: number) => void;
 }
 
-const clamp = (n: number): number => Math.min(RAIL_MAX, Math.max(RAIL_MIN, n));
+const clamp = (n: number): number => Math.min(TABLE_MAX, Math.max(TABLE_MIN, n));
 
 /**
- * Drags the boundary between the table and the chart rail. Pointer capture
- * rather than window listeners, so a fast drag that leaves the element still
- * tracks, and the pointer keeps its grab when it re-enters.
+ * Drags the boundary between the table and the chart. What it sets is the
+ * table's width; the chart takes the rest of the row, so widening one always
+ * narrows the other. Pointer capture rather than window listeners, so a fast
+ * drag that leaves the element still tracks, and the pointer keeps its grab
+ * when it re-enters.
  */
 export function RailSplitter({ width, onWidth }: RailSplitterProps) {
   const start = useRef<{ x: number; width: number } | null>(null);
@@ -32,8 +42,8 @@ export function RailSplitter({ width, onWidth }: RailSplitterProps) {
     (e: PointerEvent<HTMLDivElement>) => {
       const from = start.current;
       if (from === null) return;
-      // The rail is on the right, so dragging left widens it.
-      onWidth(clamp(from.width + (from.x - e.clientX)));
+      // The table is on the left, so the separator tracks the pointer.
+      onWidth(clamp(from.width + (e.clientX - from.x)));
     },
     [onWidth],
   );
@@ -47,10 +57,10 @@ export function RailSplitter({ width, onWidth }: RailSplitterProps) {
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        onWidth(clamp(width + STEP));
+        onWidth(clamp(width - STEP));
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        onWidth(clamp(width - STEP));
+        onWidth(clamp(width + STEP));
       }
     },
     [onWidth, width],
@@ -60,10 +70,10 @@ export function RailSplitter({ width, onWidth }: RailSplitterProps) {
     <Box
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize the chart"
+      aria-label="Resize the table"
       aria-valuenow={Math.round(width)}
-      aria-valuemin={RAIL_MIN}
-      aria-valuemax={RAIL_MAX}
+      aria-valuemin={TABLE_MIN}
+      aria-valuemax={TABLE_MAX}
       tabIndex={0}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

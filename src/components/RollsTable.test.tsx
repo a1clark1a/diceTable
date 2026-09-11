@@ -127,6 +127,20 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
+describe('RollsTable column headers', () => {
+  // The mode chips sit in a fixed slot beside the dice notation rather than
+  // in a column of their own, so this label is the only thing naming them.
+  it('names the mode chips as their own column beside Dice', () => {
+    seedIsolationRow();
+    renderTable();
+    const header = screen
+      .getAllByRole('columnheader')
+      .find((h) => (h.textContent ?? '').includes('Dice'));
+    expect(header).toBeDefined();
+    expect(within(header!).getByText('Style')).toBeInTheDocument();
+  });
+});
+
 describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', () => {
   it('a Count commit in the expanded row re-renders zero sibling RollTableRows', () => {
     seedIsolationRow();

@@ -12,7 +12,7 @@ import { WorkshopToolbar } from '../components/WorkshopToolbar';
 import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
 import { RowActions } from '../components/RowActions';
-import { RailSplitter } from '../components/layout/RailSplitter';
+import { RailSplitter, RAIL_MIN, TABLE_WIDTH } from '../components/layout/RailSplitter';
 import { ScrollButtons } from '../components/ScrollButtons';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
@@ -28,7 +28,7 @@ export default function TablePage() {
   const chartRef = useRef<HTMLDivElement>(null);
   // Session-only: a remembered pixel width is wrong the moment the viewport
   // changes, so this resets with the tab rather than persisting.
-  const [railWidth, setRailWidth] = useState(340);
+  const [tableWidth, setTableWidth] = useState(TABLE_WIDTH);
   const { expressions, view, setView } = useApp();
 
   const registry: WorkshopViewEntry[] = [
@@ -46,9 +46,12 @@ export default function TablePage() {
             minH={0}
             gap={{ base: 4, '2xl': 0 }}
             alignItems="stretch"
+            // Capping the table rather than letting it fill a 1fr track is what
+            // hands the surplus to the chart. Past its own content width the
+            // table only pads its columns, so the width is worth more here.
             templateColumns={{
               base: '1fr',
-              '2xl': `minmax(0, 1fr) auto ${railWidth}px`,
+              '2xl': `minmax(0, ${tableWidth}px) auto minmax(${RAIL_MIN}px, 1fr)`,
             }}
           >
             <Stack gap={3} minW={0} minH={0} overflowY={{ '2xl': 'auto' }}>
@@ -69,7 +72,7 @@ export default function TablePage() {
               </Flex>
               {isDesktop ? <RollsTable /> : <RollsCards />}
             </Stack>
-            <RailSplitter width={railWidth} onWidth={setRailWidth} />
+            <RailSplitter width={tableWidth} onWidth={setTableWidth} />
             <Box
               minW={0}
               minH={0}

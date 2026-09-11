@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- The chart gets the width the table was not using. The table used to stretch to fill the window, which left a band of empty space on every row between the Sum / Pool / Check chips and the Mod column. It now stops at the width it needs and the chart takes the rest, so on a 1920px screen the chart is about twice as wide as it was. Whatever is still spare goes to the roll names, which now have room for longer titles instead of cutting them off.
+- The Sum / Pool / Check chips have a column name. They sit beside the dice notation under a heading that only read Dice, so they looked like a column nobody had labelled. The heading now names both, and hovering Style explains what the chips do.
 - New color palette, in both light and dark. The page ground is now a warm off-white (a near-black in dark mode) with panels raised a step above it, so the table, the chart cards and the toolbars read as separate surfaces instead of a stack of near-identical off-whites. Text, borders, the blue and purple accents, and the green / amber / red hit ramp all moved with it, and every color that carries text clears the 4.5:1 contrast floor in both modes. The exported share image follows the same palette, so a saved picture looks like the app it came from.
 - Each chart card has an enlarge button. It opens the same chart in a large view, with its legend, its hover and its PMF / CDF / CCDF / TARGET control intact, because it is the same panel rather than a second copy.
 - The divider between the table and the chart can be dragged to give the chart more room, or the table. Arrow keys move it too. The width lasts for the session rather than being saved.
