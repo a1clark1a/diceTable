@@ -39,15 +39,14 @@ export default function TablePage() {
           <Grid
             flex="1"
             minH={0}
-            gap={{ base: 4, xl: 6 }}
+            gap={{ base: 4, '2xl': 6 }}
             alignItems="stretch"
             templateColumns={{
               base: '1fr',
-              xl: 'minmax(0, 1fr) minmax(300px, 340px)',
-              '2xl': 'minmax(0, 1fr) 400px',
+              '2xl': 'minmax(0, 1fr) minmax(320px, 340px)',
             }}
           >
-            <Stack gap={3} minW={0} minH={0} overflowY={{ xl: 'auto' }}>
+            <Stack gap={3} minW={0} minH={0} overflowY={{ '2xl': 'auto' }}>
               <TargetToolbar />
               <Flex
                 gap={3}
@@ -62,7 +61,7 @@ export default function TablePage() {
               </Flex>
               {isDesktop ? <RollsTable /> : <RollsCards />}
             </Stack>
-            <Box minW={0} minH={0} overflowY={{ xl: 'auto' }}>
+            <Box minW={0} minH={0} overflowY={{ '2xl': 'auto' }}>
               <OverlayChart ref={chartRef} />
             </Box>
           </Grid>

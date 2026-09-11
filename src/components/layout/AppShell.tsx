@@ -19,11 +19,11 @@ export function AppShell() {
           // itself, which is the two-column table layout at xl. Below that
           // nothing scrolls internally, so a fixed height would clip the page
           // and leave its sections painting over each other.
-          h={{ base: 'auto', xl: '100%' }}
+          h={{ base: 'auto', '2xl': '100%' }}
           display="flex"
           flexDirection="column"
-          px={{ base: 3, md: 6 }}
-          py={{ base: 3, md: 6 }}
+          px={3}
+          py={{ base: 3, md: 4 }}
         >
           <Outlet />
         </Box>

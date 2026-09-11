@@ -169,11 +169,12 @@ export function RollsTable() {
               <Table.ColumnHeader
                 borderLeftWidth="3px"
                 borderLeftColor="transparent"
+                w="190px"
               >
                 Name
               </Table.ColumnHeader>
               <Table.ColumnHeader>Dice</Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
+              <Table.ColumnHeader textAlign="end" w="58px">
                 <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
               </Table.ColumnHeader>
               <Table.ColumnHeader textAlign="end">
@@ -201,10 +202,10 @@ export function RollsTable() {
                   </HelpTerm>
                 )}
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
+              <Table.ColumnHeader textAlign="end" w="54px">
                 <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="center" w="100px">
+              <Table.ColumnHeader textAlign="center" w="88px">
                 <ShapeHeaderLabel />
               </Table.ColumnHeader>
               {showHit && (
@@ -223,7 +224,7 @@ export function RollsTable() {
                   </HStack>
                 </Table.ColumnHeader>
               )}
-              <Table.ColumnHeader textAlign="end" w="160px">
+              <Table.ColumnHeader textAlign="end" w="140px">
                 {' '}
               </Table.ColumnHeader>
             </Table.Row>
@@ -435,7 +436,7 @@ const RollTableRow = memo(function RollTableRow({
                   : 'transparent'
           }
         >
-          <HStack gap={2} minW="200px">
+          <HStack gap={2} minW="150px">
             <Box
               w="10px"
               h="10px"
@@ -450,7 +451,7 @@ const RollTableRow = memo(function RollTableRow({
               onChange={(e) => nameBuf.setValue(e.target.value)}
               onBlur={nameBuf.onBlur}
               onKeyDown={nameBuf.onKeyDown}
-              maxW="220px"
+              maxW="150px"
               aria-label="Roll name"
             />
             {isBaseline && (

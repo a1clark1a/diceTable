@@ -5,11 +5,11 @@ import {
 } from 'react';
 import {
   Box,
+  Flex,
   HStack,
   IconButton,
   Input,
   NativeSelect,
-  Stack,
   Text,
   Wrap,
   WrapItem,
@@ -22,6 +22,7 @@ import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
 import { PARAM_LABEL_GUTTER, ParamLabel } from './ParamLabel';
+import { RollModeControl } from './RollModeControl';
 
 // Clamping in parse means the duplicate and cap checks below run on the value
 // the store will actually keep, rather than on a raw draft the store then
@@ -125,21 +126,27 @@ export function TargetToolbar() {
         : 'Add a target to show Hit % per row.';
 
   return (
-    <Stack gap={2}>
+    <Flex
+      gap={{ base: 2, xl: 6 }}
+      rowGap={0}
+      align="center"
+      wrap="wrap"
+      minH={{ base: '44px', md: '46px' }}
+    >
       <HStack
         gap={2}
         minH={{ base: '44px', md: '46px' }}
         ps={3}
         borderLeftWidth="3px"
         borderLeftColor="transparent"
-        flexWrap="wrap"
+        flexWrap={{ base: 'wrap', xl: 'nowrap' }}
       >
         <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
           <HelpTerm tip={tipForId('target')}>
             <ParamLabel>Target</ParamLabel>
           </HelpTerm>
         </Box>
-        <NativeSelect.Root size="sm" maxW="180px">
+        <NativeSelect.Root size="sm" maxW={{ base: "180px", xl: "150px" }}>
           <NativeSelect.Field
             value={target.ruling}
             onChange={(e) => {
@@ -187,8 +194,7 @@ export function TargetToolbar() {
         <Text
           fontSize="xs"
           color="fg.muted"
-          ml="auto"
-          display={isFull ? 'inline' : { base: 'none', md: 'inline' }}
+          display={isFull ? 'inline' : { base: 'none', md: 'inline', '2xl': 'none' }}
         >
           {hint}
         </Text>
@@ -199,7 +205,8 @@ export function TargetToolbar() {
           setPoolTargets={setPoolTargets}
         />
       )}
-    </Stack>
+      <RollModeControl />
+    </Flex>
   );
 }
 
@@ -242,7 +249,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       borderTopWidth={{ base: '1px', md: 0 }}
       borderTopColor="border.subtle"
       pt={{ base: 2, md: 0 }}
-      flexWrap="wrap"
+      flexWrap={{ base: 'wrap', xl: 'nowrap' }}
     >
       <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
         <HelpTerm tip={tipForId('poolTarget')}>
@@ -287,8 +294,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       <Text
         fontSize="xs"
         color="fg.muted"
-        ml="auto"
-        display={isFull ? 'inline' : { base: 'none', md: 'inline' }}
+        display={isFull ? 'inline' : { base: 'none', md: 'inline', '2xl': 'none' }}
       >
         {hint}
       </Text>

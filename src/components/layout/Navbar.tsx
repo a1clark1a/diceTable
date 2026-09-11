@@ -1,6 +1,7 @@
 import { Box, HStack, Image, Text } from '@chakra-ui/react';
 import { NavLink } from 'react-router-dom';
 import { ColorModeButton } from '../ui/color-mode';
+import { ShareImagePopover } from '../share/ShareImagePopover';
 import { ImportDialog } from '../share/ImportDialog';
 import { SharePopover } from '../share/SharePopover';
 
@@ -85,6 +86,7 @@ export function Navbar() {
           </HStack>
         </HStack>
         <HStack gap={1} flexShrink={0}>
+          <ShareImagePopover />
           <ImportDialog />
           <SharePopover />
           <ColorModeButton />
