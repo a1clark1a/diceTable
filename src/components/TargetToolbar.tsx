@@ -193,6 +193,10 @@ export function TargetToolbar() {
         gap={2}
         minH={{ base: '44px', md: '46px' }}
         minW={0}
+        // Where the bar has room the groups keep their natural width and the
+        // bar wraps them whole; only on a narrow screen do they shrink and
+        // fold inside themselves onto a second line of chips.
+        flexShrink={{ base: 1, xl: 0 }}
         flexWrap="wrap"
       >
         <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
@@ -200,7 +204,9 @@ export function TargetToolbar() {
             <ParamLabel color="blue.fg">Target</ParamLabel>
           </HelpTerm>
         </Box>
-        <NativeSelect.Root size="sm" maxW="150px" minW="110px" flexShrink={1}>
+        {/* "≥ at least" needs about 115px; the old 150 padded the widest
+            fixed control in the row for no gain. */}
+        <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
           <NativeSelect.Field
             value={target.ruling}
             onChange={(e) => {
@@ -284,6 +290,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       minH={{ base: '44px', md: '46px' }}
       ps={3}
       minW={0}
+      flexShrink={{ base: 1, xl: 0 }}
       flexWrap="wrap"
     >
       <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
