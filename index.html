@@ -18,7 +18,12 @@
     <!-- Applies the saved color mode before first paint so the pre-mount frame
          matches the app instead of flashing white. Mirrors next-themes exactly
          ("theme" storage key, class strategy, system fallback); the provider
-         takes over the class on mount. -->
+         takes over the class on mount. The second block mirrors the other thing
+         the first frame can get wrong: TablePage hides the hero once the table
+         has rolls, and the store hydrates synchronously, so without this a
+         returning visitor watches the preboot hero paint and vanish. Either
+         read failing leaves the hero visible, which is the empty-table state a
+         first visit and a crawler both get. -->
     <script>
       (function () {
         try {
@@ -32,6 +37,14 @@
           }
         } catch (_) {
           /* storage blocked: stay light */
+        }
+        try {
+          var saved = localStorage.getItem('dicetable.v2');
+          if (saved && JSON.parse(saved).value.expressions.length > 0) {
+            document.documentElement.classList.add('has-rolls');
+          }
+        } catch (_) {
+          /* storage blocked or malformed: show the hero */
         }
       })();
     </script>
@@ -58,7 +71,7 @@
         max-width: 1200px;
         margin: 0 auto;
         /* navbar height + page padding, so the copy lands where TablePage renders it */
-        padding: 69px 12px 12px;
+        padding: 64px 12px 12px;
         font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
           Helvetica, Arial, sans-serif;
         color: #22221f;
@@ -73,6 +86,15 @@
         font-weight: 600;
         letter-spacing: -0.025em;
       }
+      html.has-rolls .preboot h1,
+      html.has-rolls .preboot p {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+      }
       .preboot p {
         margin: 4px 0 0;
         font-size: 1rem;
@@ -84,7 +106,7 @@
       }
       @media (min-width: 48em) {
         .preboot {
-          padding: 81px 24px 24px;
+          padding: 76px 24px 24px;
         }
         .preboot h1 {
           font-size: 1.25rem;
@@ -128,9 +150,12 @@
   <body>
     <!-- Pre-mount hero: the only homepage content non-JS crawlers see, styled
          by the inline .preboot rules above so the pre-React paint matches the
-         app. React clears #root and renders TablePage on mount, which mirrors
-         this copy. Keep the two strings in sync with TablePage to avoid a
-         content flash. -->
+         app. React clears #root and renders TablePage on mount, which shows
+         this same copy while the table is empty and keeps the h1 in the
+         accessibility tree once it has rows. The has-rolls class set above
+         clips this copy in the case where the mounted app will hide it, so
+         either way the pre-mount paint matches what mounts. Keep the two
+         strings in sync with TablePage to avoid a content flash. -->
     <div id="root">
       <main class="preboot">
         <h1>Compare dice rolls side by side</h1>

@@ -28,6 +28,7 @@ import {
 import { useApp } from '../state/useApp';
 import { isTotalsMode } from '../engine/expression';
 import { effectiveChartView, targetViewAvailable } from './chart/effectiveView';
+import { ParamLabel } from './ParamLabel';
 import {
   MAX_EXPRESSIONS,
   type ChartView,
@@ -130,10 +131,7 @@ function Segmented({
 }: SegmentedProps) {
   return (
     <Box
-      gap={0}
-      p={1}
-      bg="bg.subtle"
-      borderRadius="md"
+      gap={1}
       role="group"
       aria-label={groupLabel}
       // Stretching is only worth it on a phone. Left on up to the 768px
@@ -152,14 +150,21 @@ function Segmented({
           <Tooltip key={o.value} content={o.tip}>
             <Button
               size="sm"
-              variant={isActive ? 'solid' : 'ghost'}
+              variant={isActive ? 'solid' : 'plain'}
               colorPalette={isActive ? 'blue' : 'gray'}
               onClick={() => onSelect(o.value)}
               aria-pressed={isActive}
               aria-label={o.ariaLabel}
-              minH="40px"
-              px={{ base: 2, md: 3 }}
-              fontSize={{ base: 'xs', md: 'sm' }}
+              // Height, not minH: the sm recipe pins h to 36px, which wins over
+              // any smaller floor. Phones keep the 40px touch target.
+              h={{ base: '40px', md: '24px' }}
+              px={3}
+              borderRadius="sm"
+              fontSize="12px"
+              fontWeight="500"
+              // plain defines no hover of its own, so an unselected chip would
+              // have no affordance at all.
+              _hover={{ bg: isActive ? 'colorPalette.solid/90' : 'bg.subtle' }}
             >
               {o.label}
             </Button>
@@ -270,6 +275,7 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
       zIndex={2}
       bg="bg"
       py={2}
+      minH="46px"
       borderBottomWidth="1px"
       // Not border.subtle: rows scrolling under a sticky bar need a visible
       // edge or the top one looks like it is bleeding into the toolbar.
@@ -278,16 +284,9 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
       <Flex gap={2} rowGap={2} align="center" wrap="wrap">
         {showChartView && (
           <>
-            <Text
-              display={{ base: 'none', md: 'inline' }}
-              fontSize="xs"
-              fontWeight="semibold"
-              color="fg.muted"
-              textTransform="uppercase"
-              letterSpacing="wider"
-            >
-              View
-            </Text>
+            <Box display={{ base: 'none', md: 'inline-flex' }}>
+              <ParamLabel>View</ParamLabel>
+            </Box>
             <Segmented
               options={chartOptions}
               active={effectiveView}
@@ -305,19 +304,12 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
           <>
             {hasRows && (
               <>
-                <Text
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  color="fg.muted"
-                  textTransform="uppercase"
-                  letterSpacing="wider"
-                  whiteSpace="nowrap"
-                >
+                <ParamLabel>
                   <HelpTerm tip={tipForId('globalRollMode')}>
                     Roll mode
                   </HelpTerm>
                   {mixed ? ' (mixed)' : ''}
-                </Text>
+                </ParamLabel>
                 <Segmented
                   options={ROLL_MODES}
                   active={activeMode}

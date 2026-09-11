@@ -4,6 +4,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import {
+  Box,
   HStack,
   IconButton,
   Input,
@@ -20,6 +21,7 @@ import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
+import { PARAM_LABEL_GUTTER, ParamLabel } from './ParamLabel';
 
 // Clamping in parse means the duplicate and cap checks below run on the value
 // the store will actually keep, rather than on a raw draft the store then
@@ -126,26 +128,17 @@ export function TargetToolbar() {
     <Stack gap={2}>
       <HStack
         gap={2}
-        px={3}
-        py={2}
-        bg="bg.panel"
-        borderWidth="1px"
-        borderColor="border.subtle"
-        borderRadius="md"
+        minH="46px"
+        ps={3}
+        borderLeftWidth="3px"
+        borderLeftColor="transparent"
         flexWrap="wrap"
       >
-        <HelpTerm tip={tipForId('target')}>
-          <Text
-            as="span"
-            fontSize="xs"
-            fontWeight="semibold"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="wider"
-          >
-            Target
-          </Text>
-        </HelpTerm>
+        <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
+          <HelpTerm tip={tipForId('target')}>
+            <ParamLabel>Target</ParamLabel>
+          </HelpTerm>
+        </Box>
         <NativeSelect.Root size="sm" maxW="180px">
           <NativeSelect.Field
             value={target.ruling}
@@ -240,28 +233,17 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
   return (
     <HStack
       gap={2}
-      px={3}
-      py={2}
-      bg="bg.panel"
-      borderWidth="1px"
-      borderColor="border.subtle"
+      minH="46px"
+      ps={3}
       borderLeftWidth="3px"
       borderLeftColor="purple.solid"
-      borderRadius="md"
       flexWrap="wrap"
     >
-      <HelpTerm tip={tipForId('poolTarget')}>
-        <Text
-          as="span"
-          fontSize="xs"
-          fontWeight="semibold"
-          color="purple.fg"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          Pool target
-        </Text>
-      </HelpTerm>
+      <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
+        <HelpTerm tip={tipForId('poolTarget')}>
+          <ParamLabel color="purple.fg">Pool target</ParamLabel>
+        </HelpTerm>
+      </Box>
       <Wrap gap={1} flexShrink={1}>
         {poolTargets.map((v) => (
           <WrapItem key={v}>

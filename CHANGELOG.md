@@ -8,7 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- New colour palette, in both light and dark. The page ground is now a warm off-white (a near-black in dark mode) with panels raised a step above it, so the table, the chart cards and the toolbars read as separate surfaces instead of a stack of near-identical off-whites. Text, borders, the blue and purple accents, and the green / amber / red hit ramp all moved with it, and every colour that carries text clears the 4.5:1 contrast floor in both modes. The exported share image follows the same palette, so a saved picture looks like the app it came from.
+- New color palette, in both light and dark. The page ground is now a warm off-white (a near-black in dark mode) with panels raised a step above it, so the table, the chart cards and the toolbars read as separate surfaces instead of a stack of near-identical off-whites. Text, borders, the blue and purple accents, and the green / amber / red hit ramp all moved with it, and every color that carries text clears the 4.5:1 contrast floor in both modes. The exported share image follows the same palette, so a saved picture looks like the app it came from.
+- Quieter chrome. The bar carrying the DiceTable mark is a fixed 52px with the page links beside it, and the Target and Pool target rows lost their boxes, lining up against a shared label column instead of sitting in separate cards. The roll mode and chart view chips are shorter and lost their gray track, so the one that is selected is the only one with a fill.
+- The page heading now shows only while the table is empty. Once there are rolls the space goes to the table instead, and the heading stays in the page for screen readers and search engines.
 
 ### Fixed
 

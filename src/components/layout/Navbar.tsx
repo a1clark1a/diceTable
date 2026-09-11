@@ -1,4 +1,4 @@
-import { Box, Heading, HStack, Image } from '@chakra-ui/react';
+import { Box, HStack, Image, Text } from '@chakra-ui/react';
 import { NavLink } from 'react-router-dom';
 import { ColorModeButton } from '../ui/color-mode';
 import { ImportDialog } from '../share/ImportDialog';
@@ -20,23 +20,35 @@ export function Navbar() {
     <Box
       as="header"
       px={{ base: 3, md: 6 }}
-      py={2}
+      minH="52px"
+      display="flex"
+      alignItems="center"
       borderBottomWidth="1px"
       borderColor="border.subtle"
-      bg="bg.subtle"
+      bg="bg.panel"
     >
-      <HStack justify="space-between" gap={3}>
-        <HStack gap={{ base: 2, md: 4 }} minW={0}>
+      <HStack justify="space-between" gap={3} w="100%">
+        <HStack gap={{ base: 2, md: 3 }} minW={0}>
           <HStack gap={2} flexShrink={0}>
             <Image src="/favicon.svg" alt="" boxSize={{ base: 7, md: 8 }} />
-            <Heading
-              size={{ base: 'md', md: 'lg' }}
-              letterSpacing="tight"
+            {/* A wordmark, not a heading: TablePage owns the page's only h1. */}
+            <Text
+              as="span"
+              fontSize="14px"
+              fontWeight="600"
+              letterSpacing="-0.01em"
               display={{ base: 'none', sm: 'block' }}
             >
               DiceTable
-            </Heading>
+            </Text>
           </HStack>
+          <Box
+            w="1px"
+            h="24px"
+            bg="border.subtle"
+            flexShrink={0}
+            display={{ base: 'none', sm: 'block' }}
+          />
           <HStack as="nav" gap={1} aria-label="Primary">
             {NAV_ITEMS.map((item) => (
               <NavLink
@@ -53,8 +65,8 @@ export function Navbar() {
                     display="inline-flex"
                     alignItems="center"
                     justifyContent="center"
-                    fontSize="sm"
-                    fontWeight="medium"
+                    fontSize="13px"
+                    fontWeight="500"
                     color={isActive ? 'fg' : 'fg.muted'}
                     borderBottomWidth="2px"
                     borderColor={

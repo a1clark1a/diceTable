@@ -90,7 +90,9 @@ export default function TablePage() {
         description="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
         path="/"
       />
-      <Stack gap={1}>
+      {/* srOnly rather than a conditional: the h1 stays mounted whatever the
+          table holds, so / never loses its only heading. */}
+      <Stack gap={1} srOnly={expressions.length > 0}>
         <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
           Compare dice rolls side by side
         </Heading>
