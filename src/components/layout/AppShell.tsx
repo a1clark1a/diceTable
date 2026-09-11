@@ -14,10 +14,12 @@ export function AppShell() {
           maxW="1440px"
           mx="auto"
           w="100%"
-          // A definite height, not a floor: a view can only divide the shell's
-          // remaining space and scroll inside itself if there is a real height
-          // to divide. Taller pages overflow this box and main scrolls them.
-          h="100%"
+          minH="100%"
+          // A definite height only where a view divides it and scrolls inside
+          // itself, which is the two-column table layout at xl. Below that
+          // nothing scrolls internally, so a fixed height would clip the page
+          // and leave its sections painting over each other.
+          h={{ base: 'auto', xl: '100%' }}
           display="flex"
           flexDirection="column"
           px={{ base: 3, md: 6 }}
