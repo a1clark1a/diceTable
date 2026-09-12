@@ -47,6 +47,9 @@ export function ScrollButtons({ chartRef }: ScrollButtonsProps) {
           onClick={onTop}
           h="32px"
           minW="32px"
+          // Above the split the table scrolls inside its own box, so these
+          // controls never leave the screen and there is nothing to return to.
+          display={{ base: 'inline-flex', '2xl': 'none' }}
         >
           <ArrowUp size={16} />
         </IconButton>

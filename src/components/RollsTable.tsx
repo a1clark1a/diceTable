@@ -77,13 +77,24 @@ const CELL_RHYTHM = {
   '& td, & th': { paddingTop: '1.5', paddingBottom: '1.5', paddingInline: '2' },
 } as const;
 
+// Every declaration here has to target the cells rather than the row. Chakra's
+// own th rule sets color and font-weight, and a value inherited from the row
+// loses to it, which is how the labels ended up fg at weight 500.
+// The background belongs on the cells for a second reason: a sticky th paints
+// over the rows arriving beneath it, and a transparent one lets them through.
 const COLUMN_HEADER_TYPE = {
-  fontFamily: 'mono',
-  fontSize: '11px',
-  fontWeight: '600',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  color: 'fg.muted',
+  '& th': {
+    fontFamily: 'mono',
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: 'fg.muted',
+    position: 'sticky',
+    top: 0,
+    zIndex: 1,
+    bg: 'bg.subtle',
+  },
 } as const;
 
 // Uppercasing is a CSS transform, so anything that is already a distinct
@@ -166,18 +177,22 @@ export function RollsTable() {
   );
 
   return (
-    <Stack gap={3}>
+    <Stack gap={3} minH={0} flex={{ base: '0 1 auto', '2xl': 1 }}>
       <Box
         bg="bg.panel"
         borderBottomWidth="1px"
         borderColor="border.subtle"
         flex="0 1 auto"
+        // Shrinking below its rows is what moves the scroll inside the box,
+        // so the toolbar and the row actions above it stay put instead of
+        // riding the page up out of reach.
+        minH={{ '2xl': 0 }}
         overflow="hidden"
       >
         {/* Tables cannot shrink below min-content; without a scroll fallback
             the overflow:hidden panel would clip the rightmost columns
             unreachably at narrow desktop widths. */}
-        <Table.ScrollArea>
+        <Table.ScrollArea h={{ base: 'auto', '2xl': '100%' }}>
           <Table.Root size="sm" variant="line" striped={false} css={CELL_RHYTHM}>
           <Table.Header css={COLUMN_HEADER_TYPE}>
             <Table.Row bg="bg.subtle">

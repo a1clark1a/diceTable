@@ -54,7 +54,10 @@ export default function TablePage() {
               '2xl': `minmax(0, ${tableWidth}px) auto minmax(${RAIL_MIN}px, 1fr)`,
             }}
           >
-            <Stack gap={3} minW={0} minH={0} overflowY={{ '2xl': 'auto' }}>
+            {/* The column itself no longer scrolls: the table box inside it
+                does, so the parameters row and the row actions stay in place
+                while the rolls move under them. */}
+            <Stack gap={3} minW={0} minH={0}>
               <TargetToolbar />
               <Flex
                 gap={3}
