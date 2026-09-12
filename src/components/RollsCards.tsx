@@ -26,9 +26,7 @@ import {
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
-  CheckBadge,
   CheckSucceedsChip,
-  PoolBadge,
   ExpressionModeToggle,
   PoolThresholdEditor,
 } from './editor/PoolControls';
@@ -371,8 +369,6 @@ const RollCard = memo(function RollCard({
               </Badge>
             </Tooltip>
           )}
-          {isPool && <PoolBadge />}
-          {isCheck && <CheckBadge />}
           <Text
             fontFamily="mono"
             fontSize="xs"

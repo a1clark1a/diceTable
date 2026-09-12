@@ -25,9 +25,7 @@ import {
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
-  CheckBadge,
   CheckSucceedsChip,
-  PoolBadge,
   ExpressionModeToggle,
   PoolThresholdEditor,
 } from './editor/PoolControls';
@@ -470,20 +468,11 @@ const RollTableRow = memo(function RollTableRow({
         bg={baselineAccent ? 'bg.subtle' : undefined}
         _hover={{ bg: 'bg.subtle' }}
       >
-        {/* Transparent border on sum rows keeps every row's left edge aligned;
-            pool and check rows tint it as their identity band. A mode band wins
-            over the baseline band so a pinned row never hides its scale cue. */}
+        {/* The band means one thing: this is the pinned row. Transparent on
+            every other row so the left edges still line up. */}
         <Table.Cell
           borderLeftWidth="3px"
-          borderLeftColor={
-            isPool
-              ? 'purple.solid'
-              : isCheck
-                ? 'orange.solid'
-                : baselineAccent
-                  ? 'blue.solid'
-                  : 'transparent'
-          }
+          borderLeftColor={baselineAccent ? 'blue.solid' : 'transparent'}
         >
           <HStack gap={2} minW="150px">
             <Box
@@ -511,8 +500,6 @@ const RollTableRow = memo(function RollTableRow({
                 </Badge>
               </Tooltip>
             )}
-            {isPool && <PoolBadge />}
-            {isCheck && <CheckBadge />}
           </HStack>
         </Table.Cell>
         <Table.Cell>
@@ -791,15 +778,7 @@ const RollTableRow = memo(function RollTableRow({
             p={0}
             bg="bg.subtle"
             borderLeftWidth="3px"
-            borderLeftColor={
-              isPool
-                ? 'purple.solid'
-                : isCheck
-                  ? 'orange.solid'
-                  : baselineAccent
-                    ? 'blue.solid'
-                    : 'transparent'
-            }
+            borderLeftColor={baselineAccent ? 'blue.solid' : 'transparent'}
           >
             <RollExpand expression={expr} />
           </Table.Cell>
