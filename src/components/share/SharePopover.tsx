@@ -25,6 +25,7 @@ import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { toaster } from './toaster-store';
 import { useShareImage } from '../../share/image/useShareImage';
+import { tapTarget } from '../tapTarget';
 
 async function writeToClipboard(text: string): Promise<boolean> {
   if (
@@ -130,6 +131,7 @@ export function SharePopover() {
             size="sm"
             colorPalette="gray"
             disabled={disabled}
+            h={tapTarget('36px')}
             aria-label="Share rolls"
           >
             <Share2 size={16} />

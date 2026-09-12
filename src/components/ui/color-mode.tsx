@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from "next-themes"
 import type { ThemeProviderProps } from "next-themes"
 import * as React from "react"
 import { Moon as LuMoon, Sun as LuSun } from "lucide-react"
+import { tapTarget } from '../tapTarget';
 
 export type ColorModeProviderProps = ThemeProviderProps
 
@@ -59,6 +60,8 @@ export const ColorModeButton = React.forwardRef<
       <IconButton
         onClick={toggleColorMode}
         variant="ghost"
+        h={tapTarget('36px')}
+        minW={tapTarget('36px')}
         aria-label="Toggle color mode"
         size="sm"
         ref={ref}

@@ -54,6 +54,7 @@ import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { FlushedInput } from './FlushedInput';
+import { tapTarget } from './tapTarget';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
@@ -141,6 +142,7 @@ export function RollsCards() {
           variant="outline"
           borderStyle="dashed"
           width="100%"
+          h={tapTarget('36px')}
           onClick={addExpression}
           disabled={atCap}
         >
@@ -325,6 +327,7 @@ const RollCard = memo(function RollCard({
             onKeyDown={nameBuf.onKeyDown}
             flex="1"
             minW={0}
+            h={tapTarget('36px')}
             aria-label="Roll name"
           />
           <IconButton
@@ -334,6 +337,8 @@ const RollCard = memo(function RollCard({
             colorPalette={isBaseline ? 'blue' : 'gray'}
             onClick={onTogglePin}
             title={tipForId(isBaseline ? 'baselinePinActive' : 'baselinePin')}
+            h={tapTarget('36px')}
+            minW={tapTarget('36px')}
             flexShrink={0}
           >
             <Pin size={14} fill={isBaseline ? 'currentColor' : 'none'} />
@@ -344,6 +349,8 @@ const RollCard = memo(function RollCard({
             variant="ghost"
             onClick={onToggleExpand}
             title={expanded ? 'Collapse' : 'Expand'}
+            h={tapTarget('36px')}
+            minW={tapTarget('36px')}
             flexShrink={0}
           >
             <Box
@@ -361,6 +368,8 @@ const RollCard = memo(function RollCard({
             colorPalette="red"
             onClick={onDelete}
             title="Delete"
+            h={tapTarget('36px')}
+            minW={tapTarget('36px')}
             flexShrink={0}
           >
             <Trash2 size={14} />
@@ -420,6 +429,7 @@ const RollCard = memo(function RollCard({
               onBlur={modBuf.onBlur}
               onKeyDown={modBuf.onKeyDown}
               maxW="64px"
+              h={tapTarget('32px')}
               textAlign="end"
               fontFamily="mono"
               aria-label="Modifier"

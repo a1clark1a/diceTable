@@ -24,6 +24,7 @@ import { detectAndDecode, type DecodeError } from '../../share/decode';
 import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { toaster } from './toaster-store';
+import { tapTarget } from '../tapTarget';
 
 const MAX_FILE_BYTES = 1_000_000;
 
@@ -160,6 +161,7 @@ export function ImportDialog() {
             variant="ghost"
             size="sm"
             colorPalette="gray"
+            h={tapTarget('36px')}
             aria-label="Import rolls"
           >
             <FileInput size={16} />

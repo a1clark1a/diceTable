@@ -24,6 +24,7 @@ import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
 import { PARAM_LABEL_GUTTER, ParamLabel } from './ParamLabel';
 import { RollModeControl } from './RollModeControl';
+import { tapTarget } from './tapTarget';
 
 // Clamping in parse means the duplicate and cap checks below run on the value
 // the store will actually keep, rather than on a raw draft the store then
@@ -60,8 +61,8 @@ function AddTargetInput({
         onBlur={commitDraft}
         onKeyDown={onKeyDown}
         disabled={isFull}
-        w="36px"
-        h="28px"
+        w={tapTarget('36px')}
+        h={tapTarget('28px')}
         px={0}
         flexShrink={0}
         textAlign="center"
@@ -213,6 +214,7 @@ export function TargetToolbar() {
             fixed control in the row for no gain. */}
         <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
           <NativeSelect.Field
+            h={tapTarget('36px')}
             borderColor="border.subtle"
             value={target.ruling}
             onChange={(e) => {
@@ -401,6 +403,8 @@ function TargetChip({
           variant="ghost"
           onClick={onRemove}
           title={`Remove ${noun}`}
+          h={tapTarget('24px')}
+          minW={tapTarget('24px')}
         >
           <X size={12} />
         </IconButton>
