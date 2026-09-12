@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Target and Pool target are one line each on a phone. Five of each wrapped to four rows of chips and pushed the first roll 553px down the screen, and that cost grew with every target added. Each group now shows what it is set to on a single line that never changes height, with Edit opening a sheet from the bottom where the chips have room to breathe. The first roll starts 184px higher. A wider screen keeps the controls inline as before.
 - Controls are finger-sized on a phone. Removing a target was a 24px cross, adding one a 28px box, and the roll button, the Sum / Pool / Check chips and the modifier field were all around 32px, which is below what a fingertip reliably hits. Everything you tap is at least 40px there now, and goes back to its compact size once the table takes over on a wider screen. Terms with an explanation on them, and numbers you tap to inspect, are left at their text size: they sit inside sentences and cannot grow without breaking the line.
 - Chart gridlines are plain hairlines again. They were dashed, and the rolls themselves are told apart by their dash pattern, so a flat roll sitting near a gridline was hard to pick out from one.
 - The target row keeps its shape on a phone. When a second target made the row too long to fit, the chips dropped to the next line and started under the Target label instead of under the control above them.

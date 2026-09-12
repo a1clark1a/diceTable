@@ -7,6 +7,7 @@ import {
   Box,
   Flex,
   HStack,
+  Stack,
   IconButton,
   Input,
   NativeSelect,
@@ -25,6 +26,8 @@ import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMet
 import { PARAM_LABEL_GUTTER, ParamLabel } from './ParamLabel';
 import { RollModeControl } from './RollModeControl';
 import { tapTarget } from './tapTarget';
+import { ParamSheet } from './ParamSheet';
+import { useIsDesktop } from '../hooks/useBreakpoint';
 
 // Clamping in parse means the duplicate and cap checks below run on the value
 // the store will actually keep, rather than on a raw draft the store then
@@ -144,6 +147,7 @@ function useTargetDraft(
 }
 
 export function TargetToolbar() {
+  const isDesktop = useIsDesktop();
   const { target, setTarget, expressions, poolTargets, setPoolTargets } =
     useApp();
   const hasPoolRow = expressions.some((e) => e.mode === 'pool');
@@ -178,6 +182,61 @@ export function TargetToolbar() {
           : 'Pool rows use the pool target below.'
         : 'Add a target to show Hit % per row.';
 
+  // Defined once and rendered in both the inline row and the sheet, so the two
+  // layouts can never drift apart.
+  const targetLabel = (
+    <HelpTerm tip={tipForId('target')}>
+      <ParamLabel color="blue.fg">Target</ParamLabel>
+    </HelpTerm>
+  );
+  const targetRuling = (
+    // "≥ at least" needs about 115px; the old 150 padded the widest fixed
+    // control in the row for no gain.
+    <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
+      <NativeSelect.Field
+        h={tapTarget('36px')}
+        borderColor="border.subtle"
+        value={target.ruling}
+        onChange={(e) => {
+          if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
+        }}
+        aria-label="Target ruling"
+        title="How to compare each roll to the target."
+      >
+        {RULING_OPTIONS.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.shortLabel}
+          </option>
+        ))}
+      </NativeSelect.Field>
+      <NativeSelect.Indicator />
+    </NativeSelect.Root>
+  );
+  const targetValues = (
+    <Wrap gap={1} minW={0} align="center">
+      {target.values.map((v) => (
+        <WrapItem key={v}>
+          <TargetChip
+            ruling={target.ruling}
+            value={v}
+            onRemove={() => removeValue(v)}
+          />
+        </WrapItem>
+      ))}
+      <WrapItem>
+        <AddTargetInput
+          draft={draft}
+          setDraft={setDraft}
+          commitDraft={commitDraft}
+          onKeyDown={onKeyDown}
+          isFull={isFull}
+          hint={hint}
+          ariaLabel="Add target value"
+        />
+      </WrapItem>
+    </Wrap>
+  );
+
   return (
     <Flex
       columnGap={{ base: 2, xl: 6 }}
@@ -190,6 +249,46 @@ export function TargetToolbar() {
       // painted over the table underneath.
       flexShrink={0}
     >
+      {/* Below md this group is a summary line with its editor in a sheet; the
+          inline version needs the room only a wider screen has. Branching here
+          rather than with display keeps one copy of each control in the DOM. */}
+      {!isDesktop && (
+      <Box w="100%">
+        <ParamSheet
+          label={targetLabel}
+          summary={
+            target.values.length === 0 ? (
+              <Text fontSize="xs" color="fg.muted">
+                None set
+              </Text>
+            ) : (
+              <>
+                <RulingSymbol ruling={target.ruling} color="blue.fg" />
+                <Text
+                  fontSize="xs"
+                  color="fg"
+                  truncate
+                  style={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {target.values.join('  ')}
+                </Text>
+              </>
+            )
+          }
+          title="Targets"
+          editLabel="Edit targets"
+        >
+          <Stack gap={4}>
+            {targetRuling}
+            {targetValues}
+            <Text fontSize="xs" color="fg.muted">
+              {hint}
+            </Text>
+          </Stack>
+        </ParamSheet>
+      </Box>
+      )}
+      {isDesktop && (
       <HStack
         gap={2}
         minH={{ base: '44px', md: '46px' }}
@@ -201,60 +300,18 @@ export function TargetToolbar() {
         flexWrap="wrap"
       >
         <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
-          <HelpTerm tip={tipForId('target')}>
-            <ParamLabel color="blue.fg">Target</ParamLabel>
-          </HelpTerm>
+          {targetLabel}
         </Box>
         {/* The ruling and the chips share one column beside the label. Left
             as siblings of the gutter they wrap to the row's own left edge on a
             narrow screen, so the chips landed under the label instead of under
             the control above them. */}
         <HStack gap={2} minW={0} flex="1" flexWrap="wrap" align="center">
-        {/* "≥ at least" needs about 115px; the old 150 padded the widest
-            fixed control in the row for no gain. */}
-        <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
-          <NativeSelect.Field
-            h={tapTarget('36px')}
-            borderColor="border.subtle"
-            value={target.ruling}
-            onChange={(e) => {
-              if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
-            }}
-            aria-label="Target ruling"
-            title="How to compare each roll to the target."
-          >
-            {RULING_OPTIONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.shortLabel}
-              </option>
-            ))}
-          </NativeSelect.Field>
-          <NativeSelect.Indicator />
-        </NativeSelect.Root>
-        <Wrap gap={1} minW={0} align="center">
-          {target.values.map((v) => (
-            <WrapItem key={v}>
-              <TargetChip
-                ruling={target.ruling}
-                value={v}
-                onRemove={() => removeValue(v)}
-              />
-            </WrapItem>
-          ))}
-          <WrapItem>
-            <AddTargetInput
-              draft={draft}
-              setDraft={setDraft}
-              commitDraft={commitDraft}
-              onKeyDown={onKeyDown}
-              isFull={isFull}
-              hint={hint}
-              ariaLabel="Add target value"
-            />
-          </WrapItem>
-        </Wrap>
+          {targetRuling}
+          {targetValues}
         </HStack>
       </HStack>
+      )}
       {hasPoolRow && (
         <PoolTargetRow
           poolTargets={poolTargets}
@@ -277,6 +334,7 @@ interface PoolTargetRowProps {
 }
 
 function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
+  const isDesktop = useIsDesktop();
   const isFull = poolTargets.length >= MAX_TARGETS;
   const { draft, setDraft, commitDraft, onKeyDown } = useTargetDraft(
     poolTargets,
@@ -298,58 +356,99 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       ? 'Hit % on pool rows uses these counts.'
       : 'Add another count to compare thresholds side by side.';
 
-  return (
-    <HStack
-      gap={2}
-      minH={{ base: '44px', md: '46px' }}
-      // Only a separator while the groups sit side by side. Once the bar folds
-      // this row starts its own line, and the padding would push its label out
-      // of the shared gutter the target row above it uses.
-      ps={{ base: 0, xl: 3 }}
-      minW={0}
-      flexShrink={{ base: 1, xl: 0 }}
-      flexWrap="wrap"
-    >
-      <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
-        <HelpTerm tip={tipForId('poolTarget')}>
-          <ParamLabel color="purple.fg">Pool target</ParamLabel>
-        </HelpTerm>
-      </Box>
-      <Wrap gap={1} minW={0} align="center">
-        {poolTargets.map((v) => (
-          <WrapItem key={v}>
-            <TargetChip
-              ruling="gte"
-              value={v}
-              variant="pool"
-              // The list never empties, so the last threshold keeps no remove
-              // control rather than offering one that refuses.
-              onRemove={
-                poolTargets.length > 1 ? () => removeValue(v) : undefined
-              }
-            />
-          </WrapItem>
-        ))}
-        {/* The unit reads as part of the values it counts, so it sits with
-            them rather than trailing the add control. */}
-        <WrapItem>
-          <Text fontSize="xs" color="fg.muted">
-            successes
-          </Text>
-        </WrapItem>
-        <WrapItem>
-          <AddTargetInput
-            draft={draft}
-            setDraft={setDraft}
-            commitDraft={commitDraft}
-            onKeyDown={onKeyDown}
-            isFull={isFull}
-            hint={hint}
-            ariaLabel="Add pool target"
+  const label = (
+    <HelpTerm tip={tipForId('poolTarget')}>
+      <ParamLabel color="purple.fg">Pool target</ParamLabel>
+    </HelpTerm>
+  );
+  const values = (
+    <Wrap gap={1} minW={0} align="center">
+      {poolTargets.map((v) => (
+        <WrapItem key={v}>
+          <TargetChip
+            ruling="gte"
+            value={v}
+            variant="pool"
+            // The list never empties, so the last threshold keeps no remove
+            // control rather than offering one that refuses.
+            onRemove={poolTargets.length > 1 ? () => removeValue(v) : undefined}
           />
         </WrapItem>
-      </Wrap>
-    </HStack>
+      ))}
+      {/* The unit reads as part of the values it counts, so it sits with them
+          rather than trailing the add control. */}
+      <WrapItem>
+        <Text fontSize="xs" color="fg.muted">
+          successes
+        </Text>
+      </WrapItem>
+      <WrapItem>
+        <AddTargetInput
+          draft={draft}
+          setDraft={setDraft}
+          commitDraft={commitDraft}
+          onKeyDown={onKeyDown}
+          isFull={isFull}
+          hint={hint}
+          ariaLabel="Add pool target"
+        />
+      </WrapItem>
+    </Wrap>
+  );
+
+  return (
+    <>
+      {!isDesktop && (
+      <Box w="100%">
+        <ParamSheet
+          label={label}
+          summary={
+            <>
+              <RulingSymbol ruling="gte" color="purple.fg" />
+              <Text
+                fontSize="xs"
+                color="fg"
+                truncate
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {poolTargets.join('  ')}
+              </Text>
+              <Text fontSize="xs" color="fg.muted">
+                successes
+              </Text>
+            </>
+          }
+          title="Pool targets"
+          editLabel="Edit pool targets"
+        >
+          <Stack gap={4}>
+            {values}
+            <Text fontSize="xs" color="fg.muted">
+              {hint}
+            </Text>
+          </Stack>
+        </ParamSheet>
+      </Box>
+      )}
+      {isDesktop && (
+      <HStack
+        gap={2}
+        minH={{ base: '44px', md: '46px' }}
+        // Only a separator while the groups sit side by side. Once the bar
+        // folds this row starts its own line, and the padding would push its
+        // label out of the shared gutter the target row above it uses.
+        ps={{ base: 0, xl: 3 }}
+        minW={0}
+        flexShrink={{ base: 1, xl: 0 }}
+        flexWrap="wrap"
+      >
+        <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
+          {label}
+        </Box>
+        {values}
+      </HStack>
+      )}
+    </>
   );
 }
 
