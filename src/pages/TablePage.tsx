@@ -85,13 +85,17 @@ export default function TablePage() {
               >
                 <BaselineCaption />
                 <Flex gap={2} align="center" ms="auto">
-                  <ChartViewChips
-                    surface="shape"
-                    active={effectiveChartView(chartViews.shape, shapeHasTarget)}
-                    hasTarget={shapeHasTarget}
-                    groupLabel="Shape column view"
-                    density="24px"
-                  />
+                  {/* Below md the sticky toolbar carries these instead, so
+                      they stay reachable while the rolls scroll. */}
+                  <Box display={{ base: 'none', md: 'flex' }}>
+                    <ChartViewChips
+                      surface="shape"
+                      active={effectiveChartView(chartViews.shape, shapeHasTarget)}
+                      hasTarget={shapeHasTarget}
+                      groupLabel="Shape column view"
+                      density="24px"
+                    />
+                  </Box>
                   <RowActions />
                   <ScrollButtons chartRef={chartRef} />
                 </Flex>

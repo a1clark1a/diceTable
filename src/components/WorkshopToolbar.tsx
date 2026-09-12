@@ -28,6 +28,11 @@ import { ExamplesDialog } from './presets/ExamplesDialog';
 import { ClearAllDialog } from './ClearAllDialog';
 import { Tooltip } from './ui/tooltip';
 import { useIsDesktop } from '../hooks/useBreakpoint';
+import { ChartViewChips } from './chart/ChartViewChips';
+import {
+  effectiveChartView,
+  targetViewAvailable,
+} from './chart/effectiveView';
 import {
   ROLL_MODES,
   isRollMode,
@@ -46,6 +51,8 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
     expressions,
     setAllRollModes,
     addExpression,
+    chartViews,
+    target,
   } = useApp();
   const [examplesOpen, setExamplesOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
@@ -129,6 +136,17 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
       borderColor="border"
     >
       <Flex gap={2} rowGap={2} align="center" wrap="wrap">
+        {showChartView && hasRows && (
+          <ChartViewChips
+            surface="shape"
+            active={effectiveChartView(
+              chartViews.shape,
+              targetViewAvailable(target, expressions),
+            )}
+            hasTarget={targetViewAvailable(target, expressions)}
+            groupLabel="Shape column view"
+          />
+        )}
 
         {/* ms="auto" rather than a flexible spacer: it still right-aligns this
             cluster when it wraps onto a row of its own, which is what keeps

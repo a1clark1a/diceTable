@@ -136,9 +136,12 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     seedRows(['normal', 'normal']);
     renderToolbar();
 
-    // Both scroll buttons stay on the bar itself; the chart view control
-    // lives in the chart card headers now.
-    expect(screen.queryByRole('button', { name: 'PMF' })).toBeNull();
+    // Both scroll buttons stay on the bar itself, and so does the chart view
+    // control: on a phone the chart cards sit far below the rolls, so the only
+    // place it stays reachable is the sticky bar.
+    expect(
+      screen.getByRole('button', { name: 'PMF' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Scroll to top' }),
     ).toBeInTheDocument();

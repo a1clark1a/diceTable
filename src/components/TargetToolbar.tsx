@@ -253,7 +253,12 @@ export function TargetToolbar() {
           setPoolTargets={setPoolTargets}
         />
       )}
-      <RollModeControl />
+      {/* Below md the same control is a radio group in the sticky toolbar's
+          overflow menu, so showing it here too spends a line of a phone screen
+          on a duplicate. */}
+      <Box display={{ base: 'none', md: 'contents' }}>
+        <RollModeControl />
+      </Box>
     </Flex>
   );
 }
