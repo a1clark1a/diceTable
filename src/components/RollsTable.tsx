@@ -101,6 +101,17 @@ const COLUMN_HEADER_TYPE = {
   },
 } as const;
 
+// The row actions are pinned to the right edge rather than left to fit. The
+// table's width grows with the number of targets, so no breakpoint can promise
+// this column stays on screen, and it is the one holding delete. Pinning it is
+// the only answer that holds at every width and every target count.
+const STICKY_ACTIONS = {
+  position: 'sticky',
+  right: 0,
+  borderLeftWidth: '1px',
+  borderLeftColor: 'border.subtle',
+} as const;
+
 // Uppercasing is a CSS transform, so anything that is already a distinct
 // glyph or a name the user typed has to opt out of it.
 const KEEP_CASE = { textTransform: 'none' } as const;
@@ -281,7 +292,12 @@ export function RollsTable() {
                   </HStack>
                 </Table.ColumnHeader>
               )}
-              <Table.ColumnHeader textAlign="end" w="140px">
+              <Table.ColumnHeader
+                textAlign="end"
+                w="140px"
+                {...STICKY_ACTIONS}
+                zIndex={2}
+              >
                 {' '}
               </Table.ColumnHeader>
             </Table.Row>
@@ -411,6 +427,10 @@ const RollTableRow = memo(function RollTableRow({
   const deltasActive = comparison !== null && !isBaseline && rowOk;
   const sameScale = comparison === null || isPool === comparison.isPool;
   const baselineAccent = isBaseline && comparison !== null;
+  // The pinned actions cell cannot inherit the row's background, so both
+  // states are named once and used in both places.
+  const rowBg = baselineAccent ? 'bg.muted' : 'bg';
+  const rowHoverBg = baselineAccent ? 'bg.muted' : 'bg.subtle';
   const meanDelta =
     comparison !== null ? stats.mean - comparison.stats.mean : 0;
   const sigmaDelta =
@@ -479,8 +499,13 @@ const RollTableRow = memo(function RollTableRow({
       <Table.Row
         bg={baselineAccent ? 'bg.muted' : undefined}
         // Hover must not wash the pinned tint back out, and bg.subtle is a
-        // step below it, so the pinned row keeps its own colour on hover.
-        _hover={{ bg: baselineAccent ? 'bg.muted' : 'bg.subtle' }}
+        // step below it, so the pinned row keeps its own colour on hover. The
+        // pinned actions cell paints itself, so it has to be repainted here or
+        // it keeps the resting colour while the rest of the row lifts.
+        _hover={{
+          bg: rowHoverBg,
+          '& [data-actions]': { bg: rowHoverBg },
+        }}
       >
         {/* The band means one thing: this is the pinned row. Transparent on
             every other row so the left edges still line up. */}
@@ -737,7 +762,13 @@ const RollTableRow = memo(function RollTableRow({
             )}
           </Table.Cell>
         )}
-        <Table.Cell textAlign="end">
+        <Table.Cell
+          textAlign="end"
+          data-actions=""
+          {...STICKY_ACTIONS}
+          zIndex={1}
+          bg={rowBg}
+        >
           <HStack gap={1} justify="flex-end" align="center">
             {!isPool && (
               <>

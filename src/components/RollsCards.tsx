@@ -5,6 +5,7 @@ import {
   Grid,
   HStack,
   IconButton,
+  SimpleGrid,
   Stack,
   Text,
   type BoxProps,
@@ -105,8 +106,14 @@ export function RollsCards() {
 
   return (
     <Stack gap={2}>
-      {expressions.map((expr, idx) => (
-        <RollCard
+      {/* One column is the phone layout. Above md the cards are the only layout
+          up to the table's own threshold, and a single column there stretches
+          one roll across the whole window: a 965px card at 991px holds a flat
+          sparkline and three tiles sized for a phone. Two columns show twice
+          the rolls at a width each card was designed for. */}
+      <SimpleGrid columns={{ base: 1, md: 2 }} gap={2} alignItems="start">
+          {expressions.map((expr, idx) => (
+          <RollCard
           key={expr.id}
           expr={expr}
           idx={idx}
@@ -122,8 +129,9 @@ export function RollsCards() {
           deleteExpression={deleteExpression}
           renameExpression={renameExpression}
           updateExpression={updateExpression}
-        />
-      ))}
+          />
+          ))}
+      </SimpleGrid>
       <Tooltip
         content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
         disabled={!atCap}

@@ -85,9 +85,18 @@ export default function TablePage() {
               >
                 <BaselineCaption />
                 <Flex gap={2} align="center" ms="auto">
-                  {/* Below md the sticky toolbar carries these instead, so
-                      they stay reachable while the rolls scroll. */}
-                  <Box display={{ base: 'none', md: 'flex' }}>
+                  {/* Below md the sticky toolbar carries these instead. While
+                      the cards are showing they always apply, since every card
+                      draws the shape. Once the table takes over, the shape
+                      column itself waits for xl, and a control whose column is
+                      not on screen is worse than no control. */}
+                  <Box
+                    display={
+                      tableFits
+                        ? { base: 'none', xl: 'flex' }
+                        : { base: 'none', md: 'flex' }
+                    }
+                  >
                     <ChartViewChips
                       surface="shape"
                       active={effectiveChartView(chartViews.shape, shapeHasTarget)}
