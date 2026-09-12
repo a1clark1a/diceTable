@@ -208,6 +208,7 @@ export function TargetToolbar() {
             fixed control in the row for no gain. */}
         <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
           <NativeSelect.Field
+            borderColor="border.subtle"
             value={target.ruling}
             onChange={(e) => {
               if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });

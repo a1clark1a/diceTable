@@ -7,7 +7,7 @@ interface ParamLabelProps {
 }
 
 /** The lead-in label on a parameters bar group: TARGET, POOL TARGET, ROLL MODE. */
-export function ParamLabel({ children, color = 'fg.subtle' }: ParamLabelProps) {
+export function ParamLabel({ children, color = 'fg.muted' }: ParamLabelProps) {
   return (
     <Text
       as="span"
