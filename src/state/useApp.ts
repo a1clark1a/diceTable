@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type {
+  ChartSurface,
   ChartView,
   CheckSpec,
   Expression,
@@ -44,7 +45,7 @@ export type TargetPatch = {
 export interface AppContextValue {
   expressions: Expression[];
   expandedId: string | null;
-  chartView: ChartView;
+  chartViews: Record<ChartSurface, ChartView>;
   target: TargetState;
   view: WorkshopView;
   poolTargets: number[];
@@ -55,7 +56,7 @@ export interface AppContextValue {
   rollOffSort: RollOffSort;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
-  setChartView: (view: ChartView) => void;
+  setChartView: (surface: ChartSurface, view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
   setPoolTargets: (values: number[]) => void;

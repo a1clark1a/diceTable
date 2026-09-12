@@ -1073,7 +1073,7 @@ describe('AppContext row lifecycle', () => {
       expressions: result.current.expressions,
       ui: {
         expandedId: result.current.expandedId,
-        chartView: result.current.chartView,
+        chartViews: result.current.chartViews,
         target: result.current.target,
         view: result.current.view,
         poolTargets: result.current.poolTargets,

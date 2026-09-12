@@ -80,6 +80,13 @@ export type Distribution = Map<number, number>;
 
 export type ChartView = 'pmf' | 'cdf' | 'ccdf' | 'target';
 
+/**
+ * The three places a view is chosen independently: the two comparison chart
+ * panels, and the table's shape column (which the expanded inspect chart
+ * follows, since it is opened from a row).
+ */
+export type ChartSurface = 'totals' | 'successes' | 'shape';
+
 export type WorkshopView = 'table' | 'target' | 'rolloff' | 'matrix';
 
 /** Which shape the Target hit view is drawing its numbers in. */
@@ -110,11 +117,11 @@ export interface TargetState {
 }
 
 export interface PersistedState {
-  version: 5;
+  version: 6;
   expressions: Expression[];
   ui: {
     expandedId: string | null;
-    chartView: ChartView;
+    chartViews: Record<ChartSurface, ChartView>;
     target: TargetState;
     view: WorkshopView;
     poolTargets: number[];

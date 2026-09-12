@@ -1,7 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { Box, Button, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
 import { useApp } from '../../state/useApp';
-import type { ChartView, Distribution } from '../../types';
+import type { ChartSurface, ChartView, Distribution } from '../../types';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
@@ -73,16 +73,22 @@ const PANEL_VIEWS: readonly { value: ChartView; label: string; tip: string }[] =
 ];
 
 interface PanelViewChipsProps {
+  surface: ChartSurface;
   active: ChartView;
   hasTarget: boolean;
   groupLabel: string;
 }
 
 /**
- * One global chartView, rendered per card. A card whose own scale has no target
- * hides the TARGET chip rather than offering a view it would fall back out of.
+ * Each card owns its view. A card whose own scale has no target hides the
+ * TARGET chip rather than offering a view it would fall back out of.
  */
-function PanelViewChips({ active, hasTarget, groupLabel }: PanelViewChipsProps) {
+function PanelViewChips({
+  surface,
+  active,
+  hasTarget,
+  groupLabel,
+}: PanelViewChipsProps) {
   const { setChartView } = useApp();
   const options = PANEL_VIEWS.filter(
     (v) => v.value !== 'target' || hasTarget,
@@ -105,7 +111,7 @@ function PanelViewChips({ active, hasTarget, groupLabel }: PanelViewChipsProps) 
             size="xs"
             variant={isActive ? 'solid' : 'plain'}
             colorPalette={isActive ? 'blue' : 'gray'}
-            onClick={() => setChartView(v.value)}
+            onClick={() => setChartView(surface, v.value)}
             aria-pressed={isActive}
             // 20px is the rail's density; a phone stacks the cards and has the
             // room for a real touch target.
@@ -181,6 +187,7 @@ export function ChartPanel({
         </HelpTerm>
         <HStack gap={1}>
           <PanelViewChips
+            surface={panel.key}
             active={panel.effectiveView}
             hasTarget={panel.hasTarget}
             groupLabel={`${panel.title} chart view`}

@@ -157,7 +157,7 @@ export function RollsTable() {
   const {
     expressions,
     expandedId,
-    chartView,
+    chartViews,
     target,
     poolTargets,
     baselineId,
@@ -294,7 +294,7 @@ export function RollsTable() {
                 idx={idx}
                 expanded={expandedId === expr.id}
                 showHit={showHit}
-                chartView={chartView}
+                chartView={chartViews.shape}
                 target={target}
                 poolTargets={poolTargets}
                 baselineId={baselineId}

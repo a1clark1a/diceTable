@@ -45,7 +45,7 @@ export interface ChartPanels {
  * the same panel rather than redrawing one of its own.
  */
 export function useChartPanels(): ChartPanels {
-  const { expressions, chartView, target, poolTargets } = useApp();
+  const { expressions, chartViews, target, poolTargets } = useApp();
   const { dists } = useDistributions();
 
   const overLimit = expressions.length > CHART_ROW_LIMIT;
@@ -90,7 +90,10 @@ export function useChartPanels(): ChartPanels {
         titleColor: 'fg',
         entries: sum,
         expressions: expressions.filter(isTotalsMode),
-        effectiveView: effectiveChartView(chartView, target.values.length > 0),
+        effectiveView: effectiveChartView(
+          chartViews.totals,
+          target.values.length > 0,
+        ),
         target,
         hasTarget: target.values.length > 0,
       });
@@ -105,13 +108,13 @@ export function useChartPanels(): ChartPanels {
         expressions: expressions.filter((e) => !isTotalsMode(e)),
         // A pool target always exists, so this panel can reach the target view
         // even while the numeric target list is empty.
-        effectiveView: effectiveChartView(chartView, true),
+        effectiveView: effectiveChartView(chartViews.successes, true),
         target: poolTargetState,
         hasTarget: true,
       });
     }
     return out;
-  }, [overLimit, expressions, dists, chartView, target, poolTargetState]);
+  }, [overLimit, expressions, dists, chartViews, target, poolTargetState]);
 
   return {
     panels,

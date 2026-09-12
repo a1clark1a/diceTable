@@ -517,7 +517,7 @@ describe('AppProvider hydration of stored check rows', () => {
     seed([checkRow()], { chartView: 'cdf' });
     const { result } = renderHook(() => useApp(), { wrapper });
     expect(result.current.expressions).toEqual([EXPECTED_CHECK_ROW]);
-    expect(result.current.chartView).toBe('cdf');
+    expect(result.current.chartViews.shape).toBe('cdf');
   });
 
   it('falls back to an empty table when one stored row is corrupt', () => {
@@ -527,7 +527,7 @@ describe('AppProvider hydration of stored check rows', () => {
     // An empty table alone is also what a table that never loaded looks like, so
     // the stored chart view has to fall back too before this proves the whole
     // envelope was rejected rather than just the bad row dropped.
-    expect(result.current.chartView).toBe('pmf');
+    expect(result.current.chartViews.shape).toBe('pmf');
   });
 });
 

@@ -289,7 +289,7 @@ function persistedWith(expr: Expression): PersistedState {
     expressions: [expr],
     ui: {
       expandedId: null,
-      chartView: 'pmf',
+      chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTargets: [1],

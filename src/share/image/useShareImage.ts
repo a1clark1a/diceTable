@@ -126,7 +126,7 @@ export function useShareImage(): ShareImageActions {
   const {
     expressions,
     view,
-    chartView,
+    chartViews,
     target,
     poolTargets,
     targetSubView,
@@ -190,7 +190,7 @@ export function useShareImage(): ShareImageActions {
               ...shell,
               rows,
               poolRows,
-              view: chartView,
+              view: chartViews.shape,
               // Each panel resolves the target view against its own target, the
               // way the chart does: pool rows answer to the shared pool targets,
               // so Successes can show them while the numeric list is empty and
@@ -268,7 +268,7 @@ export function useShareImage(): ShareImageActions {
     [
       expressions,
       view,
-      chartView,
+      chartViews,
       target,
       poolTargets,
       targetSubView,

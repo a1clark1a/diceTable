@@ -24,8 +24,8 @@ const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
 };
 
 export function ShapeHeaderLabel() {
-  const { chartView, target, poolTargets, expressions } = useApp();
-  const view = shapeHeaderView(chartView, target, poolTargets, expressions);
+  const { chartViews, target, poolTargets, expressions } = useApp();
+  const view = shapeHeaderView(chartViews.shape, target, poolTargets, expressions);
   if (view === null) {
     return <HelpTerm tip={tipForId('shapeMixed')}>Shape</HelpTerm>;
   }

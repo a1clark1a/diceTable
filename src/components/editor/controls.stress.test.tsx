@@ -33,7 +33,7 @@ function Harness({ onState }: { onState: (state: PersistedState) => void }) {
       expressions: app.expressions,
       ui: {
         expandedId: app.expandedId,
-        chartView: app.chartView,
+        chartViews: app.chartViews,
         target: app.target,
         view: app.view,
         poolTargets: app.poolTargets,

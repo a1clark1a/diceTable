@@ -135,9 +135,9 @@ export default function InspectChartBody({
   color,
   target,
 }: InspectChartBodyProps) {
-  const { chartView } = useApp();
+  const { chartViews } = useApp();
   const effectiveView = effectiveChartView(
-    chartView,
+    chartViews.shape,
     target.values.length > 0,
   );
 

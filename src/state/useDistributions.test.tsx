@@ -320,9 +320,9 @@ describe('useDistributions', () => {
     const previousDists = result.current.sel.dists;
     const previousExpressions = result.current.app.expressions;
     act(() => {
-      result.current.app.setChartView('cdf');
+      result.current.app.setChartView('shape', 'cdf');
     });
-    expect(result.current.app.chartView).toBe('cdf');
+    expect(result.current.app.chartViews.shape).toBe('cdf');
     expect(result.current.app.expressions).toBe(previousExpressions);
     expect(result.current.sel.dists).toBe(previousDists);
   });

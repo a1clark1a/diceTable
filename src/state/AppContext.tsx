@@ -15,6 +15,7 @@ import {
 import {
   MAX_EXPRESSIONS,
   MAX_TARGETS,
+  type ChartSurface,
   type ChartView,
   type CheckSpec,
   type DicePart,
@@ -45,7 +46,7 @@ const initialState: PersistedState = {
   expressions: [],
   ui: {
     expandedId: null,
-    chartView: 'pmf',
+    chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
     target: { values: [], ruling: 'gte' },
     view: 'table',
     poolTargets: [1],
@@ -200,8 +201,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const setChartView = useCallback(
-    (view: ChartView) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, chartView: view } }));
+    (surface: ChartSurface, view: ChartView) => {
+      setState((prev) => ({
+        ...prev,
+        ui: { ...prev.ui, chartViews: { ...prev.ui.chartViews, [surface]: view } },
+      }));
     },
     [setState],
   );
@@ -508,7 +512,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       expressions: state.expressions,
       expandedId: state.ui.expandedId,
-      chartView: state.ui.chartView,
+      chartViews: state.ui.chartViews,
       target: state.ui.target,
       view: state.ui.view,
       poolTargets: state.ui.poolTargets,

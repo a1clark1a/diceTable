@@ -27,7 +27,7 @@ const validPayload: PersistedState = {
   ],
   ui: {
     expandedId: 'expr-1',
-    chartView: 'cdf',
+    chartViews: { totals: 'cdf', successes: 'cdf', shape: 'cdf' },
     target: { values: [15], ruling: 'gte' },
     view: 'table',
     poolTargets: [1],
@@ -148,7 +148,7 @@ describe('validatePersistedState', () => {
     expect(result).not.toBeNull();
     expect(result!.ui).toEqual({
       expandedId: null,
-      chartView: 'pmf',
+      chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTargets: [1],
@@ -169,7 +169,7 @@ describe('validatePersistedState', () => {
     expect(result).not.toBeNull();
     expect(result!.ui).toEqual({
       expandedId: 'expr-1',
-      chartView: 'pmf',
+      chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTargets: [1],
@@ -504,7 +504,7 @@ describe('validatePersistedState: older envelopes gain the new ui fields', () =>
 
   it('keeps the older ui fields of a version 5 payload intact', () => {
     const { ui } = migrated(5);
-    expect(ui.chartView).toBe('cdf');
+    expect(ui.chartViews).toEqual({ totals: 'cdf', successes: 'cdf', shape: 'cdf' });
     expect(ui.target).toEqual({ values: [15], ruling: 'gte' });
     expect(ui.expandedId).toBe('expr-1');
   });
@@ -513,12 +513,12 @@ describe('validatePersistedState: older envelopes gain the new ui fields', () =>
     expect(migrated(5).version).toBe(SCHEMA_VERSION);
   });
 
-  it('reports five as the current schema version', () => {
-    expect(SCHEMA_VERSION).toBe(5);
+  it('reports six as the current schema version', () => {
+    expect(SCHEMA_VERSION).toBe(6);
   });
 
   it('rejects a payload from a schema version that does not exist yet', () => {
-    expect(validatePersistedState({ ...validPayload, version: 6 })).toBeNull();
+    expect(validatePersistedState({ ...validPayload, version: 7 })).toBeNull();
   });
 });
 
