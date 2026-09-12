@@ -66,6 +66,14 @@ export default function TablePage() {
                 justify="space-between"
                 wrap="wrap"
                 minH="48px"
+                // Below md the sticky toolbar already holds top:0 and this band
+                // carries nothing but the caption; at 2xl the rolls scroll
+                // inside the table box so it never moves. In between, the page
+                // itself scrolls and this is the row you need to keep.
+                position={{ base: 'static', md: 'sticky', '2xl': 'static' }}
+                top={0}
+                zIndex={2}
+                bg="bg"
               >
                 <BaselineCaption />
                 <Flex gap={2} align="center" ms="auto">

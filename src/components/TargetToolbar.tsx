@@ -289,7 +289,10 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
     <HStack
       gap={2}
       minH={{ base: '44px', md: '46px' }}
-      ps={3}
+      // Only a separator while the groups sit side by side. Once the bar folds
+      // this row starts its own line, and the padding would push its label out
+      // of the shared gutter the target row above it uses.
+      ps={{ base: 0, xl: 3 }}
       minW={0}
       flexShrink={{ base: 1, xl: 0 }}
       flexWrap="wrap"
