@@ -1,12 +1,24 @@
+// Eight series hues held at one OKLCH chroma (about 0.13), the same desaturated
+// family as the hit ramp in src/theme.ts and the warm grounds it sits on. Flat
+// chroma is the point: at mixed saturation the loudest row reads as the most
+// important one, which is a lie when the index is arbitrary. Lightness instead
+// alternates across the 0.48-0.67 band, because once chroma is equal that is
+// what carries separation, and it is also what holds neighbouring rows apart
+// under deuteranopia.
+//
+// Separation is a property of the set, not of any one entry. Every slot clears
+// the categorical gates against bg.panel in both colour modes: lightness band,
+// chroma floor, adjacent dE >= 8 simulated protan/deutan, adjacent dE >= 15
+// unsimulated, and 3:1 contrast. Re-check the whole set before moving a slot.
 export const ROW_PALETTE = [
-  '#2563eb',
-  '#ea580c',
-  '#16a34a',
-  '#9333ea',
-  '#db2777',
-  '#0891b2',
-  '#ca8a04',
-  '#dc2626',
+  '#4369b6',
+  '#bb6a26',
+  '#0a9564',
+  '#a17dd4',
+  '#a84869',
+  '#0092b4',
+  '#7f6500',
+  '#d76f7e',
 ] as const;
 
 // Series get a stroke dash by index so overlapping lines stay distinguishable

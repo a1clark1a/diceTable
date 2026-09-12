@@ -320,7 +320,7 @@ describe('buildShareSvg themes', () => {
   it('keeps the row color the table gave it in both themes', () => {
     for (const theme of ['light', 'dark'] as const) {
       const image = buildShareSvg({ rows, view: 'pmf', theme });
-      expect(image.svg).toContain('stroke="#2563eb"');
+      expect(image.svg).toContain('stroke="#4369b6"');
     }
   });
 });
@@ -414,7 +414,7 @@ describe('buildShareSvg row list', () => {
       view: 'pmf',
       theme: 'light',
     });
-    expect(image.svg).toContain('<rect x="28" y="367" width="10" height="10" rx="2" fill="#2563eb"/>');
+    expect(image.svg).toContain('<rect x="28" y="367" width="10" height="10" rx="2" fill="#4369b6"/>');
   });
 
   it('cuts a row name longer than twenty-eight characters down to an ellipsis', () => {
@@ -471,7 +471,7 @@ describe('buildShareSvg capped zero spike', () => {
     // is 21 results across an 812px plot, so the inset is 812 / 42 = 19.33.
     expect(image.svg).toContain('>35%</text>');
     expect(image.svg).toContain(
-      '<circle cx="99.33" cy="46" r="4" fill="#2563eb" stroke="#f2f1ed" stroke-width="2"/>',
+      '<circle cx="99.33" cy="46" r="4" fill="#4369b6" stroke="#f2f1ed" stroke-width="2"/>',
     );
   });
 

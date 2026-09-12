@@ -249,12 +249,12 @@ describe('drawHitBars bars and key', () => {
   it('paints each roll in the colour the table gave it', () => {
     const fills = barRects(drawing).map((rect) => rect.fill);
     expect(fills).toEqual([
-      '#2563eb',
-      '#2563eb',
-      '#ea580c',
-      '#ea580c',
-      '#16a34a',
-      '#16a34a',
+      '#4369b6',
+      '#4369b6',
+      '#bb6a26',
+      '#bb6a26',
+      '#0a9564',
+      '#0a9564',
     ]);
   });
 

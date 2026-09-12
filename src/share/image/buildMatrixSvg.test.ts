@@ -345,8 +345,8 @@ describe('buildMatrixSvg themes', () => {
 
   it('keeps the row color the table gave it', () => {
     const image = buildMatrixSvg({ rows: twoDice(), theme: 'dark' });
-    expect(image.svg).toContain('fill="#2563eb"');
-    expect(image.svg).toContain('fill="#ea580c"');
+    expect(image.svg).toContain('fill="#4369b6"');
+    expect(image.svg).toContain('fill="#bb6a26"');
   });
 });
 

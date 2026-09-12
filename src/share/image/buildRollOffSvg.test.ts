@@ -405,9 +405,9 @@ describe('buildRollOffSvg bars', () => {
     });
     expect(bars(image.svg).map((b) => b.fill)).toEqual([
       LIGHT_TRACK,
-      '#2563eb',
+      '#4369b6',
       LIGHT_TRACK,
-      '#ea580c',
+      '#bb6a26',
     ]);
   });
 
@@ -422,7 +422,7 @@ describe('buildRollOffSvg bars', () => {
     // The second track is left bare: its own colour never reaches the bar.
     expect(bars(image.svg).map((b) => b.fill)).toEqual([
       LIGHT_TRACK,
-      '#2563eb',
+      '#4369b6',
       LIGHT_TRACK,
     ]);
   });

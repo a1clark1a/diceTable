@@ -14,14 +14,14 @@ import {
 // the tables themselves would agree with any mistake made in them.
 const EXPECTED_DASHES = ['0', '7 4', '2 4', '9 4 2 4', '5 5', '1 4', '12 5', '4 4'] as const;
 const EXPECTED_COLORS = [
-  '#2563eb',
-  '#ea580c',
-  '#16a34a',
-  '#9333ea',
-  '#db2777',
-  '#0891b2',
-  '#ca8a04',
-  '#dc2626',
+  '#4369b6',
+  '#bb6a26',
+  '#0a9564',
+  '#a17dd4',
+  '#a84869',
+  '#0092b4',
+  '#7f6500',
+  '#d76f7e',
 ] as const;
 
 const TABLE_LENGTH = 8;
