@@ -1,10 +1,9 @@
-import { Box, Button, HStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Text } from '@chakra-ui/react';
 import { useCallback } from 'react';
 import { useApp } from '../state/useApp';
 import { Tooltip } from './ui/tooltip';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
-import { ParamLabel } from './ParamLabel';
 import {
   ROLL_MODES,
   isRollMode,
@@ -89,10 +88,13 @@ export function RollModeControl() {
 
   return (
     <HStack gap={2} align="center" flexWrap="wrap">
-      <ParamLabel>
+      {/* Sentence case at the same size the parameter pills name themselves
+          with. An uppercase eyebrow here would be the only one left on the
+          bar. */}
+      <Text as="span" fontSize="xs" color="fg.muted" whiteSpace="nowrap">
         <HelpTerm tip={tipForId('globalRollMode')}>Roll mode</HelpTerm>
         {mixed ? ' (mixed)' : ''}
-      </ParamLabel>
+      </Text>
       <Segmented
         options={ROLL_MODES}
         active={activeMode}

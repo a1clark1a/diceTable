@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import type { ChartView, DicePart } from '../types';
 import type { PartPatch } from '../state/useApp';
+import { openParams } from '../test/params';
 
 // Render-isolation invariant: a Count commit inside the one expanded row
 // must NOT re-render any sibling RollTableRow. memo(RollTableRow) is
@@ -130,7 +131,7 @@ afterEach(() => {
 describe('RollsTable column headers', () => {
   // The mode chips sit in a fixed slot beside the dice notation rather than
   // in a column of their own, so this label is the only thing naming them.
-  it('names the mode chips as their own column beside Dice', () => {
+  it('names the mode chips as their own column beside Dice', async () => {
     seedIsolationRow();
     renderTable();
     const header = screen
@@ -142,7 +143,7 @@ describe('RollsTable column headers', () => {
 });
 
 describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', () => {
-  it('a Count commit in the expanded row re-renders zero sibling RollTableRows', () => {
+  it('a Count commit in the expanded row re-renders zero sibling RollTableRows', async () => {
     seedIsolationRow();
     renderTable();
 
@@ -185,7 +186,7 @@ describe('RollsTable sibling-row isolation (Phase 2 gate / Phase 3 trigger)', ()
     }
   });
 
-  it('a Mod commit on one row re-renders zero sibling RollTableRows (regression guard)', () => {
+  it('a Mod commit on one row re-renders zero sibling RollTableRows (regression guard)', async () => {
     seedIsolationRow();
     renderTable();
     const addRoll = screen.getByRole('button', { name: 'Add roll' });
@@ -310,29 +311,30 @@ function rulingGlyphsIn(el: HTMLElement): HTMLElement[] {
 }
 
 describe('RollsTable pool Hit %', () => {
-  it('shows the pool row Hit % against the pool target with an at-least label', () => {
+  it('shows the pool row Hit % against the pool target with an at-least label', async () => {
     seedMixedTable();
     renderTable();
     expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
     expect(screen.getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('shows the sum row Hit % against the toolbar target in the same table', () => {
+  it('shows the sum row Hit % against the toolbar target in the same table', async () => {
     seedMixedTable();
     renderTable();
     expect(screen.getByText('16.7%')).toBeInTheDocument();
   });
 
-  it('ignores the numeric target ruling on pool rows while sum rows follow it', () => {
+  it('ignores the numeric target ruling on pool rows while sum rows follow it', async () => {
     seedMixedTable({ ruling: 'lte' });
     renderTable();
     expect(screen.getByText('91.7%')).toBeInTheDocument();
     expect(screen.getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('adding a pool target with Enter stacks a second pool Hit % live', () => {
+  it('adding a pool target with Enter stacks a second pool Hit % live', async () => {
     seedMixedTable();
     renderTable();
+    await openParams('Edit pool targets');
     const input = screen.getByLabelText('Add pool target');
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -342,11 +344,12 @@ describe('RollsTable pool Hit %', () => {
     expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
   });
 
-  it('removing a pool target chip takes its Hit % row off the pool row', () => {
+  it('removing a pool target chip takes its Hit % row off the pool row', async () => {
     seedMixedTable({ poolTargets: [1, 2] });
     renderTable();
     expect(screen.getByLabelText('At least 1 successes')).toBeInTheDocument();
 
+    await openParams('Edit pool targets');
     fireEvent.click(
       screen.getByRole('button', { name: 'Remove pool target ≥ 1' }),
     );
@@ -354,21 +357,21 @@ describe('RollsTable pool Hit %', () => {
     expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
   });
 
-  it('keeps the pool Hit % when no numeric target is set', () => {
+  it('keeps the pool Hit % when no numeric target is set', async () => {
     seedMixedTable({ targetValues: [] });
     renderTable();
     expect(screen.getByText('25.0%')).toBeInTheDocument();
     expect(screen.getByLabelText('At least 2 successes')).toBeInTheDocument();
   });
 
-  it('keeps the Hit % column on a table of only pool rows with no numeric target', () => {
+  it('keeps the Hit % column on a table of only pool rows with no numeric target', async () => {
     seedMixedTable({ targetValues: [], poolOnly: true });
     renderTable();
     expect(screen.getByText('Hit %')).toBeInTheDocument();
     expect(screen.getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('dashes the sum row Hit % cell while the pool row keeps its percentage', () => {
+  it('dashes the sum row Hit % cell while the pool row keeps its percentage', async () => {
     seedMixedTable({ targetValues: [] });
     renderTable();
     // EM_DASH, U+2014; the Range cell's 2–12 uses an en dash instead.
@@ -376,7 +379,7 @@ describe('RollsTable pool Hit %', () => {
     expect(hitCellIn(rowFor('Pool row')).textContent).toContain('25.0%');
   });
 
-  it('shows the Hit % ruling glyph only once a numeric target exists', () => {
+  it('shows the Hit % ruling glyph only once a numeric target exists', async () => {
     seedMixedTable({ targetValues: [] });
     renderTable();
 
@@ -384,6 +387,7 @@ describe('RollsTable pool Hit %', () => {
     // against numeric targets, and there are none yet.
     expect(rulingGlyphsIn(hitColumnHeader())).toHaveLength(0);
 
+    await openParams('Edit targets');
     const input = screen.getByLabelText('Add target value');
     fireEvent.change(input, { target: { value: '10' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -391,7 +395,7 @@ describe('RollsTable pool Hit %', () => {
     expect(rulingGlyphsIn(hitColumnHeader())).toHaveLength(1);
   });
 
-  it('opens the Hit % column when a sum row is switched to pool with no numeric target', () => {
+  it('opens the Hit % column when a sum row is switched to pool with no numeric target', async () => {
     seedTwoSumRows([]);
     renderTable();
     expect(screen.queryByText('Hit %')).toBeNull();
@@ -403,7 +407,7 @@ describe('RollsTable pool Hit %', () => {
 });
 
 describe('RollsTable per-row chart view', () => {
-  it('keeps a pool row in target view while a sum row falls back to PMF with no numeric target', () => {
+  it('keeps a pool row in target view while a sum row falls back to PMF with no numeric target', async () => {
     seedMixedTable({ targetValues: [], chartView: 'target' });
     renderTable();
 
@@ -417,7 +421,7 @@ describe('RollsTable per-row chart view', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the pool row in target view when the last numeric target is removed', () => {
+  it('keeps the pool row in target view when the last numeric target is removed', async () => {
     seedMixedTable({ chartView: 'target' });
     renderTable();
 
@@ -427,6 +431,7 @@ describe('RollsTable per-row chart view', () => {
       within(rowFor('Sum row')).getByText('shape view target'),
     ).toBeInTheDocument();
 
+    await openParams('Edit targets');
     fireEvent.click(screen.getByRole('button', { name: /^Remove target/ }));
 
     // Only the sum row loses what it was measuring.
@@ -478,7 +483,7 @@ function seedTwoSumRows(targetValues: number[] = [10]) {
 }
 
 describe('RollsTable baseline pin round trip', () => {
-  it('pinning switches the sibling to deltas and unpinning restores absolutes', () => {
+  it('pinning switches the sibling to deltas and unpinning restores absolutes', async () => {
     seedTwoSumRows();
     renderTable();
 
@@ -510,7 +515,7 @@ describe('RollsTable baseline pin round trip', () => {
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });
 
-  it('labels each delta for screen readers', () => {
+  it('labels each delta for screen readers', async () => {
     seedTwoSumRows();
     renderTable();
     fireEvent.click(
@@ -528,7 +533,7 @@ describe('RollsTable baseline pin round trip', () => {
     ).toBeInTheDocument();
   });
 
-  it('titles the sibling deltas with the verdict', () => {
+  it('titles the sibling deltas with the verdict', async () => {
     seedTwoSumRows();
     renderTable();
     fireEvent.click(
@@ -542,7 +547,7 @@ describe('RollsTable baseline pin round trip', () => {
     ).not.toBeNull();
   });
 
-  it('pinning a second row moves the baseline instead of adding one', () => {
+  it('pinning a second row moves the baseline instead of adding one', async () => {
     seedTwoSumRows();
     renderTable();
     fireEvent.click(
@@ -558,7 +563,7 @@ describe('RollsTable baseline pin round trip', () => {
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });
 
-  it('renders delta lines without a Hit % column when no targets are set', () => {
+  it('renders delta lines without a Hit % column when no targets are set', async () => {
     seedTwoSumRows([]);
     renderTable();
     fireEvent.click(

@@ -18,16 +18,13 @@ import {
 import { X } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import { MAX_TARGETS, type TargetRuling } from '../types';
-import { HelpTerm } from './ui/help-term';
 import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
-import { PARAM_LABEL_GUTTER, ParamLabel } from './ParamLabel';
 import { RollModeControl } from './RollModeControl';
 import { tapTarget } from './tapTarget';
-import { ParamSheet } from './ParamSheet';
-import { useIsDesktop } from '../hooks/useBreakpoint';
+import { ParamControl } from './ParamControl';
 
 // Clamping in parse means the duplicate and cap checks below run on the value
 // the store will actually keep, rather than on a raw draft the store then
@@ -147,7 +144,6 @@ function useTargetDraft(
 }
 
 export function TargetToolbar() {
-  const isDesktop = useIsDesktop();
   const { target, setTarget, expressions, poolTargets, setPoolTargets } =
     useApp();
   const hasPoolRow = expressions.some((e) => e.mode === 'pool');
@@ -184,11 +180,6 @@ export function TargetToolbar() {
 
   // Defined once and rendered in both the inline row and the sheet, so the two
   // layouts can never drift apart.
-  const targetLabel = (
-    <HelpTerm tip={tipForId('target')}>
-      <ParamLabel color="blue.fg">Target</ParamLabel>
-    </HelpTerm>
-  );
   const targetRuling = (
     // "≥ at least" needs about 115px; the old 150 padded the widest fixed
     // control in the row for no gain.
@@ -221,7 +212,6 @@ export function TargetToolbar() {
             value={v}
             onRemove={() => removeValue(v)}
             showRuling={false}
-            revealOnHover={isDesktop}
           />
         </WrapItem>
       ))}
@@ -251,69 +241,38 @@ export function TargetToolbar() {
       // painted over the table underneath.
       flexShrink={0}
     >
-      {/* Below md this group is a summary line with its editor in a sheet; the
-          inline version needs the room only a wider screen has. Branching here
-          rather than with display keeps one copy of each control in the DOM. */}
-      {!isDesktop && (
-      <Box w="100%">
-        <ParamSheet
-          label={targetLabel}
-          summary={
-            target.values.length === 0 ? (
-              <Text fontSize="xs" color="fg.muted">
-                None set
+      <ParamControl
+        label="Target"
+        accent="blue.fg"
+        title="Targets"
+        editLabel="Edit targets"
+        tip={tipForId('target')}
+        summary={
+          target.values.length === 0 ? (
+            <Text color="fg.muted">None</Text>
+          ) : (
+            <>
+              <RulingSymbol ruling={target.ruling} color="blue.fg" />
+              <Text
+                color="fg"
+                fontFamily="mono"
+                truncate
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {target.values.join(' ')}
               </Text>
-            ) : (
-              <>
-                <RulingSymbol ruling={target.ruling} color="blue.fg" />
-                <Text
-                  fontSize="xs"
-                  color="fg"
-                  truncate
-                  style={{ fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {target.values.join('  ')}
-                </Text>
-              </>
-            )
-          }
-          title="Targets"
-          editLabel="Edit targets"
-        >
-          <Stack gap={4}>
-            {targetRuling}
-            {targetValues}
-            <Text fontSize="xs" color="fg.muted">
-              {hint}
-            </Text>
-          </Stack>
-        </ParamSheet>
-      </Box>
-      )}
-      {isDesktop && (
-      <HStack
-        gap={2}
-        minH={{ base: '44px', md: '46px' }}
-        minW={0}
-        // Where the bar has room the groups keep their natural width and the
-        // bar wraps them whole; only on a narrow screen do they shrink and
-        // fold inside themselves onto a second line of chips.
-        flexShrink={{ base: 1, xl: 0 }}
-        flexWrap="wrap"
+            </>
+          )
+        }
       >
-        <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
-          {targetLabel}
-        </Box>
-        {/* The ruling and the chips share one column beside the label. Left
-            as siblings of the gutter they wrap to the row's own left edge on a
-            narrow screen, so the chips landed under the label instead of under
-            the control above them. */}
-        <HStack gap={2} minW={0} flex="1" flexWrap="wrap" align="center">
+        <Stack gap={3}>
           {targetRuling}
           {targetValues}
-        </HStack>
-      </HStack>
-      )}
+          <Text fontSize="xs" color="fg.muted">
+            {hint}
+          </Text>
+        </Stack>
+      </ParamControl>
       {hasPoolRow && (
         <PoolTargetRow
           poolTargets={poolTargets}
@@ -336,7 +295,6 @@ interface PoolTargetRowProps {
 }
 
 function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
-  const isDesktop = useIsDesktop();
   const isFull = poolTargets.length >= MAX_TARGETS;
   const { draft, setDraft, commitDraft, onKeyDown } = useTargetDraft(
     poolTargets,
@@ -358,11 +316,6 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       ? 'Hit % on pool rows uses these counts.'
       : 'Add another count to compare thresholds side by side.';
 
-  const label = (
-    <HelpTerm tip={tipForId('poolTarget')}>
-      <ParamLabel color="purple.fg">Pool target</ParamLabel>
-    </HelpTerm>
-  );
   const values = (
     <Wrap gap={1} minW={0} align="center">
       {poolTargets.map((v) => (
@@ -371,20 +324,15 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
             ruling="gte"
             value={v}
             variant="pool"
-            revealOnHover={isDesktop}
             // The list never empties, so the last threshold keeps no remove
             // control rather than offering one that refuses.
             onRemove={poolTargets.length > 1 ? () => removeValue(v) : undefined}
           />
         </WrapItem>
       ))}
-      {/* The unit reads as part of the values it counts, so it sits with them
-          rather than trailing the add control. */}
-      <WrapItem>
-        <Text fontSize="xs" color="fg.muted">
-          successes
-        </Text>
-      </WrapItem>
+      {/* No unit inside the editor: the trigger's summary reads "≥ 1 2 3
+          successes" and the hint below names them as counts, so a third copy
+          would only ever sit between the values and the add box. */}
       <WrapItem>
         <AddTargetInput
           draft={draft}
@@ -400,58 +348,34 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
   );
 
   return (
-    <>
-      {!isDesktop && (
-      <Box w="100%">
-        <ParamSheet
-          label={label}
-          summary={
-            <>
-              <RulingSymbol ruling="gte" color="purple.fg" />
-              <Text
-                fontSize="xs"
-                color="fg"
-                truncate
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-              >
-                {poolTargets.join('  ')}
-              </Text>
-              <Text fontSize="xs" color="fg.muted">
-                successes
-              </Text>
-            </>
-          }
-          title="Pool targets"
-          editLabel="Edit pool targets"
-        >
-          <Stack gap={4}>
-            {values}
-            <Text fontSize="xs" color="fg.muted">
-              {hint}
-            </Text>
-          </Stack>
-        </ParamSheet>
-      </Box>
-      )}
-      {isDesktop && (
-      <HStack
-        gap={2}
-        minH={{ base: '44px', md: '46px' }}
-        // Only a separator while the groups sit side by side. Once the bar
-        // folds this row starts its own line, and the padding would push its
-        // label out of the shared gutter the target row above it uses.
-        ps={{ base: 0, xl: 3 }}
-        minW={0}
-        flexShrink={{ base: 1, xl: 0 }}
-        flexWrap="wrap"
-      >
-        <Box w={PARAM_LABEL_GUTTER} flexShrink={0}>
-          {label}
-        </Box>
+    <ParamControl
+      label="Pool target"
+      accent="purple.fg"
+      title="Pool targets"
+      editLabel="Edit pool targets"
+      tip={tipForId('poolTarget')}
+      summary={
+        <>
+          <RulingSymbol ruling="gte" color="purple.fg" />
+          <Text
+            color="fg"
+            fontFamily="mono"
+            truncate
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {poolTargets.join(' ')}
+          </Text>
+          <Text color="fg.muted">successes</Text>
+        </>
+      }
+    >
+      <Stack gap={3}>
         {values}
-      </HStack>
-      )}
-    </>
+        <Text fontSize="xs" color="fg.muted">
+          {hint}
+        </Text>
+      </Stack>
+    </ParamControl>
   );
 }
 
@@ -475,12 +399,6 @@ interface TargetChipProps {
    * chips have no such control and keep theirs.
    */
   showRuling?: boolean;
-  /**
-   * Pointer layouts hide the remove control until the chip is pointed at or
-   * focused. It is positioned out of flow, so revealing it cannot resize the
-   * chip. Touch has no hover, so the sheet keeps it visible.
-   */
-  revealOnHover?: boolean;
 }
 
 function TargetChip({
@@ -489,30 +407,21 @@ function TargetChip({
   onRemove,
   variant = 'target',
   showRuling = true,
-  revealOnHover = false,
 }: TargetChipProps) {
   const symbol = RULING_SYMBOL[ruling];
   const { noun, accent, gap } = CHIP_VARIANTS[variant];
-  const hidden = revealOnHover && onRemove !== undefined;
   return (
     <HStack
-      position="relative"
       gap={1}
       bg="bg.subtle"
       borderWidth="1px"
       borderColor="border.subtle"
       borderRadius="full"
       pl={2}
-      pr={onRemove !== undefined && !revealOnHover ? 1 : 2}
+      pr={onRemove !== undefined ? 1 : 2}
       py={0.5}
       fontFamily="mono"
       fontSize="xs"
-      // Pointer reveal lives here; keyboard reveal lives on the button's own
-      // _focusVisible, because a focus-within selector on this wrapper did not
-      // apply and left a focusable control invisible.
-      {...(hidden
-        ? { _hover: { '& [data-remove]': { opacity: 1 } } }
-        : {})}
     >
       <HStack as="span" gap={gap}>
         {showRuling && <RulingSymbol ruling={ruling} color={accent} />}
@@ -522,7 +431,6 @@ function TargetChip({
       </HStack>
       {onRemove !== undefined && (
         <IconButton
-          data-remove=""
           aria-label={`Remove ${noun} ${symbol} ${value}`}
           size="2xs"
           variant="ghost"
@@ -530,19 +438,7 @@ function TargetChip({
           title={`Remove ${noun}`}
           h={tapTarget('24px')}
           minW={tapTarget('24px')}
-          transition="opacity 120ms ease-out"
-          {...(hidden
-            ? {
-                position: 'absolute' as const,
-                insetEnd: '-2px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                bg: 'bg.subtle',
-                borderRadius: 'full',
-                opacity: 0,
-                _focusVisible: { opacity: 1 },
-              }
-            : {})}
+
         >
           <X size={12} />
         </IconButton>
