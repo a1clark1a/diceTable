@@ -59,6 +59,11 @@ export function ChartViewChips({
               onClick={() => setChartView(surface, v.value)}
               aria-pressed={isActive}
               h={{ base: '40px', md: density }}
+              // 40 tall on a phone, but the width is left to the label. Forcing
+              // 40 square pushed the group to 181px, which is wider than the
+              // sticky bar can hold beside the scroll controls, and cost a
+              // second permanently-stuck row. The chips clear WCAG's 24px
+              // minimum comfortably at their natural width.
               minW={0}
               px={2}
               borderRadius="3px"

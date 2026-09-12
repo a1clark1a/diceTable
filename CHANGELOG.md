@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- Chart gridlines are plain hairlines again. They were dashed, and the rolls themselves are told apart by their dash pattern, so a flat roll sitting near a gridline was hard to pick out from one.
+- The target row keeps its shape on a phone. When a second target made the row too long to fit, the chips dropped to the next line and started under the Target label instead of under the control above them.
+- "successes" sits with the count it describes rather than after the add button.
 - The enlarge button can show both charts at once. A table mixing totals and successes draws two charts, and enlarging one used to mean closing it to look at the other. The enlarged view now opens on the one you pressed and offers Totals, Successes or Both, each keeping its own legend and its own PMF / CDF / CCDF setting.
 - A tidier bar on a phone. The PMF / CDF / CCDF control moved up into the bar that stays with you as you scroll, so it is reachable without hunting for the charts far below the rolls, and the roll mode row is gone from the parameters area because the same setting already sits in the three-dots menu beside it. That is a row of screen back for the rolls.
 - A shared picture draws each chart the way you left it. The two charts used to share one setting, so the image could only ever show both the same way. Totals as a running total beside Successes against your target now exports exactly like that. The other views already pictured what you were looking at, including a target grid narrowed to pools.

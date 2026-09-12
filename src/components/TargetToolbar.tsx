@@ -204,6 +204,11 @@ export function TargetToolbar() {
             <ParamLabel color="blue.fg">Target</ParamLabel>
           </HelpTerm>
         </Box>
+        {/* The ruling and the chips share one column beside the label. Left
+            as siblings of the gutter they wrap to the row's own left edge on a
+            narrow screen, so the chips landed under the label instead of under
+            the control above them. */}
+        <HStack gap={2} minW={0} flex="1" flexWrap="wrap" align="center">
         {/* "≥ at least" needs about 115px; the old 150 padded the widest
             fixed control in the row for no gain. */}
         <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
@@ -246,6 +251,7 @@ export function TargetToolbar() {
             />
           </WrapItem>
         </Wrap>
+        </HStack>
       </HStack>
       {hasPoolRow && (
         <PoolTargetRow
@@ -322,6 +328,13 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
             />
           </WrapItem>
         ))}
+        {/* The unit reads as part of the values it counts, so it sits with
+            them rather than trailing the add control. */}
+        <WrapItem>
+          <Text fontSize="xs" color="fg.muted">
+            successes
+          </Text>
+        </WrapItem>
         <WrapItem>
           <AddTargetInput
             draft={draft}
@@ -334,9 +347,6 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
           />
         </WrapItem>
       </Wrap>
-      <Text fontSize="xs" color="fg.muted">
-        successes
-      </Text>
     </HStack>
   );
 }
