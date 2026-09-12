@@ -1,14 +1,12 @@
 import { lazy, Suspense, type ReactNode } from 'react';
-import { Box, Button, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
-import { useApp } from '../../state/useApp';
-import type { ChartSurface, ChartView, Distribution } from '../../types';
+import { Box, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
+import type { Distribution } from '../../types';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
-import { Tooltip } from '../ui/tooltip';
-import { chipFocusRing } from '../editor/focusRings';
 import type { ChartUnit } from './OverlayChartImpl';
 import type { ChartPanelData } from './useChartPanels';
+import { ChartViewChips } from './ChartViewChips';
 
 const OverlayChartImpl = lazy(() => import('./OverlayChartImpl'));
 
@@ -65,75 +63,6 @@ export function PanelLegend({ entries, focusedId, onHover }: PanelLegendProps) {
   );
 }
 
-const PANEL_VIEWS: readonly { value: ChartView; label: string; tip: string }[] = [
-  { value: 'pmf', label: 'PMF', tip: tipForId('pmf') },
-  { value: 'cdf', label: 'CDF', tip: tipForId('cdf') },
-  { value: 'ccdf', label: 'CCDF', tip: tipForId('ccdf') },
-  { value: 'target', label: 'TARGET', tip: tipForId('targetView') },
-];
-
-interface PanelViewChipsProps {
-  surface: ChartSurface;
-  active: ChartView;
-  hasTarget: boolean;
-  groupLabel: string;
-}
-
-/**
- * Each card owns its view. A card whose own scale has no target hides the
- * TARGET chip rather than offering a view it would fall back out of.
- */
-function PanelViewChips({
-  surface,
-  active,
-  hasTarget,
-  groupLabel,
-}: PanelViewChipsProps) {
-  const { setChartView } = useApp();
-  const options = PANEL_VIEWS.filter(
-    (v) => v.value !== 'target' || hasTarget,
-  );
-  return (
-    <HStack
-      gap="2px"
-      p="2px"
-      bg="bg.subtle"
-      borderRadius="4px"
-      flexWrap="wrap"
-      role="group"
-      aria-label={groupLabel}
-    >
-      {options.map((v) => {
-        const isActive = active === v.value;
-        return (
-          <Tooltip key={v.value} content={v.tip}>
-          <Button
-            size="xs"
-            variant={isActive ? 'solid' : 'plain'}
-            colorPalette={isActive ? 'blue' : 'gray'}
-            onClick={() => setChartView(surface, v.value)}
-            aria-pressed={isActive}
-            // 20px is the rail's density; a phone stacks the cards and has the
-            // room for a real touch target.
-            h={{ base: '40px', md: '20px' }}
-            minW={0}
-            px={2}
-            borderRadius="3px"
-            fontFamily="mono"
-            fontSize="10px"
-            fontWeight="500"
-            _hover={{ bg: isActive ? 'colorPalette.solid/90' : 'bg.muted' }}
-            _focusVisible={chipFocusRing}
-          >
-            {v.label}
-          </Button>
-          </Tooltip>
-        );
-      })}
-    </HStack>
-  );
-}
-
 interface ChartPanelProps {
   panel: ChartPanelData;
   dists: Map<string, Distribution>;
@@ -186,7 +115,7 @@ export function ChartPanel({
           </Text>
         </HelpTerm>
         <HStack gap={1}>
-          <PanelViewChips
+          <ChartViewChips
             surface={panel.key}
             active={panel.effectiveView}
             hasTarget={panel.hasTarget}

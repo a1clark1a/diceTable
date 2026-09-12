@@ -14,6 +14,11 @@ import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
 import { RowActions } from '../components/RowActions';
 import { RailSplitter, RAIL_MIN, TABLE_WIDTH } from '../components/layout/RailSplitter';
 import { ScrollButtons } from '../components/ScrollButtons';
+import { ChartViewChips } from '../components/chart/ChartViewChips';
+import {
+  effectiveChartView,
+  targetViewAvailable,
+} from '../components/chart/effectiveView';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
 import { useTableFits } from '../hooks/useBreakpoint';
@@ -29,7 +34,10 @@ export default function TablePage() {
   // Session-only: a remembered pixel width is wrong the moment the viewport
   // changes, so this resets with the tab rather than persisting.
   const [tableWidth, setTableWidth] = useState(TABLE_WIDTH);
-  const { expressions, view, setView } = useApp();
+  const { expressions, view, setView, chartViews, target } = useApp();
+  // The shape column is the surface this line's chips drive, and it can offer
+  // the target view whenever any row has something to measure against.
+  const shapeHasTarget = targetViewAvailable(target, expressions);
 
   const registry: WorkshopViewEntry[] = [
     {
@@ -77,6 +85,13 @@ export default function TablePage() {
               >
                 <BaselineCaption />
                 <Flex gap={2} align="center" ms="auto">
+                  <ChartViewChips
+                    surface="shape"
+                    active={effectiveChartView(chartViews.shape, shapeHasTarget)}
+                    hasTarget={shapeHasTarget}
+                    groupLabel="Shape column view"
+                    density="24px"
+                  />
                   <RowActions />
                   <ScrollButtons chartRef={chartRef} />
                 </Flex>
