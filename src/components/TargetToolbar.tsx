@@ -58,7 +58,7 @@ function AddTargetInput({
         size="sm"
         type="text"
         inputMode="numeric"
-        placeholder={isFull ? '−' : '+'}
+        placeholder="+"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commitDraft}
@@ -220,6 +220,8 @@ export function TargetToolbar() {
             ruling={target.ruling}
             value={v}
             onRemove={() => removeValue(v)}
+            showRuling={false}
+            revealOnHover={isDesktop}
           />
         </WrapItem>
       ))}
@@ -369,6 +371,7 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
             ruling="gte"
             value={v}
             variant="pool"
+            revealOnHover={isDesktop}
             // The list never empties, so the last threshold keeps no remove
             // control rather than offering one that refuses.
             onRemove={poolTargets.length > 1 ? () => removeValue(v) : undefined}
@@ -466,6 +469,18 @@ interface TargetChipProps {
   /** Omitted on a chip the row must keep, which then renders no remove control. */
   onRemove?: (() => void) | undefined;
   variant?: keyof typeof CHIP_VARIANTS;
+  /**
+   * Target chips sit beside the ruling select that already names the
+   * comparison, so repeating it on every chip is ten glyphs of noise. Pool
+   * chips have no such control and keep theirs.
+   */
+  showRuling?: boolean;
+  /**
+   * Pointer layouts hide the remove control until the chip is pointed at or
+   * focused. It is positioned out of flow, so revealing it cannot resize the
+   * chip. Touch has no hover, so the sheet keeps it visible.
+   */
+  revealOnHover?: boolean;
 }
 
 function TargetChip({
@@ -473,30 +488,41 @@ function TargetChip({
   value,
   onRemove,
   variant = 'target',
+  showRuling = true,
+  revealOnHover = false,
 }: TargetChipProps) {
   const symbol = RULING_SYMBOL[ruling];
   const { noun, accent, gap } = CHIP_VARIANTS[variant];
+  const hidden = revealOnHover && onRemove !== undefined;
   return (
     <HStack
+      position="relative"
       gap={1}
       bg="bg.subtle"
       borderWidth="1px"
       borderColor="border.subtle"
       borderRadius="full"
       pl={2}
-      pr={onRemove ? 1 : 2}
+      pr={onRemove !== undefined && !revealOnHover ? 1 : 2}
       py={0.5}
       fontFamily="mono"
       fontSize="xs"
+      // Pointer reveal lives here; keyboard reveal lives on the button's own
+      // _focusVisible, because a focus-within selector on this wrapper did not
+      // apply and left a focusable control invisible.
+      {...(hidden
+        ? { _hover: { '& [data-remove]': { opacity: 1 } } }
+        : {})}
     >
       <HStack as="span" gap={gap}>
-        <RulingSymbol ruling={ruling} color={accent} />
+        {showRuling && <RulingSymbol ruling={ruling} color={accent} />}
         <Text as="span" style={{ fontVariantNumeric: 'tabular-nums' }}>
           {value}
         </Text>
       </HStack>
       {onRemove !== undefined && (
         <IconButton
+          data-remove=""
           aria-label={`Remove ${noun} ${symbol} ${value}`}
           size="2xs"
           variant="ghost"
@@ -504,6 +530,19 @@ function TargetChip({
           title={`Remove ${noun}`}
           h={tapTarget('24px')}
           minW={tapTarget('24px')}
+          transition="opacity 120ms ease-out"
+          {...(hidden
+            ? {
+                position: 'absolute' as const,
+                insetEnd: '-2px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                bg: 'bg.subtle',
+                borderRadius: 'full',
+                opacity: 0,
+                _focusVisible: { opacity: 1 },
+              }
+            : {})}
         >
           <X size={12} />
         </IconButton>
