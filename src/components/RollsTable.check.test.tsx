@@ -332,8 +332,9 @@ describe('baseline deltas treat a check row as sum scale', () => {
   it('calls a check row a different scale from a pool baseline', () => {
     seed([POOL_ROW, CHECK_ROW], { baselineId: 'pool-row' });
     renderIn(<RollsTable />);
+    // The marker is an icon now; its accessible name carries the sentence.
     expect(
-      screen.getByText('different scale'),
+      screen.getByRole('img', { name: /not comparable/i }),
     ).toBeInTheDocument();
   });
 });

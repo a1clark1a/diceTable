@@ -8,7 +8,7 @@ import {
   Table,
   Text,
 } from '@chakra-ui/react';
-import { ChevronDown, Pin, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Info, Pin, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
@@ -22,6 +22,7 @@ import {
   type TargetState,
 } from '../types';
 import { Tooltip } from './ui/tooltip';
+import { chipFocusRing } from './editor/focusRings';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
   CheckSucceedsChip,
@@ -123,8 +124,10 @@ function DeltaSubLabel({ tip, children }: { tip: string; children: ReactNode }) 
   );
 }
 
-// The cell shows two words; the sentence they stand for lives in the title so
-// the row keeps its height.
+// The mean cell has 124px of content space and the widest value already takes
+// 92, so there is no room for words on that line and a second line would grow
+// every cross-scale row the moment a baseline is pinned. A 12px mark fits, and
+// the sentence it stands for lives in its tooltip.
 const DIFFERENT_SCALE_HIT =
   'This roll counts successes and the baseline totals dice, so their averages are not comparable. Compare Hit % instead.';
 const DIFFERENT_SCALE =
@@ -233,6 +236,11 @@ export function RollsTable() {
               <Table.ColumnHeader
                 textAlign="end"
                 w={STAT_COLUMN}
+                // w alone is only a suggestion under table-layout auto: the
+                // column still shrank to its content when no baseline was
+                // pinned, so pinning grew it 39px and the table 9px once the
+                // elastic name column hit its floor. minW is what binds.
+                minW={STAT_COLUMN}
                 whiteSpace="nowrap"
               >
                 {comparison !== null ? (
@@ -618,15 +626,25 @@ const RollTableRow = memo(function RollTableRow({
                 {formatNumber(stats.stddev, 2)}
               </InspectSigma>
               {deltasActive && !sameScale && (
-                <Text
-                  fontSize="xs"
-                  color="fg.muted"
-                  fontFamily="body"
-                  whiteSpace="nowrap"
-                  title={hasHitValue ? DIFFERENT_SCALE_HIT : DIFFERENT_SCALE}
+                <Tooltip
+                  content={hasHitValue ? DIFFERENT_SCALE_HIT : DIFFERENT_SCALE}
                 >
-                  different scale
-                </Text>
+                  <Box
+                    as="span"
+                    display="inline-flex"
+                    alignItems="center"
+                    color="fg.muted"
+                    ms={1}
+                    tabIndex={0}
+                    role="img"
+                    aria-label={
+                      hasHitValue ? DIFFERENT_SCALE_HIT : DIFFERENT_SCALE
+                    }
+                    _focusVisible={chipFocusRing}
+                  >
+                    <Info size={12} />
+                  </Box>
+                </Tooltip>
               )}
             </>
           )}
