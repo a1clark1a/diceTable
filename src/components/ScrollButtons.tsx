@@ -47,9 +47,10 @@ export function ScrollButtons({ chartRef }: ScrollButtonsProps) {
           onClick={onTop}
           h="32px"
           minW="32px"
-          // Above the split the table scrolls inside its own box, so these
-          // controls never leave the screen and there is nothing to return to.
-          display={{ base: 'inline-flex', '2xl': 'none' }}
+          // Below md the sticky toolbar carries its own pair, and above 2xl the
+          // table scrolls inside its own box with nothing to return to. This is
+          // the band in between, where neither is true.
+          display={{ base: 'none', md: 'inline-flex', '2xl': 'none' }}
         >
           <ArrowUp size={16} />
         </IconButton>
@@ -63,8 +64,9 @@ export function ScrollButtons({ chartRef }: ScrollButtonsProps) {
             onClick={onChart}
             h="32px"
             minW="32px"
-            // Above the split the chart already sits beside the table.
-            display={{ base: 'inline-flex', '2xl': 'none' }}
+            // Below md the sticky toolbar carries this; above 2xl the chart
+            // already sits beside the table.
+            display={{ base: 'none', md: 'inline-flex', '2xl': 'none' }}
           >
             <ArrowDown size={16} />
           </IconButton>

@@ -16,7 +16,7 @@ import { RailSplitter, RAIL_MIN, TABLE_WIDTH } from '../components/layout/RailSp
 import { ScrollButtons } from '../components/ScrollButtons';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
-import { useIsDesktop } from '../hooks/useBreakpoint';
+import { useTableFits } from '../hooks/useBreakpoint';
 import { useApp } from '../state/useApp';
 
 interface WorkshopViewEntry extends WorkshopViewChip {
@@ -24,7 +24,7 @@ interface WorkshopViewEntry extends WorkshopViewChip {
 }
 
 export default function TablePage() {
-  const isDesktop = useIsDesktop();
+  const tableFits = useTableFits();
   const chartRef = useRef<HTMLDivElement>(null);
   // Session-only: a remembered pixel width is wrong the moment the viewport
   // changes, so this resets with the tab rather than persisting.
@@ -73,7 +73,7 @@ export default function TablePage() {
                   <ScrollButtons chartRef={chartRef} />
                 </Flex>
               </Flex>
-              {isDesktop ? <RollsTable /> : <RollsCards />}
+              {tableFits ? <RollsTable /> : <RollsCards />}
             </Stack>
             <RailSplitter width={tableWidth} onWidth={setTableWidth} />
             <Box

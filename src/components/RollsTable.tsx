@@ -62,6 +62,12 @@ import { InspectMean, InspectSigma } from './inspect/InspectStat';
 // control on every row.
 const EXPRESSION_COLUMN = '165px';
 
+// Range and the shape sparkline are the two columns the chart underneath
+// already shows, so they are the two the table can spare when it is the width
+// that is scarce. Dropping them keeps the row actions on screen between the
+// point the table appears and xl, where the full set fits on its own.
+const WIDE_ONLY = { base: 'none', xl: 'table-cell' } as const;
+
 // The chips' slot beside it. Fixed for the same reason, and wide enough that a
 // pool or check row never wraps its extra chip onto a second line and grows
 // the row. A table of nothing but sum rows has no extra chip to fit, so it
@@ -246,10 +252,10 @@ export function RollsTable() {
                   </HelpTerm>
                 )}
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end" w="54px">
+              <Table.ColumnHeader textAlign="end" w="54px" display={WIDE_ONLY}>
                 <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="center" w="88px">
+              <Table.ColumnHeader textAlign="center" w="88px" display={WIDE_ONLY}>
                 <ShapeHeaderLabel />
               </Table.ColumnHeader>
               {showHit && (
@@ -634,11 +640,12 @@ const RollTableRow = memo(function RollTableRow({
         <Table.Cell
           textAlign="end"
           fontFamily="mono"
+          display={WIDE_ONLY}
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {stats.hasDist ? `${stats.min}–${stats.max}` : EM_DASH}
         </Table.Cell>
-        <Table.Cell textAlign="center" verticalAlign="middle">
+        <Table.Cell textAlign="center" verticalAlign="middle" display={WIDE_ONLY}>
           {stats.hasDist && !tooComplex ? (
             <InspectChart
               exprName={expr.name}
