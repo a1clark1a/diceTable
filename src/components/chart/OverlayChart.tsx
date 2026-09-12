@@ -75,9 +75,9 @@ export function OverlayChart({ ref }: OverlayChartProps) {
                 enlarge={
                   <ChartEnlargeDialog
                     panel={panel}
+                    panels={panels}
                     dists={dists}
                     colors={colors}
-                    unit={panel.key === 'successes' ? 'successes' : 'totals'}
                   />
                 }
               />
