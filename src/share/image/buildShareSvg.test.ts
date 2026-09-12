@@ -119,7 +119,7 @@ function polylinePoints(svg: string): string[][] {
 
 describe('buildShareSvg card size', () => {
   it('draws a single row at the fixed card width', () => {
-    const image = buildShareSvg({ rows: [toRow(sumRow(1), 0)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [toRow(sumRow(1), 0)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.width).toBe(CARD_WIDTH);
     expect(image.height).toBe(BASE_HEIGHT + LIST_LINE);
     expect(image.svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" ')).toBe(true);
@@ -128,13 +128,13 @@ describe('buildShareSvg card size', () => {
 
   it('grows the card by one line for every extra row', () => {
     const rows = [1, 2, 3, 4, 5].map((n) => toRow(sumRow(n), n - 1));
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'dark' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'dark' });
     expect(image.height).toBe(BASE_HEIGHT + LIST_LINE * 5);
     expect(countOf(image.svg, '<polyline')).toBe(5);
   });
 
   it('draws no rows at all for an empty table', () => {
-    const image = buildShareSvg({ rows: [], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.height).toBe(BASE_HEIGHT);
     expect(image.svg).toContain('No rolls to compare yet.');
     expect(image.svg).not.toContain('<polyline');
@@ -143,7 +143,7 @@ describe('buildShareSvg card size', () => {
   it('leaves out a row that has no distribution to draw', () => {
     const image = buildShareSvg({
       rows: [toRow(emptyRow, 0), toRow(sumRow(1), 1)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.height).toBe(BASE_HEIGHT + LIST_LINE);
@@ -164,7 +164,7 @@ describe('buildShareSvg card size', () => {
       min: 4,
       max: 4,
     };
-    const image = buildShareSvg({ rows: [flat], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [flat], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(countOf(image.svg, '<polyline')).toBe(1);
     // A single result has no span, so the axis is widened by one to keep the
     // horizontal scale from dividing by zero.
@@ -174,7 +174,7 @@ describe('buildShareSvg card size', () => {
   });
 
   it('writes the card size into the svg and keeps the viewBox at card units', () => {
-    const image = buildShareSvg({ rows: [toRow(sumRow(1), 0)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [toRow(sumRow(1), 0)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain('width="920" height="484"');
     expect(image.svg).toContain('viewBox="0 0 920 484"');
   });
@@ -184,13 +184,13 @@ describe('buildShareSvg scale option', () => {
   const rows = [toRow(sumRow(1), 0)];
 
   it('renders at card size when no scale is given', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.width).toBe(920);
     expect(image.height).toBe(484);
   });
 
   it('doubles the pixel size at scale two without touching the viewBox', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', scale: 2 });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', scale: 2 });
     expect(image.width).toBe(1840);
     expect(image.height).toBe(968);
     expect(image.svg).toContain('width="1840" height="968"');
@@ -198,19 +198,19 @@ describe('buildShareSvg scale option', () => {
   });
 
   it('halves the pixel size at scale one half', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', scale: 0.5 });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', scale: 0.5 });
     expect(image.width).toBe(460);
     expect(image.height).toBe(242);
   });
 
   it('falls back to card size for a scale of zero', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', scale: 0 });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', scale: 0 });
     expect(image.width).toBe(920);
     expect(image.height).toBe(484);
   });
 
   it('falls back to card size for a negative scale', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', scale: -3 });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', scale: -3 });
     expect(image.width).toBe(920);
     expect(image.height).toBe(484);
   });
@@ -222,7 +222,7 @@ describe('buildShareSvg title', () => {
   it('adds a header band when a title is set', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: 'Weapon pass',
     });
@@ -232,13 +232,13 @@ describe('buildShareSvg title', () => {
   });
 
   it('leaves the header band out when no title is given', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.height).toBe(BASE_HEIGHT + LIST_LINE);
     expect(image.svg).not.toContain('font-size="20"');
   });
 
   it('leaves the header band out for a title that is only whitespace', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', title: '   ' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', title: '   ' });
     expect(image.height).toBe(BASE_HEIGHT + LIST_LINE);
     expect(image.svg).not.toContain('font-size="20"');
   });
@@ -246,7 +246,7 @@ describe('buildShareSvg title', () => {
   it('trims the surrounding whitespace off a title', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: '  Weapon pass  ',
     });
@@ -256,7 +256,7 @@ describe('buildShareSvg title', () => {
   it('cuts a title longer than seventy characters down to an ellipsis', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: 'a'.repeat(80),
     });
@@ -266,7 +266,7 @@ describe('buildShareSvg title', () => {
 
   it('leaves a title of exactly seventy characters whole', () => {
     const title = 'a'.repeat(70);
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', title });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', title });
     expect(image.svg).toContain(`>${title}</text>`);
     expect(image.svg).not.toContain('…');
   });
@@ -274,7 +274,7 @@ describe('buildShareSvg title', () => {
   it('cuts a title one character over the budget', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: 'a'.repeat(71),
     });
@@ -287,7 +287,7 @@ describe('buildShareSvg title', () => {
   it('cuts by whole characters so an emoji cannot be split at the boundary', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: `${'a'.repeat(68)}😀${'a'.repeat(5)}`,
     });
@@ -300,7 +300,7 @@ describe('buildShareSvg themes', () => {
   const rows = [toRow(sumRow(1), 0)];
 
   it('paints a light card on the light ground', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain(
       '<rect x="0" y="0" width="920" height="484" fill="#f2f1ed"/>',
     );
@@ -309,7 +309,7 @@ describe('buildShareSvg themes', () => {
   });
 
   it('paints a dark card on near-black', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'dark' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'dark' });
     expect(image.svg).toContain(
       '<rect x="0" y="0" width="920" height="484" fill="#131519"/>',
     );
@@ -319,7 +319,7 @@ describe('buildShareSvg themes', () => {
 
   it('keeps the row color the table gave it in both themes', () => {
     for (const theme of ['light', 'dark'] as const) {
-      const image = buildShareSvg({ rows, view: 'pmf', theme });
+      const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme });
       expect(image.svg).toContain('stroke="#4369b6"');
     }
   });
@@ -329,7 +329,7 @@ describe('buildShareSvg views', () => {
   const rows = [toRow(sumRow(1), 0)];
 
   it('labels the chance-of-each-result view and ends its axis on the rounded peak', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     // 2d6 peaks at 6/36, so the nice axis stops at 20%, not 100%.
     expect(image.svg).toContain('>Chance of each result</text>');
     expect(image.svg).toContain('>20%</text>');
@@ -337,7 +337,7 @@ describe('buildShareSvg views', () => {
   });
 
   it('draws two points per result in the chance-of-each-result view', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     // 3 to 13 is eleven results, each drawn as a flat tread.
     expect(polylinePoints(image.svg)[0]).toHaveLength(22);
   });
@@ -345,7 +345,7 @@ describe('buildShareSvg views', () => {
   it('draws the target view as hit-rate bars, not a line chart', () => {
     const image = buildShareSvg({
       rows,
-      view: 'target',
+      totalsView: 'target', successesView: 'target',
       target: { values: [8, 12], ruling: 'gte' },
       theme: 'light',
     });
@@ -358,20 +358,20 @@ describe('buildShareSvg views', () => {
   // The target view has nothing to measure against with an empty list, so it
   // falls back the way the chart does rather than drawing an empty axis.
   it('falls back to chance-of-each-result when no target is set', () => {
-    const image = buildShareSvg({ rows, view: 'target', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'target', successesView: 'target', theme: 'light' });
     expect(image.svg).toContain('>Chance of each result</text>');
     expect(polylinePoints(image.svg)[0]).toHaveLength(22);
   });
 
   it('labels the at-most view and runs its axis to one hundred percent', () => {
-    const image = buildShareSvg({ rows, view: 'cdf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'cdf', successesView: 'cdf', theme: 'light' });
     expect(image.svg).toContain('>Chance of rolling at most</text>');
     expect(image.svg).toContain('>100%</text>');
     expect(polylinePoints(image.svg)[0]).toHaveLength(11);
   });
 
   it('starts the at-most curve at the chance of the lowest result', () => {
-    const image = buildShareSvg({ rows, view: 'cdf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'cdf', successesView: 'cdf', theme: 'light' });
     const points = polylinePoints(image.svg)[0] ?? [];
     // Rolling 3 on 2d6+1 is 1/36, which is 7.83 of the 282px plot above y=328.
     expect(points[0]).toBe('94,320.17');
@@ -379,7 +379,7 @@ describe('buildShareSvg views', () => {
   });
 
   it('labels the at-least view and starts it at certainty', () => {
-    const image = buildShareSvg({ rows, view: 'ccdf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'ccdf', successesView: 'ccdf', theme: 'light' });
     const points = polylinePoints(image.svg)[0] ?? [];
     expect(image.svg).toContain('>Chance of rolling at least</text>');
     expect(image.svg).toContain('>100%</text>');
@@ -388,7 +388,7 @@ describe('buildShareSvg views', () => {
 
   it('gives each series its own dash so overlapping lines stay apart', () => {
     const rowsTwo = [toRow(sumRow(1), 0), toRow(sumRow(2), 1)];
-    const image = buildShareSvg({ rows: rowsTwo, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: rowsTwo, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain('stroke-dasharray="0"');
     expect(image.svg).toContain('stroke-dasharray="7 4"');
   });
@@ -398,7 +398,7 @@ describe('buildShareSvg row list', () => {
   it('prints the name, notation, stats and range of a row', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.svg).toContain('>Roll 1</text>');
@@ -411,7 +411,7 @@ describe('buildShareSvg row list', () => {
   it('draws a color swatch beside each row name', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.svg).toContain('<rect x="28" y="367" width="10" height="10" rx="2" fill="#4369b6"/>');
@@ -419,14 +419,14 @@ describe('buildShareSvg row list', () => {
 
   it('cuts a row name longer than twenty-eight characters down to an ellipsis', () => {
     const long = { ...sumRow(1), name: 'b'.repeat(40) };
-    const image = buildShareSvg({ rows: [toRow(long, 0)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [toRow(long, 0)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain(`>${'b'.repeat(27)}…</text>`);
     expect(image.svg).not.toContain('b'.repeat(28));
   });
 
   it('leaves a row name of exactly twenty-eight characters whole', () => {
     const named = { ...sumRow(1), name: 'b'.repeat(28) };
-    const image = buildShareSvg({ rows: [toRow(named, 0)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [toRow(named, 0)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain(`>${'b'.repeat(28)}</text>`);
     expect(image.svg).not.toContain('…');
   });
@@ -434,7 +434,7 @@ describe('buildShareSvg row list', () => {
   it('cuts a notation longer than seventy-two characters down to an ellipsis', () => {
     const image = buildShareSvg({
       rows: [notationRow('d'.repeat(90))],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.svg).toContain(`>${'d'.repeat(71)}…</text>`);
@@ -443,7 +443,7 @@ describe('buildShareSvg row list', () => {
 
   it('leaves a notation of exactly seventy-two characters whole', () => {
     const notation = 'd'.repeat(72);
-    const image = buildShareSvg({ rows: [notationRow(notation)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [notationRow(notation)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain(`>${notation}</text>`);
     expect(image.svg).not.toContain('…');
   });
@@ -451,7 +451,7 @@ describe('buildShareSvg row list', () => {
   it('thins the result labels rather than printing one per result', () => {
     // 0 to 100 asks for a label every 13 results, and 91 + 13 overshoots, so the
     // top of the range is appended instead of skipped.
-    const image = buildShareSvg({ rows: [wideRow()], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [wideRow()], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(countOf(image.svg, 'text-anchor="middle"')).toBe(9);
     expect(image.svg).toContain('>13</text>');
     expect(image.svg).toContain('>91</text>');
@@ -463,7 +463,7 @@ describe('buildShareSvg capped zero spike', () => {
   it('marks the capped bar with its real percentage', () => {
     const image = buildShareSvg({
       rows: [toRow(checkRow, 0), toRow(sumRow(2), 1)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     // Faces 1 to 7 of the d20 fail and deal nothing: 7/20 of the time. The
@@ -478,7 +478,7 @@ describe('buildShareSvg capped zero spike', () => {
   it('marks nothing when no row can come up empty', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0), toRow(sumRow(2), 1)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.svg).not.toContain('<circle');
@@ -490,7 +490,8 @@ describe('buildShareSvg capped zero spike', () => {
     for (const view of ['cdf', 'ccdf'] as const) {
       const image = buildShareSvg({
         rows: [toRow(checkRow, 0), toRow(sumRow(2), 1)],
-        view,
+        totalsView: view,
+        successesView: view,
         theme: 'light',
       });
       expect(image.svg).not.toContain('<circle');
@@ -503,14 +504,14 @@ describe('buildShareSvg footer note', () => {
   const rows = [toRow(sumRow(1), 0)];
 
   it('always credits the app', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain('>built with dice-table.app</text>');
   });
 
   it('says when pool rows were left out of the picture', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       note: '2 pool rolls are not in this picture',
     });
@@ -520,14 +521,14 @@ describe('buildShareSvg footer note', () => {
   });
 
   it('leaves the aside out when the note is blank', () => {
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note: '  ' });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', note: '  ' });
     expect(countOf(image.svg, 'text-anchor="end" font-family="system-ui')).toBe(0);
   });
 
   it('cuts a note past the budget down to an ellipsis', () => {
     const image = buildShareSvg({
       rows,
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       note: 'c'.repeat(130),
     });
@@ -537,7 +538,7 @@ describe('buildShareSvg footer note', () => {
 
   it('leaves a note of exactly the budget whole', () => {
     const note = 'c'.repeat(120);
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', note });
     expect(image.svg).toContain(`>${note}</text>`);
     expect(image.svg).not.toContain('…');
   });
@@ -546,7 +547,7 @@ describe('buildShareSvg footer note', () => {
   // budget (37 + 2 + 31 code points) must survive whole.
   it('keeps a pair of notes whole when both are present', () => {
     const note = '99 rolls are on a different scale here. 99 rolls left out (too complex)';
-    const image = buildShareSvg({ rows, view: 'pmf', theme: 'light', note });
+    const image = buildShareSvg({ rows, totalsView: 'pmf', successesView: 'pmf', theme: 'light', note });
     expect(image.svg).toContain(`>${note}</text>`);
     expect(image.svg).not.toContain('…');
   });
@@ -555,21 +556,21 @@ describe('buildShareSvg footer note', () => {
 describe('buildShareSvg escaping', () => {
   it('escapes a row name that looks like markup', () => {
     const nasty = { ...sumRow(1), name: '<script>&"x"' };
-    const image = buildShareSvg({ rows: [toRow(nasty, 0)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [toRow(nasty, 0)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain('&lt;script&gt;&amp;&quot;x&quot;');
     expect(image.svg).not.toContain('<script>');
   });
 
   it('escapes an apostrophe in a row name', () => {
     const named = { ...sumRow(1), name: "Ork's axe" };
-    const image = buildShareSvg({ rows: [toRow(named, 0)], view: 'pmf', theme: 'light' });
+    const image = buildShareSvg({ rows: [toRow(named, 0)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' });
     expect(image.svg).toContain('Ork&apos;s axe');
   });
 
   it('escapes a title that tries to close the svg', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: '</svg><script>alert(1)</script>',
     });
@@ -581,7 +582,7 @@ describe('buildShareSvg escaping', () => {
   it('escapes a notation that looks like markup', () => {
     const image = buildShareSvg({
       rows: [notationRow('<b>2d6</b> & "x"')],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.svg).toContain('&lt;b&gt;2d6&lt;/b&gt; &amp; &quot;x&quot;');
@@ -591,7 +592,7 @@ describe('buildShareSvg escaping', () => {
   it('escapes a note that looks like markup', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       note: '<b>2 pools</b>',
     });
@@ -604,7 +605,7 @@ describe('buildShareSvg self-containment', () => {
   it('references nothing outside the file', () => {
     const image = buildShareSvg({
       rows: [toRow(checkRow, 0), toRow(sumRow(1), 1)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'dark',
       title: 'Attack',
       note: 'pools left out',
@@ -619,7 +620,7 @@ describe('buildShareSvg self-containment', () => {
   it('carries the svg namespace as its only URL', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title: 'Attack',
     });
@@ -630,7 +631,7 @@ describe('buildShareSvg self-containment', () => {
   it('matches the card drawn for a single row in light mode', () => {
     const image = buildShareSvg({
       rows: [toRow(sumRow(1), 0)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(image.svg).toMatchSnapshot();

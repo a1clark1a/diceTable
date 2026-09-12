@@ -58,7 +58,13 @@ export interface ShareImageRow {
 
 export interface ShareImageOptions {
   rows: ShareImageRow[];
-  view: ChartView;
+  /**
+   * One view per panel, because the two panels own their view separately on
+   * screen and the picture mirrors the screen. Each still resolves the target
+   * view against its own target.
+   */
+  totalsView: ChartView;
+  successesView: ChartView;
   theme: 'light' | 'dark';
   /** Optional heading. The header band is left out entirely when it is blank. */
   title?: string;
@@ -322,9 +328,9 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const { rows, theme } = options;
   const target = options.target ?? NO_TARGET;
   const poolTarget = options.poolTarget ?? NO_TARGET;
-  const view = effectiveChartView(options.view, target.values.length > 0);
+  const view = effectiveChartView(options.totalsView, target.values.length > 0);
   const poolView = effectiveChartView(
-    options.view,
+    options.successesView,
     poolTarget.values.length > 0,
   );
   const palette = shareCardPalette(theme);

@@ -190,7 +190,8 @@ export function useShareImage(): ShareImageActions {
               ...shell,
               rows,
               poolRows,
-              view: chartViews.shape,
+              totalsView: chartViews.totals,
+              successesView: chartViews.successes,
               // Each panel resolves the target view against its own target, the
               // way the chart does: pool rows answer to the shared pool targets,
               // so Successes can show them while the numeric list is empty and
