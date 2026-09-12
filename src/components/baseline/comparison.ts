@@ -19,12 +19,6 @@ export interface BaselineComparison {
    * shared pool target. Null when no targets are set.
    */
   hits: number[] | null;
-  /**
-   * Largest absolute Hit % delta across every comparing row (hit chances stay
-   * comparable across scales, so cross-scale rows count too). Zero when the
-   * baseline has no hit chance to compare against.
-   */
-  maxHitDelta: number;
 }
 
 /** Null when no baseline is pinned or the pinned row has no usable distribution. */
@@ -47,36 +41,11 @@ export function buildBaselineComparison(
       ? null
       : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
 
-  let maxHitDelta = 0;
-  for (const expr of expressions) {
-    if (expr.id === baselineId) continue;
-    const row = getRowData(expr);
-    if (!row.stats.hasDist || row.tooComplex) continue;
-
-    const rowIsPool = expr.mode === 'pool';
-    if (hits !== null) {
-      // Mirror what the Hit % cells display: a row sharing the baseline's scale
-      // compares target for target down the list; across scales the two lists
-      // measure different things, so both fall back to their first entry.
-      const rowHits = rowIsPool
-        ? poolTargets.map((n) => hitProbability(row.stats.dist, n, 'gte'))
-        : target.values.map((v) =>
-            hitProbability(row.stats.dist, v, target.ruling),
-          );
-      for (const [i, rowHit] of rowHits.entries()) {
-        const baseHit = rowIsPool === isPool ? hits[i] : hits[0];
-        if (baseHit === undefined) continue;
-        maxHitDelta = Math.max(maxHitDelta, Math.abs(rowHit - baseHit));
-      }
-    }
-  }
-
   return {
     id: baseline.id,
     name: baseline.name,
     isPool,
     stats,
     hits,
-    maxHitDelta,
   };
 }

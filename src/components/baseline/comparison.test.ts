@@ -91,43 +91,6 @@ describe('buildBaselineComparison', () => {
   it('leaves hits null when no targets are set', () => {
     const c = buildBaselineComparison(allRows, 'base', noTargets, [2]);
     expect(c!.hits).toBeNull();
-    expect(c!.maxHitDelta).toBe(0);
-  });
-
-  it('shares one Hit % maximum across every comparing row, cross-scale included', () => {
-    const c = buildBaselineComparison(allRows, 'base', targets, [2]);
-    // Candidates vs the 2d6 baseline: 1d6+5 gives 0.25 and 6/36; 1d20 gives
-    // 0.55 − 6/36 (the largest); the pool row contributes |0.25 − 21/36|.
-    expect(c!.maxHitDelta).toBeCloseTo(11 / 20 - 6 / 36, 12);
-  });
-
-  it('takes the largest pool-hit gap across the other pool rows when no numeric targets are set', () => {
-    const pool3d6 = poolExpr('q', 3, 6, 4);
-    const pool4d6 = poolExpr('r', 4, 6, 4);
-    const c = buildBaselineComparison(
-      [pool2d6, pool3d6, pool4d6],
-      'p',
-      noTargets,
-      [2],
-    );
-    // P(>= 2 successes) on 4+: 2d6 → 0.25, 3d6 → 4/8, 4d6 → 11/16. The 4d6 gap
-    // of 7/16 beats the 3d6 gap of 0.25.
-    expect(c!.maxHitDelta).toBeCloseTo(7 / 16, 12);
-  });
-
-  it("leaves sum rows out of a pool baseline's Hit % maximum when no numeric targets are set", () => {
-    const pool3d6 = poolExpr('q', 3, 6, 4);
-    const c = buildBaselineComparison(
-      [pool2d6, pool3d6, base2d6, row1d20],
-      'p',
-      noTargets,
-      [2],
-    );
-    // Only the 3d6 pool row can compare: gap |0.5 − 0.25|. A sum row has no hit
-    // chance at all here, and measuring one against the pool target instead
-    // would give the 2d6 sum a gap of 0.75 (it always totals at least 2) and
-    // dominate.
-    expect(c!.maxHitDelta).toBeCloseTo(0.25, 12);
   });
 
   it('measures a pool baseline against the pool target it is handed', () => {

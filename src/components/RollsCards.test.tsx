@@ -260,7 +260,7 @@ describe('RollsCards baseline pin round trip', () => {
     );
 
     // Baseline card: badge plus untouched absolute stats.
-    expect(screen.getByText('Baseline')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Clear baseline' })).toHaveLength(1);
     expect(screen.getByText('7.00')).toBeInTheDocument();
     expect(screen.getByText('16.7%')).toBeInTheDocument();
 
@@ -275,7 +275,7 @@ describe('RollsCards baseline pin round trip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear baseline' }));
 
     expect(screen.queryByText('Avg')).toBeNull();
-    expect(screen.queryByText('Baseline')).toBeNull();
+    expect(screen.queryAllByRole('button', { name: 'Clear baseline' })).toHaveLength(0);
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });
 

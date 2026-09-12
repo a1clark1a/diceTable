@@ -483,14 +483,14 @@ describe('RollsTable baseline pin round trip', () => {
     renderTable();
 
     expect(screen.getByText('8.50')).toBeInTheDocument();
-    expect(screen.queryByText('Baseline')).toBeNull();
+    expect(screen.queryAllByRole('button', { name: 'Clear baseline' })).toHaveLength(0);
 
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
     );
 
-    // The baseline row wears the badge and keeps its absolute stats.
-    expect(screen.getByText('Baseline')).toBeInTheDocument();
+    // The baseline row is marked by its pin and keeps its absolute stats.
+    expect(screen.getAllByRole('button', { name: 'Clear baseline' })).toHaveLength(1);
     expect(screen.getByText('7.00')).toBeInTheDocument();
     expect(screen.getByText('16.7%')).toBeInTheDocument();
 
@@ -504,7 +504,7 @@ describe('RollsTable baseline pin round trip', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear baseline' }));
 
-    expect(screen.queryByText('Baseline')).toBeNull();
+    expect(screen.queryAllByRole('button', { name: 'Clear baseline' })).toHaveLength(0);
     expect(screen.queryByText('Avg')).toBeNull();
     expect(screen.queryByText('+1.50')).toBeNull();
     expect(screen.getByText('8.50')).toBeInTheDocument();
@@ -550,7 +550,6 @@ describe('RollsTable baseline pin round trip', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Pin as baseline' }));
 
-    expect(screen.getAllByText('Baseline')).toHaveLength(1);
     expect(
       screen.getAllByRole('button', { name: 'Clear baseline' }),
     ).toHaveLength(1);

@@ -1,6 +1,5 @@
 import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import {
-  Badge,
   Box,
   Button,
   HStack,
@@ -46,7 +45,7 @@ import {
   type BaselineComparison,
 } from './baseline/comparison';
 import { buildVerdict } from './baseline/verdict';
-import { DELTA_SLOT, DeltaValue } from './baseline/DeltaLine';
+import { DELTA_SLOT, DeltaValue, STAT_COLUMN } from './baseline/DeltaLine';
 import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
@@ -227,22 +226,22 @@ export function RollsTable() {
               <Table.ColumnHeader textAlign="end" w="58px">
                 <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
+              {/* Fixed width and one line in both states. Content-sizing this
+                  column is what let pinning a baseline reflow the table, and
+                  naming the baseline here made the width follow its name. The
+                  caption above the table already says which roll it is. */}
+              <Table.ColumnHeader
+                textAlign="end"
+                w={STAT_COLUMN}
+                whiteSpace="nowrap"
+              >
                 {comparison !== null ? (
-                  <Stack gap={0.5} align="flex-end">
-                    <HelpTerm tip={tipForId('baseline')}>
-                      vs{' '}
-                      <Text as="span" css={KEEP_CASE}>
-                        {comparison.name}
-                      </Text>
-                    </HelpTerm>
-                    <HStack as="span" gap={4} justify="flex-end">
-                      <DeltaSubLabel tip={tipForId('deltaAvg')}>Avg</DeltaSubLabel>
-                      <DeltaSubLabel tip={tipForId('deltaSpread')}>
-                        Spread
-                      </DeltaSubLabel>
-                    </HStack>
-                  </Stack>
+                  <HStack as="span" gap={4} justify="flex-end">
+                    <DeltaSubLabel tip={tipForId('deltaAvg')}>Avg</DeltaSubLabel>
+                    <DeltaSubLabel tip={tipForId('deltaSpread')}>
+                      Spread
+                    </DeltaSubLabel>
+                  </HStack>
                 ) : (
                   <HelpTerm tip={tipForId('meanSigma')}>
                     Mean ±{' '}
@@ -414,7 +413,6 @@ const RollTableRow = memo(function RollTableRow({
     if (comparison === null || comparison.hits === null) return undefined;
     return isPool === comparison.isPool ? comparison.hits[i] : comparison.hits[0];
   };
-  const hitMax = comparison?.maxHitDelta ?? 0;
   const verdict = deltasActive
     ? buildVerdict({
         mean: stats.mean,
@@ -471,8 +469,10 @@ const RollTableRow = memo(function RollTableRow({
   return (
     <>
       <Table.Row
-        bg={baselineAccent ? 'bg.subtle' : undefined}
-        _hover={{ bg: 'bg.subtle' }}
+        bg={baselineAccent ? 'bg.muted' : undefined}
+        // Hover must not wash the pinned tint back out, and bg.subtle is a
+        // step below it, so the pinned row keeps its own colour on hover.
+        _hover={{ bg: baselineAccent ? 'bg.muted' : 'bg.subtle' }}
       >
         {/* The band means one thing: this is the pinned row. Transparent on
             every other row so the left edges still line up. */}
@@ -497,15 +497,9 @@ const RollTableRow = memo(function RollTableRow({
               onKeyDown={nameBuf.onKeyDown}
               flex="1"
               minW="150px"
+              fontWeight={isBaseline ? 'semibold' : undefined}
               aria-label="Roll name"
             />
-            {isBaseline && (
-              <Tooltip content={tipForId('baseline')}>
-                <Badge colorPalette="blue" variant="surface" flexShrink={0}>
-                  Baseline
-                </Badge>
-              </Tooltip>
-            )}
           </HStack>
         </Table.Cell>
         <Table.Cell>
@@ -697,7 +691,6 @@ const RollTableRow = memo(function RollTableRow({
                       }
                       p={p}
                       baseHit={deltasActive ? baseHitFor(i) : undefined}
-                      maxDelta={hitMax}
                     />
                   ))}
                 </Stack>
@@ -720,7 +713,6 @@ const RollTableRow = memo(function RollTableRow({
                       : {})}
                     p={p}
                     baseHit={deltasActive ? baseHitFor(i) : undefined}
-                    maxDelta={hitMax}
                   />
                 ))}
               </Stack>

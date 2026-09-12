@@ -1,6 +1,5 @@
 import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import {
-  Badge,
   Box,
   Button,
   Grid,
@@ -225,7 +224,6 @@ const RollCard = memo(function RollCard({
     if (comparison === null || comparison.hits === null) return undefined;
     return isPool === comparison.isPool ? comparison.hits[i] : comparison.hits[0];
   };
-  const hitMax = comparison?.maxHitDelta ?? 0;
   const verdict = deltasActive
     ? buildVerdict({
         mean: stats.mean,
@@ -281,7 +279,7 @@ const RollCard = memo(function RollCard({
   });
   return (
     <Box
-      bg={baselineAccent ? 'bg.subtle' : 'bg.panel'}
+      bg={baselineAccent ? 'bg.muted' : 'bg.panel'}
       borderWidth="1px"
       borderColor="border.subtle"
       borderRadius="10px"
@@ -362,13 +360,6 @@ const RollCard = memo(function RollCard({
         </HStack>
 
         <HStack gap={2} mt={2} align="center">
-          {isBaseline && (
-            <Tooltip content={tipForId('baseline')}>
-              <Badge colorPalette="blue" variant="surface" flexShrink={0}>
-                Baseline
-              </Badge>
-            </Tooltip>
-          )}
           <Text
             fontFamily="mono"
             fontSize="xs"
@@ -596,7 +587,6 @@ const RollCard = memo(function RollCard({
                           }
                           p={p}
                           baseHit={deltasActive ? baseHitFor(i) : undefined}
-                          maxDelta={hitMax}
                           justify="center"
                         />
                       ))}
@@ -620,7 +610,6 @@ const RollCard = memo(function RollCard({
                           : {})}
                         p={p}
                         baseHit={deltasActive ? baseHitFor(i) : undefined}
-                        maxDelta={hitMax}
                         justify="center"
                       />
                     ))}
