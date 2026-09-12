@@ -473,7 +473,9 @@ const uiTips: Record<string, string> = {
   deltaSpread:
     'How much more or less spread out this roll is than the baseline. Neither direction is automatically better.',
   deltaHit:
-    'How much more or less often this roll meets the target than the baseline, in percentage points.',
+    'How much more or less often this roll meets the target than the baseline, in percentage points. Green means more often than the baseline, red less.',
+  baselineCompare:
+    'Every other row now shows how it differs from this one, green better and red worse. The Hit % colour is separate: that one rates each roll on its own.',
   baselinePin: 'Pin as baseline to compare the other rolls against it.',
   baselinePinActive: 'This is the baseline. Tap again to clear it.',
   clearAll:
