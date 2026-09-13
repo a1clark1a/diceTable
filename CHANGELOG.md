@@ -54,6 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The page no longer ends in a tall empty band above the footer. Wherever the chart sits under the table, the height left over between the content and the bottom of the window was being shared out evenly between the rolls and the chart, so half of it landed under the chart card, in the gap between that card's bottom edge and the footer's top rule. A full width empty block between two lines reads as an enormously tall footer, which is what it looked like. The leftover height now goes to the rolls, so the chart card sits on the footer and the table gets the room instead. Nothing changes at the widths where the chart sits beside the table, or on a phone.
 - Hit percentages are readable on every surface they appear on. The three colors were measured against the palest panel in the app, so on a pinned roll, which carries a stronger tint, the green and the amber fell below the contrast that size of text needs in light mode. They were slightly under it on a shared picture too. All three are a step darker in light mode now and clear the bar on every background. Dark mode is unchanged.
 - The enlarge button reopens on the chart you pressed. After switching an enlarged view to the other chart and closing it, that button kept reopening on the other one, and deleting the last pool roll while it was set that way left the enlarged view empty with no way back.
 - Escape in a Target or Pool target box discards what you typed instead of adding it. Pressing Escape cleared the box and then added the number anyway.
@@ -63,7 +64,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The buttons at the end of each roll no longer paint over the column headings when the rolls scroll under them.
 - The page heading no longer shifts when the app loads on a desktop screen. The pre-load frame was drawn with the old page margins and the wrong text sizes, so the heading and the line under it jumped as the app took over.
 - A pinned roll keeps its blue edge on a phone or tablet. A pool or check card painted its own band over the top, so pinning one showed no sign of being pinned, and the same band meant something different on a card than it did in the table.
-
 - Dice editor warnings, such as the one that appears when a keep rule asks for more dice than the roll has, were too dark to read against the dark background. They now use the palette's text red instead of its button red.
 - Chart gridlines went missing in dark mode. They were being drawn in a tone meant for a darker surface than the chart card now uses.
 - Expanding a check row dropped its orange band until you collapsed it again.

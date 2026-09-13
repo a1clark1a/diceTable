@@ -190,12 +190,12 @@ export function RollsTable() {
   );
 
   return (
-    <Stack gap={3} minH={0} flex={{ base: '0 1 auto', '2xl': 1 }}>
+    <Stack gap={3} minH={0} flex="1">
       <Box
         bg="bg.panel"
         borderBottomWidth="1px"
         borderColor="border.subtle"
-        flex="0 1 auto"
+        flex={{ base: 1, '2xl': '0 1 auto' }}
         // Shrinking below its rows is what moves the scroll inside the box,
         // so the toolbar and the row actions above it stay put instead of
         // riding the page up out of reach.

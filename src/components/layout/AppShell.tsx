@@ -14,7 +14,7 @@ export function AppShell() {
           w="100%"
           minH="100%"
           // A definite height only where a view divides it and scrolls inside
-          // itself, which is the two-column table layout at xl. Below that
+          // itself, which is the two-column table layout at 2xl. Below that
           // nothing scrolls internally, so a fixed height would clip the page
           // and leave its sections painting over each other.
           h={{ base: 'auto', '2xl': '100%' }}

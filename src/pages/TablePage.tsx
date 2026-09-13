@@ -64,6 +64,11 @@ export default function TablePage() {
               base: '1fr',
               '2xl': `minmax(0, ${tableWidth}px) auto minmax(${RAIL_MIN}px, 1fr)`,
             }}
+            // Stacked, the two implicit rows would share the page's leftover
+            // height equally and strand half of it under the chart card, where
+            // it reads as a very tall footer. Naming the tracks gives all of it
+            // to the rolls instead; the chart keeps its own height.
+            templateRows={{ base: '1fr auto', '2xl': 'none' }}
           >
             {/* The column itself no longer scrolls: the table box inside it
                 does, so the parameters row and the row actions stay in place
