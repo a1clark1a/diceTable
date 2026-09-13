@@ -239,6 +239,12 @@ export const DicePartRow = memo(function DicePartRow({
             value={part.count}
             onCommit={commitCount}
             min={1}
+            // Sides is capped at 1000 and keep-n at 999; count had no ceiling at
+            // all, and NumberStepper skips every clamp when max is undefined, so
+            // a pasted 100000 committed verbatim. The complexity guard refuses
+            // the rows that would actually hurt; this just stops the field being
+            // the one number in the editor with no bound.
+            max={999}
             ariaLabel="Count"
             invalid={errors.count !== undefined}
           />

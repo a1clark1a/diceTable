@@ -4,6 +4,7 @@ import {
   checkComplexity,
   COMPLEXITY_OVERFLOW,
   expressionComplexity,
+  supportWidth,
   expressionTooComplex,
   keepAcrossComplexity,
   MAX_COMPLEXITY,
@@ -559,5 +560,53 @@ describe('checkComplexity — a check row pays for three rolls', () => {
 
     expect(d.size).toBe(0);
     expect(elapsed).toBeLessThan(50);
+  });
+});
+
+describe('supportWidth and the sum guard', () => {
+  function sumRow(count: number, sides: number): Expression {
+    return {
+      id: 'w',
+      name: 'w',
+      parts: [{ id: 'wp', count, sides }],
+      flatModifier: 0,
+      rollMode: 'normal',
+      mode: 'sum',
+    };
+  }
+
+  it('counts the totals a roll can land on', () => {
+    // 20d6 runs 20 to 120, which is 101 distinct totals.
+    expect(supportWidth(sumRow(20, 6))).toBe(101);
+    expect(supportWidth(sumRow(1, 20))).toBe(20);
+  });
+
+  it('charges a keep row only for the dice it keeps', () => {
+    const keepRow: Expression = {
+      ...sumRow(4, 6),
+      parts: [{ id: 'wp', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }],
+    };
+    // Three kept d6 span 3 to 18, not four dice worth.
+    expect(supportWidth(keepRow)).toBe(16);
+  });
+
+  it('leaves pool rows to the guard that already bounds them', () => {
+    expect(supportWidth({ ...sumRow(50, 10), mode: 'pool' })).toBe(0);
+  });
+
+  it('admits the rows people actually build', () => {
+    // Measured: 0.9ms, 2.3ms and 34ms respectively.
+    expect(expressionTooComplex(sumRow(20, 6))).toBe(false);
+    expect(expressionTooComplex(sumRow(20, 20))).toBe(false);
+    expect(expressionTooComplex(sumRow(20, 100))).toBe(false);
+    expect(expressionTooComplex(sumRow(50, 100))).toBe(false);
+  });
+
+  it('refuses a plain sum that would freeze the main thread', () => {
+    // These scored zero before, because partComplexity only charges for keep
+    // and explode. 100d100 measured 615ms and 100d1000 over three minutes.
+    expect(expressionTooComplex(sumRow(100, 100))).toBe(true);
+    expect(expressionTooComplex(sumRow(100, 1000))).toBe(true);
+    expect(expressionTooComplex(sumRow(999, 1000))).toBe(true);
   });
 });
