@@ -293,19 +293,18 @@ describe('useShareImage copyImage', () => {
     expect(captured).toHaveLength(1);
     const text = await textFlavourOf(captured[0]!);
     expect(text.startsWith(LINK_PREFIX)).toBe(true);
-    expect(decodeFromHashFragment(new URL(text).hash)).toEqual({
-      ok: true,
-      rolls: [
-        {
-          id: 'seed-sum',
-          name: 'Shortsword',
-          parts: [{ id: 'seed-sum-part', count: 2, sides: 6 }],
-          flatModifier: 0,
-          rollMode: 'normal',
-          mode: 'sum',
-        },
-      ],
-    });
+    // The wire no longer carries ids, so the roll arrives with a fresh one.
+    const link = decodeFromHashFragment(new URL(text).hash);
+    if (!link.ok) throw new Error();
+    expect(link.rolls).toHaveLength(1);
+    const [roll] = link.rolls;
+    expect(roll?.name).toBe('Shortsword');
+    expect(roll?.parts).toEqual([
+      { id: expect.any(String), count: 2, sides: 6 },
+    ]);
+    expect(roll?.flatModifier).toBe(0);
+    expect(roll?.rollMode).toBe('normal');
+    expect(roll?.mode).toBe('sum');
   });
 
   // A real clipboard write waits for the pending picture before it settles,
@@ -358,7 +357,8 @@ describe('useShareImage shareSheet', () => {
     expect(data?.text?.startsWith(LINK_PREFIX)).toBe(true);
     const decoded = decodeFromHashFragment(new URL(data?.text ?? '').hash);
     if (!decoded.ok) throw new Error(`link did not decode: ${decoded.error}`);
-    expect(decoded.rolls[0]?.id).toBe('seed-sum');
+    // Ids are synthesized on arrival now; what must survive is the roll.
+    expect(decoded.rolls[0]?.name).toBe('Shortsword');
     expect(toasts).toHaveLength(0);
     expect(downloads).toHaveLength(0);
   });

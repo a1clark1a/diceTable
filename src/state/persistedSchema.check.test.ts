@@ -15,6 +15,16 @@ import { decodeFromHashFragment, decodeFromJsonString } from '../share/decode';
 import { encodeRollsToHash, encodeRollsToJson, HASH_PREFIX } from '../share/encode';
 import type { Expression } from '../types';
 
+// The wire carries no ids: both import paths replace them on arrival, so a
+// decoded row is compared on everything else and only checked for having one.
+function expectCheckRow(actual: unknown, expected: unknown): void {
+  const strip = (v: unknown): unknown => JSON.parse(
+    JSON.stringify(v, (key, value) => (key === 'id' ? undefined : value)),
+  ) as unknown;
+  expect(strip(actual)).toEqual(strip(expected));
+}
+
+
 type Raw = Record<string, unknown>;
 
 // 1d20+7 against DC 15, dealing 1d8+4 on a hit and doubling its dice on a 20.
@@ -550,7 +560,7 @@ describe('share links carrying a check row', () => {
     const decoded = decodeFromHashFragment(encodeRollsToHash([row!]));
     expect(decoded.ok).toBe(true);
     if (!decoded.ok) return;
-    expect(decoded.rolls).toEqual([EXPECTED_CHECK_ROW]);
+    expectCheckRow(decoded.rolls, [EXPECTED_CHECK_ROW]);
   });
 
   it('keeps a check row intact through the JSON export', () => {
@@ -558,7 +568,7 @@ describe('share links carrying a check row', () => {
     const decoded = decodeFromJsonString(encodeRollsToJson([row!]));
     expect(decoded.ok).toBe(true);
     if (!decoded.ok) return;
-    expect(decoded.rolls).toEqual([EXPECTED_CHECK_ROW]);
+    expectCheckRow(decoded.rolls, [EXPECTED_CHECK_ROW]);
   });
 
   it('rejects a link whose check row is corrupt', () => {
