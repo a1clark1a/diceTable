@@ -11,7 +11,6 @@ import { tipForId } from '../../docs/glossary';
 const BLOCKED_TIP: Record<Exclude<ShareCardState, 'ready'>, string> = {
   noRows: 'shareImageNoRows',
   needsTwo: 'shareImageNeedsTwo',
-  overLimit: 'shareImageOverLimit',
   noTargets: 'shareImageNoTargets',
   noSumRows: 'shareImageNoSumRows',
 };

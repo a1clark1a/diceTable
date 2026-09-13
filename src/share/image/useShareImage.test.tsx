@@ -786,12 +786,20 @@ describe('useShareImage cardState', () => {
     expect(result.current.cardState).toBe('ready');
   });
 
-  it('is overLimit one roll past the chart row cap on the table view', () => {
+  it('stays ready past the chart row cap, because the card now cuts and says so', () => {
     seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT + 1), { view: 'table' });
 
     const { result } = renderHook(() => useShareImage(), { wrapper });
 
-    expect(result.current.cardState).toBe('overLimit');
+    expect(result.current.cardState).toBe('ready');
+  });
+
+  it('stays ready at a hundred rolls rather than refusing to draw', () => {
+    seedViewTable(manySumSeeds(100), { view: 'table' });
+
+    const { result } = renderHook(() => useShareImage(), { wrapper });
+
+    expect(result.current.cardState).toBe('ready');
   });
 
   it('stays ready past the chart row cap on the target view', () => {

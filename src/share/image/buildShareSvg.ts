@@ -1,4 +1,5 @@
 import type { ChartView, Distribution, TargetState } from '../../types';
+import { SHARE_CARD_ROW_LIMIT } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
 import { hitProbability } from '../../engine/stats';
 import {
@@ -320,6 +321,14 @@ function drawPanel({
   };
 }
 
+// The card is the only one of four with no row cap, and its height is a
+// canvas budget rather than a legibility one: 46px a row, rasterized at 2x, so
+// 100 rows is 1840 x 10944 and about 80MB of pixel buffer on a phone. Twenty
+// keeps it at 3584 tall, which is also exactly what the screen draws.
+function capNote(shown: number, total: number): string {
+  return `showing the first ${shown} of ${total} rolls`;
+}
+
 function unfitNote(count: number): string {
   return count === 1
     ? '1 roll does not fit these bars'
@@ -339,8 +348,18 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const scale = scaleFor(options.scale);
   const title = (options.title ?? '').trim();
 
-  const usable = rows.filter((r) => r.dist.size > 0);
-  const poolUsable = (options.poolRows ?? []).filter((r) => r.dist.size > 0);
+  const allUsable = rows.filter((r) => r.dist.size > 0);
+  const allPoolUsable = (options.poolRows ?? []).filter((r) => r.dist.size > 0);
+  // Shared in proportion between the two panels, the same rule the screen uses,
+  // so one kind cannot push the other off the card.
+  const drawable = allUsable.length + allPoolUsable.length;
+  const share = (n: number): number =>
+    n === 0 || drawable <= SHARE_CARD_ROW_LIMIT
+      ? n
+      : Math.max(1, Math.floor((n / drawable) * SHARE_CARD_ROW_LIMIT));
+  const usable = allUsable.slice(0, share(allUsable.length));
+  const poolUsable = allPoolUsable.slice(0, share(allPoolUsable.length));
+  const drawn = usable.length + poolUsable.length;
   // Headings only earn their space once a Successes panel exists, the same rule
   // the chart uses on screen: an all-sum card keeps the unlabeled single-chart
   // look, and a pool-only card gets the heading that carries its unit.
@@ -382,6 +401,7 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const height = cursor + FOOTER_HEIGHT + PADDING;
 
   const notes = [(options.note ?? '').trim()];
+  if (drawn < drawable) notes.push(capNote(drawn, drawable));
   if (hidden > 0) notes.push(unfitNote(hidden));
 
   return renderCard({

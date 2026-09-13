@@ -641,6 +641,57 @@ describe('buildShareSvg self-containment', () => {
     expect(image.svg).toMatchSnapshot();
   });
 
+  it('stops growing at the row cap instead of allocating a canvas no phone will take', () => {
+    // 50 of each kind. Uncapped this was 1840 x 10944 at scale 2, about 20
+    // megapixels of buffer; the cap holds it to ten rows a panel.
+    const rows = Array.from({ length: 50 }, (_, i) => toRow(sumRow(i + 1), i));
+    const poolRows = Array.from({ length: 50 }, (_, i) =>
+      toRow(sumRow(i + 1), i),
+    );
+    const image = buildShareSvg({
+      rows,
+      poolRows,
+      totalsView: 'pmf',
+      successesView: 'pmf',
+      theme: 'light',
+      scale: 2,
+    });
+
+    expect(image.width).toBe(CARD_WIDTH * 2);
+    expect(image.height).toBeLessThanOrEqual(3600);
+    expect(image.svg).toContain('showing the first 20 of 100 rolls');
+  });
+
+  it('shares the cap between the panels rather than letting one fill it', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => toRow(sumRow(i + 1), i));
+    const poolRows = Array.from({ length: 10 }, (_, i) =>
+      toRow(sumRow(i + 1), i),
+    );
+    const image = buildShareSvg({
+      rows,
+      poolRows,
+      totalsView: 'pmf',
+      successesView: 'pmf',
+      theme: 'light',
+    });
+
+    // 30 and 10 of 40 against a budget of 20 is 15 and 5, not 20 and 0.
+    expect(image.svg).toContain('showing the first 20 of 40 rolls');
+  });
+
+  it('says nothing about a cut for a table that fits', () => {
+    const rows = Array.from({ length: 12 }, (_, i) => toRow(sumRow(i + 1), i));
+    const image = buildShareSvg({
+      rows,
+      totalsView: 'pmf',
+      successesView: 'pmf',
+      theme: 'light',
+    });
+
+    expect(image.svg).not.toContain('showing the first');
+    expect(image.height).toBe(BASE_HEIGHT + LIST_LINE * 12);
+  });
+
   it('dashes a row by its table position, not by where it sits on the card', () => {
     // Rows 0 and 2 of a table whose middle row went to the other panel. The
     // picture has to dash them the way the screen does, or a shared card
