@@ -180,3 +180,28 @@ describe('detectAndDecode', () => {
     });
   });
 });
+
+describe('a payload from a newer build', () => {
+  const future = {
+    format: EXPORT_FORMAT_TAG,
+    exportVersion: EXPORT_VERSION + 1,
+    rolls: [],
+  };
+
+  it('is named as a version problem, not as corruption', () => {
+    // "Corrupted, try re-exporting" is advice that produces another one of the
+    // same file. Reloading onto the newer build is what actually fixes it.
+    expect(decodeFromJsonString(JSON.stringify(future))).toEqual({
+      ok: false,
+      error: 'version-too-new',
+    });
+  });
+
+  it('is still told apart from a payload that is simply malformed', () => {
+    expect(
+      decodeFromJsonString(
+        JSON.stringify({ ...future, exportVersion: EXPORT_VERSION, rolls: [{ nope: 1 }] }),
+      ),
+    ).toEqual({ ok: false, error: 'invalid-shape' });
+  });
+});

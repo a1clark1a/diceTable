@@ -1,6 +1,6 @@
 import { decompressFromEncodedURIComponent } from 'lz-string';
 import type { Expression } from '../types';
-import { validateExportPayload } from './format';
+import { isFutureExportVersion, validateExportPayload } from './format';
 import { HASH_PREFIX } from './encode';
 
 export type DecodeError =
@@ -8,6 +8,7 @@ export type DecodeError =
   | 'not-our-format'
   | 'malformed-json'
   | 'invalid-shape'
+  | 'version-too-new'
   | 'decompress-failed';
 
 export type DecodeResult =
@@ -25,6 +26,9 @@ function parseAndValidateJson(jsonText: string): DecodeResult {
   }
   const validated = validateExportPayload(parsed);
   if (validated === null) {
+    if (isFutureExportVersion(parsed)) {
+      return { ok: false, error: 'version-too-new' };
+    }
     if (
       typeof parsed === 'object' &&
       parsed !== null &&

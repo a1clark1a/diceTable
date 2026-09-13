@@ -85,6 +85,21 @@ function withSynthesizedIds(raw: unknown, nextId: () => string): unknown {
   return out;
 }
 
+/**
+ * Whether a payload claims a format this build is too old to read. The service
+ * worker means a user can be running a cached older build when a newer link
+ * arrives, and "corrupted, try re-exporting" is advice that produces another
+ * one of the same. Reloading is what actually fixes it.
+ */
+export function isFutureExportVersion(raw: unknown): boolean {
+  return (
+    isRecord(raw) &&
+    raw.format === EXPORT_FORMAT_TAG &&
+    typeof raw.exportVersion === 'number' &&
+    raw.exportVersion > EXPORT_VERSION
+  );
+}
+
 export function validateExportPayload(raw: unknown): Expression[] | null {
   if (!isRecord(raw)) return null;
   if (raw.format !== EXPORT_FORMAT_TAG) return null;

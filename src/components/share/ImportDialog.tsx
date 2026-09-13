@@ -40,6 +40,8 @@ const ERROR_MESSAGES: Record<DecodeError, string> = {
     "That JSON isn't from DiceTable. Expected a 'dicetable-rolls' export.",
   'invalid-shape':
     'The data is from DiceTable but appears corrupted. Try re-exporting.',
+  'version-too-new':
+    'This was made by a newer version of DiceTable. Reload the page and try again.',
   'decompress-failed':
     "This share link couldn't be decoded. It may be truncated or modified.",
 };
