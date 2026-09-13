@@ -72,7 +72,7 @@ interface OverlayChartImplProps {
   dists: Map<string, Distribution>;
   effectiveView: ChartView;
   target: TargetState;
-  hoveredId: string | null;
+  focusedId: string | null;
   slots: Map<string, number>;
   unit?: ChartUnit;
   /** Overridden when the same panel is rendered somewhere with more room. */
@@ -271,7 +271,7 @@ export default function OverlayChartImpl({
   dists,
   effectiveView,
   target,
-  hoveredId,
+  focusedId: incomingFocus,
   slots,
   unit = 'totals',
   height,
@@ -303,8 +303,8 @@ export default function OverlayChartImpl({
   }, [plotted]);
 
   const focusedId =
-    hoveredId !== null && series.some((s) => s.id === hoveredId)
-      ? hoveredId
+    incomingFocus !== null && series.some((s) => s.id === incomingFocus)
+      ? incomingFocus
       : null;
 
   if (effectiveView === 'target' && target.values.length > 0) {

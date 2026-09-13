@@ -13,6 +13,7 @@ import type { Distribution } from '../../types';
 import { Tooltip } from '../ui/tooltip';
 import { chipFocusRing } from '../editor/focusRings';
 import { ChartPanel } from './ChartPanel';
+import { useSeriesFocus } from './useSeriesFocus';
 import { capPanels, chartRowCap } from './rowCap';
 import { useTableFits } from '../../hooks/useBreakpoint';
 import type { ChartPanelData } from './useChartPanels';
@@ -52,7 +53,7 @@ export function ChartEnlargeDialog({
   const [open, setOpen] = useState(false);
   // Hover is local to the enlarged copy: the row it would highlight is behind
   // the dialog anyway.
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const focus = useSeriesFocus();
   // This component is the trigger, so it stays mounted while unmountOnExit
   // discards the dialog: the pick has to be put back on open or the button
   // reopens on whatever was chosen last time.
@@ -162,8 +163,11 @@ export function ChartEnlargeDialog({
                     panel={p}
                     dists={dists}
                     slots={slots}
-                    hoveredId={hoveredId}
-                    onHover={setHoveredId}
+                    focusedId={focus.focusedId}
+                    pickedId={focus.pickedId}
+                    onPreview={focus.preview}
+                    onPick={focus.toggle}
+                    onClear={focus.clear}
                     unit={unitFor(p)}
                     // Two panels share the dialog's height, so each takes
                     // roughly half rather than one being pushed off-screen.

@@ -1,10 +1,11 @@
-import { memo, useMemo, useState, type Ref } from 'react';
+import { memo, useMemo, type Ref } from 'react';
 import { Box, Stack, Text } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
 import { capPanels, chartRowCap } from './rowCap';
 import { ChartPanel } from './ChartPanel';
 import { ChartEnlargeDialog } from './ChartEnlargeDialog';
 import { useChartPanels } from './useChartPanels';
+import { useSeriesFocus } from './useSeriesFocus';
 
 interface OverlayChartProps {
   ref?: Ref<HTMLDivElement>;
@@ -47,7 +48,7 @@ export const OverlayChart = memo(function OverlayChart({
     () => capPanels(panels, chartRowCap('rail', false)),
     [panels],
   );
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const focus = useSeriesFocus();
 
   return (
     <Stack ref={ref} gap={2} scrollMarginTop={{ base: '64px', md: '72px' }}>
@@ -76,8 +77,11 @@ export const OverlayChart = memo(function OverlayChart({
                 panel={panel}
                 dists={dists}
                 slots={slots}
-                hoveredId={hoveredId}
-                onHover={setHoveredId}
+                focusedId={focus.focusedId}
+                pickedId={focus.pickedId}
+                onPreview={focus.preview}
+                onPick={focus.toggle}
+                onClear={focus.clear}
                 unit={panel.key === 'successes' ? 'successes' : 'totals'}
                 enlarge={
                   <ChartEnlargeDialog

@@ -56,7 +56,7 @@ function renderTargetView(
         dists={new Map([[expr.id, dist]])}
         effectiveView="target"
         target={target}
-        hoveredId={null}
+        focusedId={null}
         slots={new Map([[expr.id, 0]])}
         {...(unit !== undefined && { unit })}
       />
