@@ -185,7 +185,7 @@ export function TargetToolbar() {
       : hasPoolRow
         ? hasSumRow
           ? 'Add a target to show Hit % for sum rows.'
-          : 'Pool rows use the pool target below.'
+          : 'Pool rows answer to Pool target instead.'
         : 'Add a target to show Hit % per row.';
 
   // Defined once and rendered in both the inline row and the sheet, so the two

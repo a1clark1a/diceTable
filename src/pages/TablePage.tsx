@@ -12,6 +12,7 @@ import { WorkshopToolbar } from '../components/WorkshopToolbar';
 import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
 import { RowActions } from '../components/RowActions';
+import { RollModeControl } from '../components/RollModeControl';
 import { RailSplitter, RAIL_MIN, TABLE_WIDTH } from '../components/layout/RailSplitter';
 import { ScrollButtons } from '../components/ScrollButtons';
 import { ChartViewChips } from '../components/chart/ChartViewChips';
@@ -26,6 +27,27 @@ import { useApp } from '../state/useApp';
 
 interface WorkshopViewEntry extends WorkshopViewChip {
   render: () => ReactNode;
+}
+
+/**
+ * Roll mode feeds expressionDistribution, so it moves every number Roll-off and
+ * Head-to-head draw. The toolbar that used to carry it on desktop is mobile-only
+ * now, which left it changing these two views while being uneditable from them.
+ * Scroll-to-top left with the same toolbar, and both of these views can run long.
+ */
+function CompareActions() {
+  return (
+    <Flex gap={4} align="center" wrap="wrap" w="100%">
+      <RowActions />
+      {/* Below md the sticky toolbar's overflow menu already holds it, so a
+          second copy here would spend a line of a phone screen on a duplicate. */}
+      <Box display={{ base: 'none', md: 'contents' }}>
+        <RollModeControl />
+      </Box>
+      <Box flex="1" minW={0} />
+      <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
+    </Flex>
+  );
 }
 
 export default function TablePage() {
@@ -145,7 +167,11 @@ export default function TablePage() {
         <>
           <WorkshopToolbar />
           <Stack gap={3}>
-            <TargetToolbar />
+            <Flex gap={3} align="center" wrap="wrap">
+              <TargetToolbar />
+              <Box flex="1" minW={0} />
+              <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
+            </Flex>
             <TargetHitView />
           </Stack>
         </>
@@ -158,7 +184,7 @@ export default function TablePage() {
         <>
           <WorkshopToolbar />
           <Stack gap={3} align="flex-start">
-            <RowActions />
+            <CompareActions />
             <RollOffView />
           </Stack>
         </>
@@ -172,7 +198,7 @@ export default function TablePage() {
         <>
           <WorkshopToolbar />
           <Stack gap={3} align="flex-start">
-            <RowActions />
+            <CompareActions />
             <HeadToHeadView />
           </Stack>
         </>

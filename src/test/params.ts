@@ -12,8 +12,30 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
  * rendered at all stay able to ask, and a no-op where it is already open,
  * because the trigger toggles.
  */
+/**
+ * The two layouts name their opener differently, and both are correct. The
+ * touch layout has a separate "Edit" button, so it carries the edit label. The
+ * pointer layout's trigger IS the label and the summary, so its accessible name
+ * is that content: giving it an edit label instead would hide the current value
+ * and drop the visible word out of the name.
+ */
+const POINTER_TRIGGER: Record<string, RegExp> = {
+  'Edit targets': /^Target\b/,
+  'Edit pool targets': /^Pool target\b/,
+};
+
 export async function openParams(editLabel: string): Promise<void> {
-  const trigger = screen.queryByRole('button', { name: editLabel });
+  const pattern = POINTER_TRIGGER[editLabel];
+  // "Target hit" is a view tab and matches the same prefix, so the opener is
+  // picked by the thing only a disclosure has rather than by name alone.
+  const byContent =
+    pattern === undefined
+      ? []
+      : screen
+          .queryAllByRole('button', { name: pattern })
+          .filter((b) => b.hasAttribute('aria-expanded'));
+  const trigger =
+    screen.queryByRole('button', { name: editLabel }) ?? byContent[0] ?? null;
   if (trigger === null || trigger.getAttribute('aria-expanded') === 'true') {
     return;
   }

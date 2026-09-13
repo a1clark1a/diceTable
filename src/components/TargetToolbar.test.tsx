@@ -391,14 +391,14 @@ describe('TargetToolbar pool target row', () => {
     const poolHint = hintText();
 
     expect(sumHint).toBe('Add a target to show Hit % per row.');
-    expect(poolHint).toBe('Pool rows use the pool target below.');
+    expect(poolHint).toBe('Pool rows answer to Pool target instead.');
     expect(sumHint).not.toBe(poolHint);
   });
 
   it('points a pool-only table at the pool target instead of a numeric one', async () => {
     seedPoolRow({ rows: ['pool'] });
     await renderToolbar();
-    expect(hintText()).toBe('Pool rows use the pool target below.');
+    expect(hintText()).toBe('Pool rows answer to Pool target instead.');
   });
 
   it('swaps the pool wording out and back as the last numeric target comes and goes', async () => {
@@ -406,9 +406,9 @@ describe('TargetToolbar pool target row', () => {
     await renderToolbar();
     addValue('4');
     expect(hintText()).toBe('Add another target or clear to hide Hit %.');
-    expect(hintText()).not.toBe('Pool rows use the pool target below.');
+    expect(hintText()).not.toBe('Pool rows answer to Pool target instead.');
     fireEvent.click(screen.getByRole('button', { name: 'Remove target ≥ 4' }));
-    expect(hintText()).toBe('Pool rows use the pool target below.');
+    expect(hintText()).toBe('Pool rows answer to Pool target instead.');
   });
 });
 

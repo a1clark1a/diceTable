@@ -11,7 +11,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronDown } from 'lucide-react';
 import { tapTarget } from './tapTarget';
-import { useIsDesktop } from '../hooks/useBreakpoint';
+import { useTableFits } from '../hooks/useBreakpoint';
 
 /** Fixed gutter so every group's summary row starts at the same offset. */
 const LABEL_GUTTER = '74px';
@@ -57,9 +57,11 @@ export function ParamControl({
   accent = 'fg.muted',
   children,
 }: ParamControlProps) {
-  const isDesktop = useIsDesktop();
+  // The same 62em the tap targets and the table layout use, so a width can't
+  // get a pointer popover while everything around it is sized for touch.
+  const pointerLayout = useTableFits();
 
-  if (isDesktop) {
+  if (pointerLayout) {
     return (
       <Popover.Root positioning={{ placement: 'bottom-start' }} lazyMount unmountOnExit>
         <Popover.Trigger asChild>
@@ -71,7 +73,10 @@ export function ParamControl({
             px={3}
             gap={2}
             title={tip}
-            aria-label={editLabel}
+            // No aria-label: the button's own content is the better name. An
+            // "Edit targets" label replaced it, which both hid what the control
+            // is currently set to and dropped the visible word "Target" out of
+            // the accessible name, so speech input could not address it.
           >
             <Text as="span" fontSize="xs" color={accent}>
               {label}
