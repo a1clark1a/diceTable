@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildMatrixSvg, type MatrixCardRow } from './buildMatrixSvg';
 import { expressionDistribution } from '../../engine/expression';
 import { uniformDistribution } from '../../engine/distribution';
-import { rowColor } from '../../components/chart/palette';
+import { rowColorHex } from '../../components/chart/palette';
 import type { Distribution, Expression } from '../../types';
 
 // Card geometry, restated here so the expected numbers below are arithmetic a
@@ -33,7 +33,7 @@ const BLANK = '\u2014';
 // literal hexes the two palettes ship instead.
 const LIGHT_GROUND = '#f2f1ed';
 const LIGHT_TEXT = '#22221f';
-const LIGHT_MID = '#8a5e17';
+const LIGHT_MID = '#7f5507';
 const DARK_GROUND = '#131519';
 const DARK_TEXT = '#e4e7eb';
 const DARK_MID = '#dda857';
@@ -51,17 +51,17 @@ function dieRow(name: string, sides: number, index: number): MatrixCardRow {
   return {
     id: expr.id,
     name,
-    color: rowColor(index),
+    color: rowColorHex(index, 'light'),
     dist: expressionDistribution(expr),
   };
 }
 
 function uniformRow(name: string, sides: number, index: number): MatrixCardRow {
-  return { id: name, name, color: rowColor(index), dist: uniformDistribution(sides) };
+  return { id: name, name, color: rowColorHex(index, 'light'), dist: uniformDistribution(sides) };
 }
 
 function customRow(name: string, dist: Distribution, index: number): MatrixCardRow {
-  return { id: name, name, color: rowColor(index), dist };
+  return { id: name, name, color: rowColorHex(index, 'light'), dist };
 }
 
 function countOf(haystack: string, needle: string): number {
@@ -345,8 +345,8 @@ describe('buildMatrixSvg themes', () => {
 
   it('keeps the row color the table gave it', () => {
     const image = buildMatrixSvg({ rows: twoDice(), theme: 'dark' });
-    expect(image.svg).toContain('fill="#4369b6"');
-    expect(image.svg).toContain('fill="#bb6a26"');
+    expect(image.svg).toContain('fill="#21396a"');
+    expect(image.svg).toContain('fill="#673406"');
   });
 });
 

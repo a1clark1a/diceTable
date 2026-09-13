@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useApp } from '../../state/useApp';
 import { getRowData } from '../../state/useDistributions';
-import { rowColor } from '../../components/chart/palette';
+import { rowColorHex } from '../../components/chart/palette';
 import { useColorMode } from '../../components/ui/color-mode';
 import { toaster } from '../../components/share/toaster-store';
 import { canMiss, isTotalsMode } from '../../engine/expression';
@@ -70,7 +70,10 @@ interface ChartCardRows {
 // Pool rows count successes, so they cannot share an axis with totals; they go
 // to their own stacked panel instead of being dropped. Colours stay keyed to
 // the unfiltered row position so the image matches the table's swatches.
-function chartCardRows(expressions: Expression[]): ChartCardRows {
+function chartCardRows(
+  expressions: Expression[],
+  theme: 'light' | 'dark',
+): ChartCardRows {
   const rows: ShareImageRow[] = [];
   const poolRows: ShareImageRow[] = [];
   let tooComplex = 0;
@@ -89,7 +92,7 @@ function chartCardRows(expressions: Expression[]): ChartCardRows {
       id: expr.id,
       name: expr.name,
       notation: expressionNotation(expr),
-      color: rowColor(idx),
+      color: rowColorHex(idx, theme),
       dist,
       canMiss: canMiss(expr),
       mean: stats.mean,
@@ -184,7 +187,7 @@ export function useShareImage(): ShareImageActions {
       switch (view) {
         case 'table': {
           const { rows, poolRows, tooComplex, unmeasured } =
-            chartCardRows(expressions);
+            chartCardRows(expressions, theme);
           return rasterize(
             buildShareSvg({
               ...shell,
@@ -209,7 +212,7 @@ export function useShareImage(): ShareImageActions {
           // The view's own eligibility rule, reused rather than re-derived: a
           // roll with unusable dice, or one the complexity guard refused, has
           // no chance to show and never reaches the card.
-          const rows = toTargetRows(expressions);
+          const rows = toTargetRows(expressions, theme);
           const omitted = expressions.length - rows.length;
           return rasterize(
             buildTargetHitSvg({
@@ -227,7 +230,7 @@ export function useShareImage(): ShareImageActions {
         case 'rolloff': {
           // Not the chart card's row builder: the roll-off deliberately puts
           // pool rows in the running on their success-count scale.
-          const compared = toCompareRows(expressions);
+          const compared = toCompareRows(expressions, theme);
           const chances = winChances(compared.map((r) => r.dist));
           const dropped = expressions.length - compared.length;
           return rasterize(
@@ -248,7 +251,7 @@ export function useShareImage(): ShareImageActions {
           );
         }
         case 'matrix': {
-          const compared = toCompareRows(expressions);
+          const compared = toCompareRows(expressions, theme);
           const dropped = expressions.length - compared.length;
           return rasterize(
             buildMatrixSvg({

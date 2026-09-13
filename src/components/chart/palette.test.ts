@@ -3,6 +3,10 @@ import {
   hitColor,
   hitWeight,
   rowColor,
+  rowColorHex,
+  rowPalette,
+  ROW_PALETTE_DARK,
+  ROW_PALETTE_LIGHT,
   seriesDash,
   SHARE_CARD_DARK,
   SHARE_CARD_LIGHT,
@@ -13,15 +17,25 @@ import {
 // tests is to catch the shipped tables changing, so an assertion sourced from
 // the tables themselves would agree with any mistake made in them.
 const EXPECTED_DASHES = ['0', '7 4', '2 4', '9 4 2 4', '5 5', '1 4', '12 5', '4 4'] as const;
-const EXPECTED_COLORS = [
-  '#4369b6',
-  '#bb6a26',
-  '#0a9564',
-  '#a17dd4',
-  '#a84869',
-  '#0092b4',
-  '#7f6500',
-  '#d76f7e',
+const EXPECTED_LIGHT = [
+  '#21396a',
+  '#673406',
+  '#075b3c',
+  '#7a639c',
+  '#551b30',
+  '#065e75',
+  '#715b14',
+  '#935059',
+] as const;
+const EXPECTED_DARK = [
+  '#8eb1f4',
+  '#d79362',
+  '#96edc1',
+  '#8c70b4',
+  '#f6a1ba',
+  '#3ea6c7',
+  '#e4c878',
+  '#c3707b',
 ] as const;
 
 const TABLE_LENGTH = 8;
@@ -59,21 +73,71 @@ describe('seriesDash', () => {
   });
 });
 
-describe('rowColor', () => {
-  it('gives each of the first eight rows its own color', () => {
-    const colors = Array.from({ length: TABLE_LENGTH }, (_, i) => rowColor(i));
-    expect(colors).toEqual([...EXPECTED_COLORS]);
-    expect(new Set(colors).size).toBe(TABLE_LENGTH);
+describe('ROW_PALETTE', () => {
+  it('ships the measured light set', () => {
+    expect([...ROW_PALETTE_LIGHT]).toEqual([...EXPECTED_LIGHT]);
   });
 
-  it('wraps back to the first color past the end of the palette', () => {
-    expect(rowColor(TABLE_LENGTH)).toBe(EXPECTED_COLORS[0]);
-    expect(rowColor(TABLE_LENGTH + 1)).toBe(EXPECTED_COLORS[1]);
+  it('ships the measured dark set', () => {
+    expect([...ROW_PALETTE_DARK]).toEqual([...EXPECTED_DARK]);
+  });
+
+  it('gives each of the first eight rows its own colour in both modes', () => {
+    expect(new Set(ROW_PALETTE_LIGHT).size).toBe(TABLE_LENGTH);
+    expect(new Set(ROW_PALETTE_DARK).size).toBe(TABLE_LENGTH);
+  });
+
+  it('keeps a row on the same slot in both modes, so identity survives a theme switch', () => {
+    expect(ROW_PALETTE_DARK).toHaveLength(ROW_PALETTE_LIGHT.length);
+    expect(rowPalette('light')).toEqual([...EXPECTED_LIGHT]);
+    expect(rowPalette('dark')).toEqual([...EXPECTED_DARK]);
+  });
+
+  it('ships every slot as a six-digit lowercase hex literal', () => {
+    // The share image is rasterised outside the Chakra theme, so a token or a
+    // #fff shorthand would reach the PNG as an invalid colour.
+    for (const color of [...ROW_PALETTE_LIGHT, ...ROW_PALETTE_DARK]) {
+      expect(color).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+});
+
+describe('rowColor', () => {
+  it('hands the app a token, so the browser swaps sets without a render', () => {
+    const colors = Array.from({ length: TABLE_LENGTH }, (_, i) => rowColor(i));
+    expect(colors).toEqual([
+      'var(--chakra-colors-row-1)',
+      'var(--chakra-colors-row-2)',
+      'var(--chakra-colors-row-3)',
+      'var(--chakra-colors-row-4)',
+      'var(--chakra-colors-row-5)',
+      'var(--chakra-colors-row-6)',
+      'var(--chakra-colors-row-7)',
+      'var(--chakra-colors-row-8)',
+    ]);
+  });
+
+  it('wraps back to the first slot past the end of the palette', () => {
+    expect(rowColor(TABLE_LENGTH)).toBe(rowColor(0));
+    expect(rowColor(TABLE_LENGTH + 1)).toBe(rowColor(1));
   });
 
   it('counts a negative index back from the end of the palette', () => {
-    expect(rowColor(-1)).toBe(EXPECTED_COLORS[7]);
-    expect(rowColor(-13)).toBe(EXPECTED_COLORS[3]);
+    expect(rowColor(-1)).toBe(rowColor(7));
+    expect(rowColor(-13)).toBe(rowColor(3));
+  });
+});
+
+describe('rowColorHex', () => {
+  it('hands the share image a literal for the theme it is drawing', () => {
+    expect(rowColorHex(0, 'light')).toBe(EXPECTED_LIGHT[0]);
+    expect(rowColorHex(0, 'dark')).toBe(EXPECTED_DARK[0]);
+  });
+
+  it('wraps and counts back the same way rowColor does', () => {
+    expect(rowColorHex(TABLE_LENGTH, 'light')).toBe(EXPECTED_LIGHT[0]);
+    expect(rowColorHex(-1, 'dark')).toBe(EXPECTED_DARK[7]);
+    expect(rowColorHex(-13, 'light')).toBe(EXPECTED_LIGHT[3]);
   });
 });
 

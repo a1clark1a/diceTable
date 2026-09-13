@@ -56,15 +56,34 @@ const config = defineConfig({
         red: {
           subtle: { value: { _light: '#f4e4e1', _dark: '#251a19' } },
         },
-        // The ramp is body text on bg.panel, so it is measured there: good
-        // 5.39:1 light / 7.40:1 dark, mid 5.45 / 7.90, bad 6.12 / 5.56. Literal
-        // hex rather than ramp references because no Chakra ramp carries this
-        // desaturated family, and the stock greens and ambers read as a
-        // different palette against a warm ground.
+        // Hit text lands on four surfaces, not the one this was first measured
+        // against. Chakra's table line variant paints rows bg, hover paints
+        // bg.subtle, a pinned baseline row paints bg.muted, and the target bars
+        // and check editor paint bg.panel. bg.muted is the darkest of them in
+        // light mode and the lightest in dark, so it is the ground that binds,
+        // and 14px semibold is not WCAG large text, so the bar is 4.5:1. On
+        // bg.muted: good 4.82 light / 6.74 dark, mid 4.78 / 7.19, bad 5.24 /
+        // 5.07. Literal hex rather than ramp references because no Chakra ramp
+        // carries this desaturated family, and the stock greens and ambers read
+        // as a different palette against a warm ground.
         hit: {
-          good: { value: { _light: '#2c7454', _dark: '#58be92' } },
-          mid: { value: { _light: '#8a5e17', _dark: '#dda857' } },
-          bad: { value: { _light: '#a0403a', _dark: '#e4726a' } },
+          good: { value: { _light: '#206949', _dark: '#58be92' } },
+          mid: { value: { _light: '#7f5507', _dark: '#dda857' } },
+          bad: { value: { _light: '#963839', _dark: '#e4726a' } },
+        },
+        // The eight series hues. Tokens rather than literals in the components
+        // so the browser swaps the sets on a theme change with no render in
+        // between; src/components/chart/palette.ts holds the same values for the
+        // share image and explains why one shared set cannot work.
+        row: {
+          1: { value: { _light: '#21396a', _dark: '#8eb1f4' } },
+          2: { value: { _light: '#673406', _dark: '#d79362' } },
+          3: { value: { _light: '#075b3c', _dark: '#96edc1' } },
+          4: { value: { _light: '#7a639c', _dark: '#8c70b4' } },
+          5: { value: { _light: '#551b30', _dark: '#f6a1ba' } },
+          6: { value: { _light: '#065e75', _dark: '#3ea6c7' } },
+          7: { value: { _light: '#715b14', _dark: '#e4c878' } },
+          8: { value: { _light: '#935059', _dark: '#c3707b' } },
         },
       },
     },

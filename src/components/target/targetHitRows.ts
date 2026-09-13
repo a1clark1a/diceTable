@@ -1,6 +1,6 @@
 import { getRowData } from '../../state/useDistributions';
 import { hitProbability } from '../../engine/stats';
-import { rowColor } from '../chart/palette';
+import { rowColor, rowColorHex } from '../chart/palette';
 import type {
   Distribution,
   Expression,
@@ -18,7 +18,12 @@ export interface TargetRow {
   max: number;
 }
 
-export function toTargetRows(expressions: Expression[]): TargetRow[] {
+// theme is passed only by the share image, which leaves the app and so cannot
+// carry the CSS variable the screen uses.
+export function toTargetRows(
+  expressions: Expression[],
+  theme?: 'light' | 'dark',
+): TargetRow[] {
   return expressions.flatMap((expr, idx) => {
     const { stats, tooComplex } = getRowData(expr);
     if (!stats.hasDist || tooComplex) return [];
@@ -26,7 +31,7 @@ export function toTargetRows(expressions: Expression[]): TargetRow[] {
       {
         id: expr.id,
         name: expr.name,
-        color: rowColor(idx),
+        color: theme === undefined ? rowColor(idx) : rowColorHex(idx, theme),
         isPool: expr.mode === 'pool',
         dist: stats.dist,
         min: stats.min,

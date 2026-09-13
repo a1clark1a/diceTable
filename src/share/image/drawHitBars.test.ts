@@ -9,7 +9,7 @@ import {
 } from './drawHitBars';
 import { expressionDistribution } from '../../engine/expression';
 import { hitProbability } from '../../engine/stats';
-import { rowColor, shareCardPalette } from '../../components/chart/palette';
+import { rowColorHex, shareCardPalette } from '../../components/chart/palette';
 import type { Expression } from '../../types';
 
 // Block geometry, restated here so every expected number below is arithmetic a
@@ -64,7 +64,7 @@ function rollsNamed(names: string[], hits: number[]): HitBarRow[] {
   return names.map((name, index) => ({
     id: `roll-${index}`,
     name,
-    color: rowColor(index),
+    color: rowColorHex(index, 'light'),
     hits,
   }));
 }
@@ -249,12 +249,12 @@ describe('drawHitBars bars and key', () => {
   it('paints each roll in the colour the table gave it', () => {
     const fills = barRects(drawing).map((rect) => rect.fill);
     expect(fills).toEqual([
-      '#4369b6',
-      '#4369b6',
-      '#bb6a26',
-      '#bb6a26',
-      '#0a9564',
-      '#0a9564',
+      '#21396a',
+      '#21396a',
+      '#673406',
+      '#673406',
+      '#075b3c',
+      '#075b3c',
     ]);
   });
 
@@ -341,8 +341,8 @@ describe('drawHitBars extreme chances', () => {
 describe('drawHitBars bar heights', () => {
   const drawing = drawBlock(
     [
-      { id: 'sure', name: 'Sure thing', color: rowColor(0), hits: [CERTAIN] },
-      { id: 'coin', name: 'Coin flip', color: rowColor(1), hits: [EVEN] },
+      { id: 'sure', name: 'Sure thing', color: rowColorHex(0, 'light'), hits: [CERTAIN] },
+      { id: 'coin', name: 'Coin flip', color: rowColorHex(1, 'light'), hits: [EVEN] },
     ],
     columnsFor([1]),
   );

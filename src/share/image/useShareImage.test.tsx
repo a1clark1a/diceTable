@@ -417,8 +417,8 @@ describe('useShareImage picture contents', () => {
     });
 
     const svg = renderedSvg();
-    expect(svg).toContain('stroke="#bb6a26"');
-    expect(svg).toContain('stroke="#4369b6"');
+    expect(svg).toContain('stroke="#673406"');
+    expect(svg).toContain('stroke="#21396a"');
   });
 
   it('stacks several pool rows into the one successes panel', async () => {
@@ -433,7 +433,7 @@ describe('useShareImage picture contents', () => {
     expect(svg).not.toContain('not in this picture');
     expect(countOf(svg, '<polyline')).toBe(3);
     expect(countOf(svg, '>SUCCESSES</text>')).toBe(1);
-    expect(svg).toContain('stroke="#0a9564"');
+    expect(svg).toContain('stroke="#075b3c"');
   });
 
   it('draws a table of only pool rows as a successes panel', async () => {
@@ -463,7 +463,7 @@ describe('useShareImage picture contents', () => {
     expect(svg).toContain('>1 roll left out (too complex)</text>');
     expect(svg).not.toContain('pool roll');
     expect(countOf(svg, '<polyline')).toBe(1);
-    expect(svg).toContain('stroke="#bb6a26"');
+    expect(svg).toContain('stroke="#673406"');
   });
 
   // A pool row beside a too-complex one leaves only the too-complex note: the
@@ -498,7 +498,7 @@ describe('useShareImage picture contents', () => {
     const svg = renderedSvg();
     expect(svg).toContain('>45%</text>');
     expect(svg).toContain(
-      '<circle cx="113.83" cy="46" r="4" fill="#4369b6" stroke="#f2f1ed" stroke-width="2"/>',
+      '<circle cx="113.83" cy="46" r="4" fill="#21396a" stroke="#f2f1ed" stroke-width="2"/>',
     );
   });
 });

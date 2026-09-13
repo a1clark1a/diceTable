@@ -1,5 +1,5 @@
 import { getRowData } from '../../state/useDistributions';
-import { rowColor } from '../chart/palette';
+import { rowColor, rowColorHex } from '../chart/palette';
 import type { Distribution, Expression } from '../../types';
 
 export interface CompareRow {
@@ -12,14 +12,20 @@ export interface CompareRow {
 // Rows join the comparison views only with computable dice. The color index is
 // the table position, so swatches keep matching the chart legend even when a
 // row in between drops out.
-export function toCompareRows(expressions: Expression[]): CompareRow[] {
+//
+// theme is passed only by the share image, which leaves the app and so cannot
+// carry the CSS variable the screen uses.
+export function toCompareRows(
+  expressions: Expression[],
+  theme?: 'light' | 'dark',
+): CompareRow[] {
   return expressions.flatMap((expr, idx) => {
     const { stats, tooComplex } = getRowData(expr);
     if (!stats.hasDist || tooComplex) return [];
     return [
       {
         expr,
-        color: rowColor(idx),
+        color: theme === undefined ? rowColor(idx) : rowColorHex(idx, theme),
         isPool: expr.mode === 'pool',
         dist: stats.dist,
       },

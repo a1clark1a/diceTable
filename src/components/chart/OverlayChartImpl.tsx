@@ -141,17 +141,24 @@ function formatTooltipValue(value: number | string | undefined): string {
 
 // Custom tooltip: each row carries its series-color swatch (matching the table
 // and legend swatches by color), so identically named rows stay distinguishable.
+//
+// The panel ground rather than bg.inverted, which every other overlay in the app
+// already uses. bg.inverted flips from near-black in light mode to near-white in
+// dark, and a swatch set that had to clear 3:1 on both of those as well as on
+// the row grounds had no luminance window left to separate eight hues in.
 function ChartTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <Box
-      bg="bg.inverted"
-      color="fg.inverted"
+      bg="bg.panel"
+      color="fg"
+      borderWidth="1px"
+      borderColor="border.emphasized"
       borderRadius="sm"
       px="10px"
       py="6px"
       fontSize="11px"
-      boxShadow="sm"
+      boxShadow="md"
     >
       <Text fontWeight={600} mb={1}>
         Result: {label}
@@ -577,16 +584,16 @@ function TargetHitView({
               ]}
               labelFormatter={(label) => String(label)}
               contentStyle={{
-                backgroundColor: 'var(--chakra-colors-bg-inverted)',
-                border: 'none',
+                backgroundColor: 'var(--chakra-colors-bg-panel)',
+                border: '1px solid var(--chakra-colors-border-emphasized)',
                 borderRadius: 4,
                 fontSize: 11,
-                color: 'var(--chakra-colors-fg-inverted)',
+                color: 'var(--chakra-colors-fg)',
                 padding: '6px 10px',
               }}
-              itemStyle={{ color: 'var(--chakra-colors-fg-inverted)' }}
+              itemStyle={{ color: 'var(--chakra-colors-fg)' }}
               labelStyle={{
-                color: 'var(--chakra-colors-fg-inverted)',
+                color: 'var(--chakra-colors-fg)',
                 fontWeight: 600,
               }}
             />

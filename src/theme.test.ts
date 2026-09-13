@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { system } from './theme';
+import {
+  ROW_PALETTE_DARK,
+  ROW_PALETTE_LIGHT,
+} from './components/chart/palette';
 
 // Written out by hand rather than read back from the module: the point is to
 // catch the shipped palette changing, so an expectation sourced from theme.ts
@@ -25,9 +29,9 @@ const LIGHT: Record<string, string> = {
   'purple-solid': '#6b4ea8',
   'purple-fg': '#5b3f94',
   'purple-subtle': '#ede9f3',
-  'hit-good': '#2c7454',
-  'hit-mid': '#8a5e17',
-  'hit-bad': '#a0403a',
+  'hit-good': '#206949',
+  'hit-mid': '#7f5507',
+  'hit-bad': '#963839',
   'green-subtle': '#e4ede5',
   'orange-subtle': '#f3ebdc',
   'red-subtle': '#f4e4e1',
@@ -96,6 +100,29 @@ describe('theme semantic colors', () => {
       const key = `--chakra-colors-${name}`;
       expect(light[key], name).not.toBe(dark[key]);
     }
+  });
+});
+
+describe('row palette tokens', () => {
+  // The only place in the suite that reads both sides on purpose: the point is
+  // cross-file agreement, not the values, which palette.test.ts pins by hand.
+  // The app paints from these tokens and the share image from the arrays, so a
+  // drift here would ship a picture that did not match the screen it came from.
+  it.each([
+    ['light', ROW_PALETTE_LIGHT],
+    ['dark', ROW_PALETTE_DARK],
+  ] as const)('mirrors the %s share palette slot for slot', (mode, palette) => {
+    const tokens = tokensFor(mode);
+    palette.forEach((hex, i) => {
+      expect(tokens[`--chakra-colors-row-${i + 1}`], `row-${i + 1}`).toBe(hex);
+    });
+  });
+
+  it('defines exactly one token per palette slot', () => {
+    const names = Object.keys(tokensFor('light')).filter((n) =>
+      n.startsWith('--chakra-colors-row-'),
+    );
+    expect(names).toHaveLength(ROW_PALETTE_LIGHT.length);
   });
 });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildShareSvg, type ShareImageRow } from './buildShareSvg';
 import { uniformDistribution } from '../../engine/distribution';
-import { rowColor } from '../../components/chart/palette';
+import { rowColorHex } from '../../components/chart/palette';
 
 // The card's text budgets, in code points and including the ellipsis: 28 for a
 // row name, 70 for the title, 120 for the footer note, 72 for a notation.
@@ -22,7 +22,7 @@ function namedRow(name: string, notation = '1d6'): ShareImageRow {
     id: 'stress-row',
     name,
     notation,
-    color: rowColor(0),
+    color: rowColorHex(0, 'light'),
     dist: uniformDistribution(6),
     canMiss: false,
     mean: 3.5,

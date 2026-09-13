@@ -34,9 +34,9 @@ export function BaselineCaption() {
   return (
     <Text fontSize="xs" color="fg.muted" px={1}>
       Comparing to{' '}
-      {/* The swatch carries the row colour, not the name. ROW_PALETTE is built
-          for marks at 3:1 and five of its eight entries fall under the 4.5:1
-          text floor on the light ground, so colouring the name would read as
+      {/* The swatch carries the row colour, not the name. The row palette is
+          built for marks at 3:1, and two of its eight slots fall under the
+          4.5:1 text floor in each mode, so colouring the name would read as
           identity at the cost of legibility. Same square the table uses. */}
       <Box
         as="span"

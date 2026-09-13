@@ -3,7 +3,7 @@ import { buildRollOffSvg, type RollOffCardRow } from './buildRollOffSvg';
 import { winChances } from '../../engine/compare';
 import { toCompareRows } from '../../components/compare/compareRows';
 import { expressionNotation } from '../notation';
-import { rowColor } from '../../components/chart/palette';
+import { rowColorHex } from '../../components/chart/palette';
 import type { Expression } from '../../types';
 
 // Card geometry, restated here so the expected numbers below are arithmetic a
@@ -38,7 +38,7 @@ function cardRow(
     id: `row-${index}`,
     name,
     notation: `${index + 1}d6`,
-    color: rowColor(index),
+    color: rowColorHex(index, 'light'),
     win,
     tie,
   };
@@ -405,9 +405,9 @@ describe('buildRollOffSvg bars', () => {
     });
     expect(bars(image.svg).map((b) => b.fill)).toEqual([
       LIGHT_TRACK,
-      '#4369b6',
+      '#21396a',
       LIGHT_TRACK,
-      '#bb6a26',
+      '#673406',
     ]);
   });
 
@@ -422,7 +422,7 @@ describe('buildRollOffSvg bars', () => {
     // The second track is left bare: its own colour never reaches the bar.
     expect(bars(image.svg).map((b) => b.fill)).toEqual([
       LIGHT_TRACK,
-      '#4369b6',
+      '#21396a',
       LIGHT_TRACK,
     ]);
   });
