@@ -22,6 +22,7 @@ function namedRow(name: string, notation = '1d6'): ShareImageRow {
     id: 'stress-row',
     name,
     notation,
+    slot: 0,
     color: rowColorHex(0, 'light'),
     dist: uniformDistribution(6),
     canMiss: false,

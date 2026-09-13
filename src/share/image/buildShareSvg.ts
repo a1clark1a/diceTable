@@ -47,6 +47,8 @@ export interface ShareImageRow {
   id: string;
   name: string;
   notation: string;
+  /** Unfiltered row position, so the picture dashes the way the screen does. */
+  slot: number;
   color: string;
   dist: Distribution;
   canMiss: boolean;
@@ -256,7 +258,7 @@ function drawPanel({
     }
 
     const stepWidth = xSpan / Math.max(1, globalMax - globalMin);
-    prepared.forEach(({ row, series }, index) => {
+    prepared.forEach(({ row, series }) => {
       const points: string[] = [];
       for (let x = globalMin; x <= globalMax; x++) {
         const p = evalSeriesAt(series, x, view);
@@ -271,7 +273,7 @@ function drawPanel({
         }
       }
       parts.push(
-        `<polyline points="${points.join(' ')}" fill="none" stroke="${row.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="${seriesDash(index)}"/>`,
+        `<polyline points="${points.join(' ')}" fill="none" stroke="${row.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="${seriesDash(row.slot)}"/>`,
       );
     });
 

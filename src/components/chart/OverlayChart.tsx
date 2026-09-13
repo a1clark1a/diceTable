@@ -40,7 +40,7 @@ function EmptyChartCard({ children }: { children: React.ReactNode }) {
 export const OverlayChart = memo(function OverlayChart({
   ref,
 }: OverlayChartProps) {
-  const { panels, dists, colors, overLimit, rowCount } = useChartPanels();
+  const { panels, dists, slots, overLimit, rowCount } = useChartPanels();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
@@ -76,7 +76,7 @@ export const OverlayChart = memo(function OverlayChart({
               <ChartPanel
                 panel={panel}
                 dists={dists}
-                colors={colors}
+                slots={slots}
                 hoveredId={hoveredId}
                 onHover={setHoveredId}
                 unit={panel.key === 'successes' ? 'successes' : 'totals'}
@@ -85,7 +85,7 @@ export const OverlayChart = memo(function OverlayChart({
                     panel={panel}
                     panels={panels}
                     dists={dists}
-                    colors={colors}
+                    slots={slots}
                   />
                 }
               />

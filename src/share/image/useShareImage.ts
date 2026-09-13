@@ -92,6 +92,7 @@ function chartCardRows(
       id: expr.id,
       name: expr.name,
       notation: expressionNotation(expr),
+      slot: idx,
       color: rowColorHex(idx, theme),
       dist,
       canMiss: canMiss(expr),

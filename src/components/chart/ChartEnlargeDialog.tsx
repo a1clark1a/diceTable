@@ -28,7 +28,7 @@ interface ChartEnlargeDialogProps {
   /** Every panel on screen, so the dialog can show the other one too. */
   panels: ChartPanelData[];
   dists: Map<string, Distribution>;
-  colors: Map<string, string>;
+  slots: Map<string, number>;
 }
 
 /**
@@ -45,7 +45,7 @@ export function ChartEnlargeDialog({
   panel,
   panels,
   dists,
-  colors,
+  slots,
 }: ChartEnlargeDialogProps) {
   const [open, setOpen] = useState(false);
   // Hover is local to the enlarged copy: the row it would highlight is behind
@@ -151,7 +151,7 @@ export function ChartEnlargeDialog({
                     key={p.key}
                     panel={p}
                     dists={dists}
-                    colors={colors}
+                    slots={slots}
                     hoveredId={hoveredId}
                     onHover={setHoveredId}
                     unit={unitFor(p)}

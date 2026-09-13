@@ -57,6 +57,7 @@ const poolExpr: Expression = {
 const sumRow: TargetRow = {
   id: 'sum',
   name: 'Two dice',
+  slot: 0,
   color: '#2563eb',
   isPool: false,
   dist: SUM_2D6,
@@ -67,6 +68,7 @@ const sumRow: TargetRow = {
 const poolRow: TargetRow = {
   id: 'pool',
   name: 'Pool of two',
+  slot: 0,
   color: '#ea580c',
   isPool: true,
   dist: POOL_2D6_ON_4,

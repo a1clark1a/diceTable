@@ -454,7 +454,7 @@ function drawCurves(
   // the axis with two extra points instead of thousands of samples.
   const leftVal = target.ruling === 'gte' || target.ruling === 'gt' ? 1 : 0;
   const rightVal = target.ruling === 'lte' || target.ruling === 'lt' ? 1 : 0;
-  plan.rows.forEach((row, index) => {
+  plan.rows.forEach((row) => {
     const points: string[] = [];
     const push = (v: number, p: number): void => {
       points.push(`${round(x(v))},${round(y(p))}`);
@@ -473,7 +473,7 @@ function drawCurves(
     // Dashed by index the way the comparison card is: a static picture has no
     // hover to separate two lines that run together.
     parts.push(
-      `<polyline points="${points.join(' ')}" fill="none" stroke="${row.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="${seriesDash(index)}"/>`,
+      `<polyline points="${points.join(' ')}" fill="none" stroke="${row.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="${seriesDash(row.slot)}"/>`,
     );
   });
 

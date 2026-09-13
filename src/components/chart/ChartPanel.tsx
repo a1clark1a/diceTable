@@ -66,7 +66,7 @@ export function PanelLegend({ entries, focusedId, onHover }: PanelLegendProps) {
 interface ChartPanelProps {
   panel: ChartPanelData;
   dists: Map<string, Distribution>;
-  colors: Map<string, string>;
+  slots: Map<string, number>;
   hoveredId: string | null;
   onHover: (id: string | null) => void;
   unit: ChartUnit;
@@ -79,7 +79,7 @@ interface ChartPanelProps {
 export function ChartPanel({
   panel,
   dists,
-  colors,
+  slots,
   hoveredId,
   onHover,
   unit,
@@ -133,7 +133,7 @@ export function ChartPanel({
         <OverlayChartImpl
           expressions={panel.expressions}
           dists={dists}
-          colors={colors}
+          slots={slots}
           effectiveView={panel.effectiveView}
           target={panel.target}
           hoveredId={hoveredId}

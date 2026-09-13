@@ -60,6 +60,7 @@ function spearRow(): TargetRow {
   return {
     id: 'r1',
     name: 'Spear',
+    slot: 0,
     color: '#2563eb',
     isPool: false,
     dist,

@@ -16,7 +16,7 @@ import type {
 interface ImplProps {
   expressions: Expression[];
   dists: Map<string, Distribution>;
-  colors: Map<string, string>;
+  slots: Map<string, number>;
   effectiveView: ChartView;
   target: TargetState;
   unit?: 'totals' | 'successes';
@@ -32,7 +32,10 @@ vi.mock('./OverlayChartImpl', () => ({
       data-view={props.effectiveView}
       data-ids={props.expressions.map((e) => e.id).join(',')}
       data-colors={props.expressions
-        .map((e) => props.colors.get(e.id) ?? 'missing')
+        .map((e) => {
+          const slot = props.slots.get(e.id);
+          return slot === undefined ? 'missing' : rowColor(slot);
+        })
         .join(',')}
       data-target={JSON.stringify(props.target)}
     />

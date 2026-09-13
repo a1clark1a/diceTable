@@ -34,7 +34,7 @@ export interface ChartPanelData {
 export interface ChartPanels {
   panels: ChartPanelData[];
   dists: Map<string, Distribution>;
-  colors: Map<string, string>;
+  slots: Map<string, number>;
   overLimit: boolean;
   rowCount: number;
 }
@@ -50,11 +50,13 @@ export function useChartPanels(): ChartPanels {
 
   const overLimit = expressions.length > CHART_ROW_LIMIT;
 
-  // Keyed by unfiltered row position so the sum/pool split cannot shift any
-  // series off its table swatch color.
-  const colors = useMemo(() => {
-    const map = new Map<string, string>();
-    expressions.forEach((expr, idx) => map.set(expr.id, rowColor(idx)));
+  // The unfiltered row position, which is the one thing every surface agrees
+  // on: the table swatch, the legend, the line and the shared picture all key
+  // off it. Handing out the position rather than a resolved color is what stops
+  // the stroke and the dash being derived from two different indices.
+  const slots = useMemo(() => {
+    const map = new Map<string, number>();
+    expressions.forEach((expr, idx) => map.set(expr.id, idx));
     return map;
   }, [expressions]);
 
@@ -119,7 +121,7 @@ export function useChartPanels(): ChartPanels {
   return {
     panels,
     dists,
-    colors,
+    slots,
     overLimit,
     rowCount: expressions.length,
   };

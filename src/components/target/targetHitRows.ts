@@ -11,6 +11,8 @@ import type {
 export interface TargetRow {
   id: string;
   name: string;
+  /** Unfiltered row position, so the picture dashes the way the screen does. */
+  slot: number;
   color: string;
   isPool: boolean;
   dist: Distribution;
@@ -31,6 +33,7 @@ export function toTargetRows(
       {
         id: expr.id,
         name: expr.name,
+        slot: idx,
         color: theme === undefined ? rowColor(idx) : rowColorHex(idx, theme),
         isPool: expr.mode === 'pool',
         dist: stats.dist,

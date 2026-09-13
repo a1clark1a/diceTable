@@ -39,6 +39,8 @@ import {
 interface RowSeries extends SeriesEval {
   id: string;
   name: string;
+  /** Unfiltered row position. Both the stroke color and the dash come off it. */
+  slot: number;
   color: string;
   canMiss: boolean;
 }
@@ -66,7 +68,7 @@ interface OverlayChartImplProps {
   effectiveView: ChartView;
   target: TargetState;
   hoveredId: string | null;
-  colors: Map<string, string>;
+  slots: Map<string, number>;
   unit?: ChartUnit;
   /** Overridden when the same panel is rendered somewhere with more room. */
   height?: string;
@@ -75,7 +77,7 @@ interface OverlayChartImplProps {
 function buildSeries(
   expressions: Expression[],
   dists: Map<string, Distribution>,
-  colors: Map<string, string>,
+  slots: Map<string, number>,
 ): RowSeries[] {
   const out: RowSeries[] = [];
   expressions.forEach((expr, idx) => {
@@ -84,15 +86,18 @@ function buildSeries(
     const keys = sortedKeys(dist);
     const min = keys[0]!;
     const max = keys[keys.length - 1]!;
+    // The caller keys slots by unfiltered row position, so a panel fed a
+    // filtered list (sum-only or pool-only) still matches the table swatches
+    // and a row with no distribution cannot shift the rows after it. The
+    // fallback only fires if an id is missing.
+    const slot = slots.get(expr.id) ?? idx;
     out.push({
       id: expr.id,
       name: expr.name,
       // Only a row that can land on "nothing happened" ever has a bar capped.
       canMiss: canMiss(expr),
-      // The caller keys colors by unfiltered row position so a panel fed a
-      // filtered list (sum-only or pool-only) still matches the table
-      // swatches; the index fallback only fires if an id is missing.
-      color: colors.get(expr.id) ?? rowColor(idx),
+      slot,
+      color: rowColor(slot),
       ...buildSeriesEval(dist, min, max),
     });
   });
@@ -203,13 +208,13 @@ export default function OverlayChartImpl({
   effectiveView,
   target,
   hoveredId,
-  colors,
+  slots,
   unit = 'totals',
   height,
 }: OverlayChartImplProps) {
   const series = useMemo(
-    () => buildSeries(expressions, dists, colors),
-    [expressions, dists, colors],
+    () => buildSeries(expressions, dists, slots),
+    [expressions, dists, slots],
   );
   const data = useMemo(
     () => buildChartData(series, effectiveView),
@@ -304,7 +309,7 @@ export default function OverlayChartImpl({
             content={ChartTooltip}
           />
           {effectiveView === 'pmf'
-            ? series.map((s, i) => {
+            ? series.map((s) => {
                 const focused = focusedId === s.id;
                 const opacity =
                   focusedId === null ? 0.9 : focused ? 1 : 0.2;
@@ -317,14 +322,14 @@ export default function OverlayChartImpl({
                     stroke={s.color}
                     strokeWidth={focused ? 2.25 : 1.75}
                     strokeOpacity={opacity}
-                    strokeDasharray={seriesDash(i)}
+                    strokeDasharray={seriesDash(s.slot)}
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 0 }}
                     isAnimationActive={false}
                   />
                 );
               })
-            : series.map((s, i) => {
+            : series.map((s) => {
                 const focused = focusedId === s.id;
                 const opacity =
                   focusedId === null ? 0.9 : focused ? 1 : 0.2;
@@ -337,7 +342,7 @@ export default function OverlayChartImpl({
                     stroke={s.color}
                     strokeWidth={focused ? 3 : 2.5}
                     strokeOpacity={opacity}
-                    strokeDasharray={seriesDash(i)}
+                    strokeDasharray={seriesDash(s.slot)}
                     dot={{
                       r: 3,
                       fill: s.color,
