@@ -115,6 +115,10 @@
         "src/components/chart/pmfAxis.ts",
         "src/components/chart/format.ts",
         "src/components/chart/palette.ts",
+        "src/components/chart/ChartPanel.tsx",
+        "src/components/chart/ChartViewChips.tsx",
+        "src/components/chart/useChartPanels.ts",
+        "src/components/chart/ChartEnlargeDialog.tsx",
         "src/components/inspect/InspectChart.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
@@ -173,6 +177,7 @@
       "label": "Quickstart · Step 8 (Set targets, ruling, and Hit %)",
       "deps": [
         "src/components/TargetToolbar.tsx",
+        "src/components/ParamControl.tsx",
         "src/components/targetRuling.tsx",
         "src/components/targetRulingMeta.ts",
         "src/components/HitLine.tsx",
@@ -258,6 +263,8 @@
         "src/engine/distribution.ts",
         "src/components/chart/OverlayChart.tsx",
         "src/components/chart/seriesEval.ts",
+        "src/components/chart/ChartViewChips.tsx",
+        "src/components/chart/useChartPanels.ts",
         "src/docs/glossary.ts"
       ]
     },
@@ -298,6 +305,10 @@
         "src/components/compare/compareRows.ts",
         "src/components/baseline/comparison.ts",
         "src/components/baseline/verdict.ts",
+        "src/components/baseline/rowCompare.ts",
+        "src/components/baseline/band.ts",
+        "src/components/baseline/ComparePopover.tsx",
+        "src/components/baseline/deltaText.ts",
         "src/components/share/SharePopover.tsx",
         "src/components/share/ShareImagePopover.tsx",
         "src/share/encode.ts",

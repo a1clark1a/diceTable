@@ -325,7 +325,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'Reference numbers like ACs or save DCs, up to 5. Press Enter to add each; the Hit % column shows how often each row meets each one.',
     details:
-      'Targets live in the toolbar above the table and apply to every row at once. Add up to five. That limit keeps the Hit % column readable on mobile. The comparison used (≥, >, ≤, <, =) is set once for all targets in the dropdown to the left of the chips.',
+      'Targets live in the Target control above the table and apply to every row at once. Add up to five. That limit keeps the Hit % column readable on mobile. The comparison used (≥, >, ≤, <, =) is set once for all targets, in the dropdown at the top of the panel the control opens.',
   },
   {
     id: 'target-ruling',

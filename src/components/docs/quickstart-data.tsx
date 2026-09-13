@@ -77,12 +77,14 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 3,
     title: 'Read the chart',
     plain:
-      'The bottom panel overlays every row. Switch views with the toggle above the chart: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
+      'The comparison chart overlays your rolls on one set of axes, beside the table when the screen is wide enough and below it when it is not. Each chart carries its own view buttons in its header, next to the title: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. The Shape sparkline in each row keeps its own view setting. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
     body: (
       <Stack gap={2}>
         <Text>
-          The bottom panel overlays every row. Switch views with the toggle
-          above the chart:
+          The comparison chart overlays your rolls on one set of axes, beside
+          the table when the screen is wide enough and below it when it is
+          not. Each chart carries its own view buttons in its header, next to
+          the title:
         </Text>
         <List.Root pl={5}>
           <List.Item>
@@ -101,8 +103,9 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           </List.Item>
         </List.Root>
         <Text>
-          The <strong>Shape</strong> sparkline in each row mirrors the active
-          view. Click it (or the Mean / σ values) to open a larger inspector.
+          The <strong>Shape</strong> sparkline in each row keeps its own view
+          setting, so it can show a different view from the chart. Click it (or
+          the Mean / σ values) to open a larger inspector.
         </Text>
         <Text color="fg.muted" fontSize="sm">
           A check roll that misses often would pile all of that chance onto one
@@ -231,16 +234,19 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 8,
     title: 'Set targets and read Hit %',
     plain:
-      'Type one or more targets in the toolbar, for example AC 14 or save DC 16. A Hit % column shows how often each row clears each target, using the comparison you pick: at least, greater than, at most, less than, or exactly.',
+      'The Target control above the table reads None until you set one. Open it, tapping Edit on a phone, then type a number and press Enter for each target, for example AC 14 or save DC 16. A Hit % column shows how often each row clears each target, using the comparison you pick in the same panel: at least, greater than, at most, less than, or exactly.',
     body: (
       <Stack gap={2}>
         <Text>
-          Type one or more targets in the toolbar (e.g. AC 14, save DC 16). A
-          new <strong>Hit %</strong> column appears showing how often each row
-          clears each target.
+          The <strong>Target</strong> control above the table reads{' '}
+          <strong>None</strong> until you set one. Open it (tap{' '}
+          <strong>Edit</strong> on a phone), then type a number and press Enter
+          for each target you want (e.g. AC 14, save DC 16), and a{' '}
+          <strong>Hit %</strong> column appears showing how often each row
+          clears each one.
         </Text>
         <Text>
-          The dropdown next to <strong>Target</strong> picks how a roll is
+          The dropdown at the top of that same panel picks how a roll is
           compared:
         </Text>
         <List.Root pl={5}>
@@ -326,7 +332,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 11,
     title: 'Share and import',
     plain:
-      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button in the toolbar makes a picture of the view you are on, following the sub-view, filter and sort you have set (Curves always plots the sum rolls, whatever the filter says), and copying it puts the link on the clipboard as text at the same time.',
+      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button in the top bar makes a picture of the view you are on, following the sub-view, filter and sort you have set (Curves always plots the sum rolls, whatever the filter says), and copying it puts the link on the clipboard as text at the same time.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -336,7 +342,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           current table or replace it.
         </Text>
         <Text>
-          The <strong>Image</strong> button in the toolbar, and{' '}
+          The <strong>Image</strong> button in the top bar, and{' '}
           <strong>Copy image</strong> in the Share menu, make a picture of what
           you are looking at, with an optional title. It follows the controls
           you set, so the Target hit picture uses the Grid, Curves or Bars you
