@@ -11,7 +11,7 @@ import {
   ReferenceDot,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
-  type TooltipContentProps,
+  useYAxisInverseScale,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -29,6 +29,7 @@ import { RulingSymbol } from '../targetRuling';
 import { RULING_SYMBOL } from '../targetRulingMeta';
 import { formatPercentCompact, targetLabelFits } from './format';
 import { buildSeriesEval, evalSeriesAt, type SeriesEval } from './seriesEval';
+import { seriesXs } from './seriesXs';
 import {
   formatMissPercent,
   missDescription,
@@ -48,6 +49,10 @@ interface RowSeries extends SeriesEval {
 interface ChartDatum {
   x: number;
   [seriesKey: string]: number;
+}
+
+interface PlottedSeries extends RowSeries {
+  points: ChartDatum[];
 }
 
 interface HitRow {
@@ -104,7 +109,15 @@ function buildSeries(
   return out;
 }
 
-function buildChartData(series: RowSeries[], view: ChartView): ChartDatum[] {
+// One array per series rather than one shared grid. The grid gave every series
+// a point at every x in the union, so a single wide row multiplied the point
+// count by the number of rows: twenty rows beside one 20d100 cost 39,620
+// points and, on the cumulative views, a circle each. Each series now pays for
+// its own support and nothing else.
+//
+// Each datum keys its value by the series id because the shared tooltip axis
+// reads it back by dataKey.
+function buildPlotted(series: RowSeries[], view: ChartView): PlottedSeries[] {
   if (series.length === 0) return [];
   let globalMin = Infinity;
   let globalMax = -Infinity;
@@ -114,15 +127,13 @@ function buildChartData(series: RowSeries[], view: ChartView): ChartDatum[] {
   }
   if (!Number.isFinite(globalMin) || !Number.isFinite(globalMax)) return [];
 
-  const data: ChartDatum[] = [];
-  for (let x = globalMin; x <= globalMax; x++) {
-    const datum: ChartDatum = { x };
-    for (const s of series) {
-      datum[s.id] = evalSeriesAt(s, x, view);
-    }
-    data.push(datum);
-  }
-  return data;
+  return series.map((s) => ({
+    ...s,
+    points: seriesXs(s, globalMin, globalMax).map((x) => ({
+      x,
+      [s.id]: evalSeriesAt(s, x, view),
+    })),
+  }));
 }
 
 function buildHitRows(series: RowSeries[], target: TargetState): HitRow[] {
@@ -144,15 +155,72 @@ function formatTooltipValue(value: number | string | undefined): string {
   return `${(value * 100).toFixed(2)}%`;
 }
 
-// Custom tooltip: each row carries its series-color swatch (matching the table
-// and legend swatches by color), so identically named rows stay distinguishable.
+// Twelve entries at 11px overflow the 260px chart a phone gets, and the box
+// follows the cursor so it cannot be scrolled to reach the rest.
+const TOOLTIP_ROW_CAP = 8;
+
+// Dots read as a lattice on an ordinary table and as a smear once the points
+// are a pixel apart, which is also where they stop being affordable.
+const DOT_BUDGET = 1200;
+
+interface ChartTooltipProps {
+  active?: boolean | undefined;
+  label?: string | number | undefined;
+  coordinate?: { x?: number; y?: number } | undefined;
+  series: RowSeries[];
+  view: ChartView;
+  /** Rows whose bar is capped on the PMF view; their real number lives here. */
+  spikeIds: ReadonlySet<string>;
+}
+
+// Values are computed from the series rather than read out of Recharts'
+// payload, because each series now carries its own data: a row whose support
+// does not cover the hovered x has no payload entry at all. evalSeriesAt is the
+// same function that drew the curve, so the tooltip cannot disagree with the
+// line it is explaining.
+//
+// Each row carries its series-color swatch (matching the table and legend
+// swatches by color), so identically named rows stay distinguishable.
 //
 // The panel ground rather than bg.inverted, which every other overlay in the app
 // already uses. bg.inverted flips from near-black in light mode to near-white in
 // dark, and a swatch set that had to clear 3:1 on both of those as well as on
 // the row grounds had no luminance window left to separate eight hues in.
-function ChartTooltip({ active, payload, label }: TooltipContentProps) {
-  if (!active || !payload || payload.length === 0) return null;
+function ChartTooltip({
+  active,
+  label,
+  coordinate,
+  series,
+  view,
+  spikeIds,
+}: ChartTooltipProps) {
+  const yInverse = useYAxisInverseScale();
+  if (!active || series.length === 0) return null;
+  const x = typeof label === 'number' ? label : Number(label);
+  if (!Number.isFinite(x)) return null;
+
+  const rows = series.map((s) => ({
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    value: evalSeriesAt(s, x, view),
+  }));
+  // Ranked by distance from the pointer, because at a given x most rows are
+  // often saturated at the same value and the one still moving is the one worth
+  // reading. Falls back to table order when the scale is unavailable, never to
+  // value order: that actively buries the varying row under the flat ones.
+  const at = coordinate?.y !== undefined && yInverse ? yInverse(coordinate.y) : null;
+  // A capped bar's true value is promised to be on the tooltip, so a row that
+  // owns one is never the row the cap drops.
+  const ordered = [...rows].sort((a, b) => {
+    const spiked = Number(spikeIds.has(b.id)) - Number(spikeIds.has(a.id));
+    if (spiked !== 0) return spiked;
+    if (typeof at !== 'number' || !Number.isFinite(at)) return 0;
+    return Math.abs(a.value - at) - Math.abs(b.value - at);
+  });
+  const shown = ordered.slice(0, TOOLTIP_ROW_CAP);
+  const hidden = ordered.length - shown.length;
+
   return (
     <Box
       bg="bg.panel"
@@ -164,39 +232,35 @@ function ChartTooltip({ active, payload, label }: TooltipContentProps) {
       py="6px"
       fontSize="11px"
       boxShadow="md"
+      maxW="min(280px, 70vw)"
+      maxH="240px"
+      overflow="hidden"
     >
       <Text fontWeight={600} mb={1}>
-        Result: {label}
+        Result: {x}
       </Text>
       <Stack gap={1}>
-        {payload.map((entry, i) => {
-          const value =
-            typeof entry.value === 'number' ? entry.value : undefined;
-          return (
-            <HStack
-              key={`${String(entry.dataKey)}-${i}`}
-              gap={4}
-              justify="space-between"
-            >
-              <HStack gap={1.5} minW={0}>
-                <Box
-                  w="8px"
-                  h="8px"
-                  borderRadius="2px"
-                  bg={entry.color}
-                  flexShrink={0}
-                />
-                <Text truncate>{entry.name}</Text>
-              </HStack>
-              <Text
-                fontFamily="mono"
-                style={{ fontVariantNumeric: 'tabular-nums' }}
-              >
-                {formatTooltipValue(value)}
-              </Text>
+        {shown.map((row) => (
+          <HStack key={row.id} gap={4} justify="space-between">
+            <HStack gap={1.5} minW={0}>
+              <Box
+                w="8px"
+                h="8px"
+                borderRadius="2px"
+                bg={row.color}
+                flexShrink={0}
+              />
+              <Text truncate>{row.name}</Text>
             </HStack>
-          );
-        })}
+            <Text
+              fontFamily="mono"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {formatTooltipValue(row.value)}
+            </Text>
+          </HStack>
+        ))}
+        {hidden > 0 && <Text color="fg.muted">+{hidden} more</Text>}
       </Stack>
     </Box>
   );
@@ -216,8 +280,8 @@ export default function OverlayChartImpl({
     () => buildSeries(expressions, dists, slots),
     [expressions, dists, slots],
   );
-  const data = useMemo(
-    () => buildChartData(series, effectiveView),
+  const plotted = useMemo(
+    () => buildPlotted(series, effectiveView),
     [series, effectiveView],
   );
   const hitRows = useMemo(
@@ -228,6 +292,15 @@ export default function OverlayChartImpl({
     () => planZeroSpikes(effectiveView === 'pmf' ? series : []),
     [series, effectiveView],
   );
+  const spikeIds = useMemo(
+    () => new Set(spikes.markers.map((m) => m.id)),
+    [spikes],
+  );
+  const showDots = useMemo(() => {
+    let points = 0;
+    for (const p of plotted) points += p.points.length;
+    return points <= DOT_BUDGET;
+  }, [plotted]);
 
   const focusedId =
     hoveredId !== null && series.some((s) => s.id === hoveredId)
@@ -262,7 +335,6 @@ export default function OverlayChartImpl({
         initialDimension={{ width: 1, height: 1 }}
       >
         <ComposedChart
-          data={data}
           margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
         >
           {/* Solid hairline, not dashed: dash patterns are spent on series
@@ -306,16 +378,23 @@ export default function OverlayChartImpl({
           />
           <RechartsTooltip
             cursor={{ fill: 'var(--chakra-colors-bg-emphasized)' }}
-            content={ChartTooltip}
+            content={
+              <ChartTooltip
+                series={series}
+                view={effectiveView}
+                spikeIds={spikeIds}
+              />
+            }
           />
           {effectiveView === 'pmf'
-            ? series.map((s) => {
+            ? plotted.map((s) => {
                 const focused = focusedId === s.id;
                 const opacity =
                   focusedId === null ? 0.9 : focused ? 1 : 0.2;
                 return (
                   <Line
                     key={s.id}
+                    data={s.points}
                     dataKey={s.id}
                     name={s.name}
                     type="step"
@@ -329,13 +408,14 @@ export default function OverlayChartImpl({
                   />
                 );
               })
-            : series.map((s) => {
+            : plotted.map((s) => {
                 const focused = focusedId === s.id;
                 const opacity =
                   focusedId === null ? 0.9 : focused ? 1 : 0.2;
                 return (
                   <Line
                     key={s.id}
+                    data={s.points}
                     dataKey={s.id}
                     name={s.name}
                     type="monotone"
@@ -343,13 +423,17 @@ export default function OverlayChartImpl({
                     strokeWidth={focused ? 3 : 2.5}
                     strokeOpacity={opacity}
                     strokeDasharray={seriesDash(s.slot)}
-                    dot={{
-                      r: 3,
-                      fill: s.color,
-                      stroke: 'var(--chakra-colors-bg-panel)',
-                      strokeWidth: 1.5,
-                      opacity,
-                    }}
+                    dot={
+                      showDots
+                        ? {
+                            r: 3,
+                            fill: s.color,
+                            stroke: 'var(--chakra-colors-bg-panel)',
+                            strokeWidth: 1.5,
+                            opacity,
+                          }
+                        : false
+                    }
                     activeDot={{ r: 5, strokeWidth: 0 }}
                     isAnimationActive={false}
                   />
