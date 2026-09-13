@@ -371,7 +371,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'One-on-one odds: how often the roll on the left beats each roll across the top, ignoring everyone else.',
     details:
-      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance.',
+      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance. A big table draws its first twelve rolls here, because the lattice grows with the square of the row count; Roll-off ranks every roll at once.',
   },
   {
     id: 'tie',

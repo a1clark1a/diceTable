@@ -221,12 +221,13 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 7,
     title: 'Compare rolls',
     plain:
-      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Hover or tab to a name in the legend to dim the others and focus a single series. Past a couple of dozen rolls the chart draws the first of them and says so, so the lines stay far enough apart to follow.',
+      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past a couple of dozen rolls the chart draws the first of them and says so, so the lines stay far enough apart to follow.',
     body: (
       <Text>
         Add more rows. Each appears in the chart with its own color, matching
-        the swatch in the table. Hover (or tab to) a name in the chart legend
-        to dim the others and focus a single series. Past a couple of dozen
+        the swatch in the table. Click, tap or press a name in the chart
+        legend to single that roll out and keep it singled out; press it again,
+        press Escape, or tap the chart to go back. Past a couple of dozen
         rolls the chart draws the first of them and says so, so the lines stay
         far enough apart to follow.
       </Text>

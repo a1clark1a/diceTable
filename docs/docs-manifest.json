@@ -121,6 +121,7 @@
         "src/components/chart/ChartEnlargeDialog.tsx",
         "src/components/chart/seriesXs.ts",
         "src/components/chart/rowCap.ts",
+        "src/components/chart/useSeriesFocus.ts",
         "src/components/inspect/InspectChart.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
