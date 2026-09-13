@@ -27,6 +27,9 @@ export interface ChartPanelData {
   /** Curves actually drawn, and how many this panel had to choose from. */
   drawn: number;
   total: number;
+  /** Index of the first drawn curve, so a pager can name the range. */
+  from: number;
+  page: number;
   effectiveView: ChartView;
   target: TargetState;
   /** Whether this panel's own scale has a target to measure against. */
@@ -94,6 +97,8 @@ export function useChartPanels(): ChartPanels {
         expressions: sum.map((p) => p.expr),
         drawn: sum.length,
         total: sum.length,
+        from: 0,
+        page: 0,
         effectiveView: effectiveChartView(
           chartViews.totals,
           target.values.length > 0,
@@ -112,6 +117,8 @@ export function useChartPanels(): ChartPanels {
         expressions: pool.map((p) => p.expr),
         drawn: pool.length,
         total: pool.length,
+        from: 0,
+        page: 0,
         // A pool target always exists, so this panel can reach the target view
         // even while the numeric target list is empty.
         effectiveView: effectiveChartView(chartViews.successes, true),

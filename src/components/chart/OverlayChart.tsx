@@ -1,10 +1,10 @@
-import { memo, useMemo, type Ref } from 'react';
+import { memo, useCallback, useMemo, useState, type Ref } from 'react';
 import { Box, Stack, Text } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
-import { capPanels, chartRowCap } from './rowCap';
+import { chartRowCap, pagePanels, type ChartPages } from './rowCap';
 import { ChartPanel } from './ChartPanel';
 import { ChartEnlargeDialog } from './ChartEnlargeDialog';
-import { useChartPanels } from './useChartPanels';
+import { useChartPanels, type ChartPanelData } from './useChartPanels';
 import { useSeriesFocus } from './useSeriesFocus';
 
 interface OverlayChartProps {
@@ -42,13 +42,20 @@ export const OverlayChart = memo(function OverlayChart({
   ref,
 }: OverlayChartProps) {
   const { panels, dists, slots } = useChartPanels();
+  const focus = useSeriesFocus();
+  // Page is transient like the rail width: a remembered page is wrong the
+  // moment rows are added or deleted, so it resets with the tab.
+  const [pages, setPages] = useState<ChartPages>({});
+  const onPage = useCallback((key: ChartPanelData['key'], page: number) => {
+    setPages((prev) => ({ ...prev, [key]: Math.max(0, page) }));
+  }, []);
   // The rail takes the rail budget at every width; only the enlarged copy
   // has the canvas to earn a bigger one.
+  const pageSize = chartRowCap('rail', false);
   const shown = useMemo(
-    () => capPanels(panels, chartRowCap('rail', false)),
-    [panels],
+    () => pagePanels(panels, pageSize, pages),
+    [panels, pageSize, pages],
   );
-  const focus = useSeriesFocus();
 
   return (
     <Stack ref={ref} gap={2} scrollMarginTop={{ base: '64px', md: '72px' }}>
@@ -82,6 +89,8 @@ export const OverlayChart = memo(function OverlayChart({
                 onPreview={focus.preview}
                 onPick={focus.toggle}
                 onClear={focus.clear}
+                pageSize={pageSize}
+                onPage={onPage}
                 unit={panel.key === 'successes' ? 'successes' : 'totals'}
                 enlarge={
                   <ChartEnlargeDialog

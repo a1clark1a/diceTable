@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capPanels, chartRowCap } from './rowCap';
+import { chartRowCap, pageCount, pagePanels } from './rowCap';
 import type { ChartPanelData } from './useChartPanels';
 import {
   CHART_ROW_CAP_ENLARGED,
@@ -31,6 +31,8 @@ function panel(
     })),
     drawn: count,
     total: count,
+    from: 0,
+    page: 0,
     effectiveView: 'pmf',
     target: TARGET,
     hasTarget: false,
@@ -54,70 +56,79 @@ describe('chartRowCap', () => {
   });
 });
 
-describe('capPanels', () => {
-  it('leaves a table inside the budget untouched, object identity included', () => {
-    const panels = [panel('totals', 5, 's')];
-    expect(capPanels(panels, 20)).toBe(panels);
+describe('pageCount', () => {
+  it('is one page for a table that fits, including an empty one', () => {
+    expect(pageCount(0, 20)).toBe(1);
+    expect(pageCount(20, 20)).toBe(1);
   });
 
-  it('leaves a table exactly at the budget untouched', () => {
+  it('adds a page for the remainder', () => {
+    expect(pageCount(21, 20)).toBe(2);
+    expect(pageCount(75, 20)).toBe(4);
+  });
+});
+
+describe('pagePanels', () => {
+  it('hands back the same panel object when it all fits, so nothing re-renders', () => {
     const panels = [panel('totals', 20, 's')];
-    expect(capPanels(panels, 20)).toBe(panels);
+    expect(pagePanels(panels, 20, {})[0]).toBe(panels[0]);
   });
 
-  it('cuts in table order and records what it drew', () => {
-    const [totals] = capPanels([panel('totals', 21, 's')], 20);
+  it('draws the first page in table order', () => {
+    const [totals] = pagePanels([panel('totals', 75, 's')], 20, {});
+    expect(totals!.from).toBe(0);
     expect(totals!.drawn).toBe(20);
-    expect(totals!.total).toBe(21);
-    expect(totals!.entries.map((e) => e.id)).toEqual(
-      Array.from({ length: 20 }, (_, i) => `s${i}`),
-    );
+    expect(totals!.total).toBe(75);
+    expect(totals!.entries[0]!.id).toBe('s0');
+    expect(totals!.entries[19]!.id).toBe('s19');
+  });
+
+  it('moves to the rolls the first page left out', () => {
+    const [totals] = pagePanels([panel('totals', 75, 's')], 20, { totals: 1 });
+    expect(totals!.from).toBe(20);
+    expect(totals!.entries[0]!.id).toBe('s20');
+    expect(totals!.entries[19]!.id).toBe('s39');
+  });
+
+  it('draws a short last page rather than padding it', () => {
+    const [totals] = pagePanels([panel('totals', 75, 's')], 20, { totals: 3 });
+    expect(totals!.from).toBe(60);
+    expect(totals!.drawn).toBe(15);
+    expect(totals!.entries[14]!.id).toBe('s74');
   });
 
   it('keeps the legend and the curves describing one set', () => {
-    const [totals] = capPanels([panel('totals', 30, 's')], 20);
+    const [totals] = pagePanels([panel('totals', 75, 's')], 20, { totals: 2 });
     expect(totals!.expressions.map((e) => e.id)).toEqual(
       totals!.entries.map((e) => e.id),
     );
   });
 
-  it('splits the budget in proportion so neither kind is starved off', () => {
-    const [totals, successes] = capPanels(
-      [panel('totals', 25, 's'), panel('successes', 25, 'p')],
+  it('pages each panel on its own, so one kind cannot push the other off', () => {
+    // The budget used to be split in proportion, which mattered while the rows
+    // past the cut were unreachable. Every roll is one page away now.
+    const [totals, successes] = pagePanels(
+      [panel('totals', 75, 's'), panel('successes', 25, 'p')],
       20,
+      { totals: 1 },
     );
-    expect(totals!.drawn).toBe(10);
-    expect(successes!.drawn).toBe(10);
-    expect(totals!.total).toBe(25);
+    expect(totals!.from).toBe(20);
+    expect(totals!.drawn).toBe(20);
+    expect(successes!.from).toBe(0);
+    expect(successes!.drawn).toBe(20);
   });
 
-  it('holds the mounted total at the budget for a lopsided mix', () => {
-    const capped = capPanels(
-      [panel('totals', 40, 's'), panel('successes', 10, 'p')],
-      20,
-    );
-    const drawn = capped.reduce((n, p) => n + p.entries.length, 0);
-    // 16 + 4 exactly; the floor of two never has to fire here.
-    expect(drawn).toBe(20);
+  it('lands on the last page when rows are deleted out from under it', () => {
+    // Page 3 of a 75-row table does not exist once the table is 25 rows, and an
+    // empty chart is a worse answer than the last page that does exist.
+    const [totals] = pagePanels([panel('totals', 25, 's')], 20, { totals: 3 });
+    expect(totals!.page).toBe(1);
+    expect(totals!.from).toBe(20);
+    expect(totals!.drawn).toBe(5);
   });
 
-  it('never draws a panel with a single curve, which would compare nothing', () => {
-    // One pool row among fifty sum rows: its proportional share rounds to zero.
-    const [, successes] = capPanels(
-      [panel('totals', 50, 's'), panel('successes', 3, 'p')],
-      20,
-    );
-    expect(successes!.drawn).toBe(2);
-  });
-
-  it('leaves a panel whole when its share already covers it', () => {
-    const [, successes] = capPanels(
-      [panel('totals', 20, 's'), panel('successes', 1, 'p')],
-      20,
-    );
-    // Its share rounds below its single row, so the row survives uncut and the
-    // panel reports no cut at all.
-    expect(successes!.drawn).toBe(1);
-    expect(successes!.total).toBe(1);
+  it('treats a negative page as the first one', () => {
+    const [totals] = pagePanels([panel('totals', 75, 's')], 20, { totals: -2 });
+    expect(totals!.from).toBe(0);
   });
 });

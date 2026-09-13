@@ -212,9 +212,10 @@ describe('OverlayChart panel split', () => {
     ).toEqual({ values: [4], ruling: 'gte' });
   });
 
-  it('shares one budget across both panels instead of gating them together', async () => {
-    // 25 of each kind. The budget is split in proportion, so neither panel can
-    // starve the other off the surface the way a first-come cut would.
+  it('pages each panel on its own instead of gating them together', async () => {
+    // 25 of each kind. Each panel takes a full page: the budget used to be
+    // split in proportion so neither kind could be pushed off the surface,
+    // which mattered while the rows past the cut were unreachable.
     seed([
       ...Array.from({ length: 25 }, (_, i) => ({
         id: `s${i}`,
@@ -236,23 +237,48 @@ describe('OverlayChart panel split', () => {
     const byUnit = await findImpls();
     expect(byUnit.get('totals')).toBeDefined();
     expect(byUnit.get('successes')).toBeDefined();
-    expect(
-      screen.getAllByText(/showing the first 10 of 25 rolls/i),
-    ).toHaveLength(2);
+    expect(screen.getAllByText(/showing 1 to 20 of 25 rolls/i)).toHaveLength(2);
     expect(screen.queryByText(/disabled past/i)).toBeNull();
 
-    // Both panels together stay inside the budget, which is what keeps a mixed
-    // table from mounting twice the series a single-kind table does.
-    const drawn = ['totals', 'successes'].reduce((n, unit) => {
+    const drawnOn = (unit: string): number => {
       const ids = byUnit.get(unit)?.getAttribute('data-ids') ?? '';
-      return n + (ids === '' ? 0 : ids.split(',').length);
-    }, 0);
-    expect(drawn).toBeLessThanOrEqual(21);
+      return ids === '' ? 0 : ids.split(',').length;
+    };
+    expect(drawnOn('totals')).toBe(20);
+    expect(drawnOn('successes')).toBe(20);
   });
 
-  it('leaves a panel alone when its share already covers it', async () => {
-    // 20 sum and 1 pool: the pool panel's proportional share rounds below its
-    // one row, so it keeps that row whole and only Totals reports a cut.
+  it('pages one panel without moving the other', async () => {
+    seed([
+      ...Array.from({ length: 25 }, (_, i) => ({
+        id: `s${i}`,
+        name: `Row ${i}`,
+        mode: 'sum' as const,
+      })),
+      ...Array.from({ length: 25 }, (_, i) => ({
+        id: `p${i}`,
+        name: `Pool ${i}`,
+        mode: 'pool' as const,
+      })),
+    ]);
+    render(
+      <AllProviders>
+        <OverlayChart />
+      </AllProviders>,
+    );
+    await findImpls();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /more rolls on the totals chart/i }),
+    );
+
+    expect(screen.getByText(/showing 21 to 25 of 25 rolls/i)).toBeInTheDocument();
+    // Successes stays where the user left it.
+    expect(screen.getByText(/showing 1 to 20 of 25 rolls/i)).toBeInTheDocument();
+  });
+
+  it('gives a panel no pager when its rolls all fit on one page', async () => {
+    // 20 sum and 1 pool: both fit a page of twenty, so neither reports a cut.
     seed([
       ...Array.from({ length: 20 }, (_, i) => ({
         id: `s${i}`,
@@ -270,9 +296,7 @@ describe('OverlayChart panel split', () => {
     const byUnit = await findImpls();
     expect(byUnit.get('successes')).toBeDefined();
     expect(screen.getByText('Successes')).toBeInTheDocument();
-    expect(
-      screen.getByText(/showing the first 19 of 20 rolls/i),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/showing \d+ to/i)).toBeNull();
   });
 
   it('keeps the Successes panel in target mode for a pool-only table with no numeric targets', async () => {

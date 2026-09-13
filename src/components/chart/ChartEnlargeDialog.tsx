@@ -8,13 +8,13 @@ import {
   Stack,
 } from '@chakra-ui/react';
 import { ExternalLink } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { Distribution } from '../../types';
 import { Tooltip } from '../ui/tooltip';
 import { chipFocusRing } from '../editor/focusRings';
 import { ChartPanel } from './ChartPanel';
 import { useSeriesFocus } from './useSeriesFocus';
-import { capPanels, chartRowCap } from './rowCap';
+import { chartRowCap, pagePanels, type ChartPages } from './rowCap';
 import { useTableFits } from '../../hooks/useBreakpoint';
 import type { ChartPanelData } from './useChartPanels';
 import type { ChartUnit } from './OverlayChartImpl';
@@ -62,9 +62,16 @@ export function ChartEnlargeDialog({
   // A cover dialog on a 360px phone is a 360px canvas, narrower than the
   // desktop rail, so the budget follows the canvas rather than the frame.
   const wideCanvas = useTableFits();
+  // The enlarged copy pages on its own: opening it should not move the rail,
+  // and closing it should not leave the rail somewhere the user did not put it.
+  const [pages, setPages] = useState<ChartPages>({});
+  const onPage = useCallback((key: ChartPanelData['key'], page: number) => {
+    setPages((prev) => ({ ...prev, [key]: Math.max(0, page) }));
+  }, []);
+  const pageSize = chartRowCap('enlarged', wideCanvas);
   const budgeted = useMemo(
-    () => capPanels(panels, chartRowCap('enlarged', wideCanvas)),
-    [panels, wideCanvas],
+    () => pagePanels(panels, pageSize, pages),
+    [panels, pageSize, pages],
   );
 
   const canShowBoth = budgeted.length > 1;
@@ -168,6 +175,8 @@ export function ChartEnlargeDialog({
                     onPreview={focus.preview}
                     onPick={focus.toggle}
                     onClear={focus.clear}
+                    pageSize={pageSize}
+                    onPage={onPage}
                     unit={unitFor(p)}
                     // Two panels share the dialog's height, so each takes
                     // roughly half rather than one being pushed off-screen.

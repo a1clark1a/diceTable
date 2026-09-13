@@ -1,6 +1,7 @@
 import * as React from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -140,10 +141,14 @@ describe("OverlayChart lazy loading", () => {
         container.querySelector(".recharts-responsive-container"),
       ).not.toBeNull();
     });
-    expect(
-      screen.getByText(/showing the first 20 of 21 rolls/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/showing 1 to 20 of 21 rolls/i)).toBeInTheDocument();
     expect(screen.queryByText(/disabled past/i)).toBeNull();
+
+    // The twenty-first roll is a page away rather than unreachable.
+    const next = screen.getByRole('button', { name: /more rolls on the totals chart/i });
+    expect(next).toBeEnabled();
+    fireEvent.click(next);
+    expect(screen.getByText(/showing 21 to 21 of 21 rolls/i)).toBeInTheDocument();
   });
 
   it("says nothing about a cut when every roll is drawn", async () => {
@@ -159,6 +164,6 @@ describe("OverlayChart lazy loading", () => {
         container.querySelector(".recharts-responsive-container"),
       ).not.toBeNull();
     });
-    expect(screen.queryByText(/showing the first/i)).toBeNull();
+    expect(screen.queryByText(/showing \d+ to/i)).toBeNull();
   });
 });

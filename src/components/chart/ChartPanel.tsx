@@ -1,5 +1,17 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
-import { Box, Button, HStack, Stack, Text, Wrap, WrapItem } from '@chakra-ui/react';
+import {
+  Box,
+  Button,
+  HStack,
+  IconButton,
+  Stack,
+  Text,
+  Wrap,
+  WrapItem,
+} from '@chakra-ui/react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { tapTarget } from '../tapTarget';
+import { pageCount } from './rowCap';
 import type { Distribution } from '../../types';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
@@ -9,6 +21,8 @@ import type { ChartPanelData } from './useChartPanels';
 import { ChartViewChips } from './ChartViewChips';
 
 const OverlayChartImpl = lazy(() => import('./OverlayChartImpl'));
+
+const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 
 interface PanelLegendProps {
   entries: ChartPanelData['entries'];
@@ -114,6 +128,63 @@ export function PanelLegend({
   );
 }
 
+interface ChartPagerProps {
+  panel: ChartPanelData;
+  pageSize: number;
+  onPage: (key: ChartPanelData['key'], page: number) => void;
+}
+
+/**
+ * Which slice of the rolls this chart is drawing, and the way to the rest.
+ *
+ * The card used to say "showing the first N" and stop there, which is honest
+ * but leaves every roll past the cut unreachable on this surface. There is no
+ * reorder action either, so the roll you could never see was always the newest
+ * one.
+ */
+function ChartPager({ panel, pageSize, onPage }: ChartPagerProps) {
+  const pages = pageCount(panel.total, pageSize);
+  const first = panel.from + 1;
+  const last = panel.from + panel.drawn;
+
+  return (
+    <HStack gap={1} fontSize="xs" color="fg.muted">
+      <HelpTerm tip={tipForId('chartRowCap')}>
+        <Text as="span">
+          Showing {first} to {last} of {panel.total} rolls
+        </Text>
+      </HelpTerm>
+      <HStack gap={0} ms="auto" flexShrink={0}>
+        <IconButton
+          size="xs"
+          variant="ghost"
+          h={tapTarget('24px')}
+          minW={tapTarget('24px')}
+          aria-label={`Previous rolls on the ${panel.title} chart`}
+          disabled={panel.page === 0}
+          onClick={() => onPage(panel.key, panel.page - 1)}
+        >
+          <ChevronLeft size={14} />
+        </IconButton>
+        <Text as="span" px={1} fontFamily="mono" style={TABULAR}>
+          {panel.page + 1}/{pages}
+        </Text>
+        <IconButton
+          size="xs"
+          variant="ghost"
+          h={tapTarget('24px')}
+          minW={tapTarget('24px')}
+          aria-label={`More rolls on the ${panel.title} chart`}
+          disabled={panel.page >= pages - 1}
+          onClick={() => onPage(panel.key, panel.page + 1)}
+        >
+          <ChevronRight size={14} />
+        </IconButton>
+      </HStack>
+    </HStack>
+  );
+}
+
 interface ChartPanelProps {
   panel: ChartPanelData;
   dists: Map<string, Distribution>;
@@ -123,6 +194,9 @@ interface ChartPanelProps {
   onPreview: (id: string | null) => void;
   onPick: (id: string) => void;
   onClear: () => void;
+  /** How many curves a page holds, and where the page state lives. */
+  pageSize: number;
+  onPage?: ((key: ChartPanelData['key'], page: number) => void) | undefined;
   unit: ChartUnit;
   /** Set by the enlarged copy, which has more room than the rail. */
   height?: string;
@@ -139,6 +213,8 @@ export function ChartPanel({
   onPreview,
   onPick,
   onClear,
+  pageSize,
+  onPage,
   unit,
   height,
   enlarge,
@@ -192,12 +268,8 @@ export function ChartPanel({
         onPreview={onPreview}
         onPick={onPick}
       />
-      {panel.drawn < panel.total && (
-        <HelpTerm tip={tipForId('chartRowCap')}>
-          <Text as="span" fontSize="xs" color="fg.muted">
-            Showing the first {panel.drawn} of {panel.total} rolls.
-          </Text>
-        </HelpTerm>
+      {panel.drawn < panel.total && onPage !== undefined && (
+        <ChartPager panel={panel} pageSize={pageSize} onPage={onPage} />
       )}
       {/* Empty chart ground clears the pick, so nobody is stranded isolated
           with no obvious way back. */}
