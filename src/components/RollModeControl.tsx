@@ -16,30 +16,16 @@ interface SegmentedProps {
   active: string | null;
   onSelect: (value: string) => void;
   groupLabel: string;
-  grow: boolean;
 }
 
-function Segmented({
-  options,
-  active,
-  onSelect,
-  groupLabel,
-  grow,
-}: SegmentedProps) {
+function Segmented({ options, active, onSelect, groupLabel }: SegmentedProps) {
   return (
     <Box
       gap={1}
       role="group"
       aria-label={groupLabel}
-      // Stretching is only worth it on a phone. Left on up to the 768px
-      // desktop switch it produced 165px chips around a 40px word.
-      flex={grow ? { base: '1 1 auto', sm: '0 0 auto' } : '0 0 auto'}
-      display={grow ? { base: 'grid', sm: 'inline-flex' } : 'inline-flex'}
-      gridTemplateColumns={
-        grow
-          ? { base: `repeat(${options.length}, minmax(2.5rem, auto))`, sm: 'none' }
-          : 'none'
-      }
+      flex="0 0 auto"
+      display="inline-flex"
     >
       {options.map((o) => {
         const isActive = active === o.value;
@@ -100,7 +86,6 @@ export function RollModeControl() {
         active={activeMode}
         onSelect={onSelect}
         groupLabel="Global roll mode"
-        grow={false}
       />
     </HStack>
   );

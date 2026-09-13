@@ -1,10 +1,17 @@
 import { useCallback, type RefObject } from 'react';
-import { HStack, IconButton } from '@chakra-ui/react';
+import { HStack, IconButton, type IconButtonProps } from '@chakra-ui/react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Tooltip } from './ui/tooltip';
+import { tapTarget } from './tapTarget';
+
+// Below md the sticky toolbar owns this pair, and above 2xl the table scrolls
+// inside its own box with nothing to return to. This is the band in between.
+const CAPTION_BAND = { base: 'none', md: 'inline-flex', '2xl': 'none' } as const;
 
 interface ScrollButtonsProps {
   chartRef?: RefObject<HTMLDivElement | null> | undefined;
+  /** Which widths this copy shows at; the sticky toolbar renders the other band. */
+  display?: IconButtonProps['display'];
 }
 
 /**
@@ -28,7 +35,10 @@ function scrollerFor(el: HTMLElement | null): HTMLElement | null {
   return document.querySelector('main');
 }
 
-export function ScrollButtons({ chartRef }: ScrollButtonsProps) {
+export function ScrollButtons({
+  chartRef,
+  display = CAPTION_BAND,
+}: ScrollButtonsProps) {
   const onTop = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     scrollerFor(e.currentTarget)?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -45,12 +55,9 @@ export function ScrollButtons({ chartRef }: ScrollButtonsProps) {
           variant="ghost"
           aria-label="Scroll to top"
           onClick={onTop}
-          h="32px"
-          minW="32px"
-          // Below md the sticky toolbar carries its own pair, and above 2xl the
-          // table scrolls inside its own box with nothing to return to. This is
-          // the band in between, where neither is true.
-          display={{ base: 'none', md: 'inline-flex', '2xl': 'none' }}
+          h={tapTarget('32px')}
+          minW={tapTarget('32px')}
+          display={display}
         >
           <ArrowUp size={16} />
         </IconButton>
@@ -62,11 +69,9 @@ export function ScrollButtons({ chartRef }: ScrollButtonsProps) {
             variant="ghost"
             aria-label="Jump to chart"
             onClick={onChart}
-            h="32px"
-            minW="32px"
-            // Below md the sticky toolbar carries this; above 2xl the chart
-            // already sits beside the table.
-            display={{ base: 'none', md: 'inline-flex', '2xl': 'none' }}
+            h={tapTarget('32px')}
+            minW={tapTarget('32px')}
+            display={display}
           >
             <ArrowDown size={16} />
           </IconButton>
