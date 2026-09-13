@@ -123,6 +123,13 @@ export const CHART_ROW_CAP_ENLARGED = 20;
  * a canvas budget rather than a legibility one.
  */
 export const SHARE_CARD_ROW_LIMIT = 20;
+/**
+ * Rows in the head-to-head lattice, on screen and on its card. Twelve columns
+ * leave about 56px a cell after the name gutter, which still holds a percentage
+ * and a truncated heading. It is also n squared work and n squared tooltips, so
+ * the cut happens before the matrix is computed rather than after.
+ */
+export const MATRIX_ROW_CAP = 12;
 
 export interface TargetState {
   values: number[];

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Box, HStack, Table, Text } from '@chakra-ui/react';
 import { useApp } from '../../state/useApp';
+import { MATRIX_ROW_CAP } from '../../types';
 import { beatMatrix, type BeatChance } from '../../engine/compare';
 import { EM_DASH, formatPercent } from '../chart/format';
 import { hitColor } from '../chart/palette';
@@ -19,12 +20,18 @@ export function HeadToHeadView() {
   const { expressions } = useApp();
 
   const rows = useMemo(() => toCompareRows(expressions), [expressions]);
+  // Cut before the matrix, not after. Every cell is a pairwise comparison and
+  // every drawn cell is a tooltip and a tab stop, so capping only the render
+  // would still score a hundred rolls into 9,900 pairs to throw most away.
+  // Cut after toCompareRows so these are twelve computable rolls rather than
+  // twelve slots, some of which had nothing to compare.
+  const shown = useMemo(() => rows.slice(0, MATRIX_ROW_CAP), [rows]);
   const matrix = useMemo<(BeatChance | null)[][]>(
-    () => beatMatrix(rows.map((r) => r.dist)),
-    [rows],
+    () => beatMatrix(shown.map((r) => r.dist)),
+    [shown],
   );
 
-  const enough = rows.length >= 2;
+  const enough = shown.length >= 2;
 
   return (
     <Box
@@ -51,6 +58,12 @@ export function HeadToHeadView() {
           Head-to-head. Row beats column
         </Text>
       </HelpTerm>
+      {rows.length > shown.length && (
+        <Text fontSize="xs" color="fg.muted" mt={1}>
+          Showing the first {MATRIX_ROW_CAP} of {rows.length} rolls. Roll-off
+          ranks every roll at once.
+        </Text>
+      )}
       {!enough ? (
         <Text fontSize="sm" color="fg.muted" mt={2}>
           Add at least two rolls with valid dice to compare head-to-head.
@@ -70,7 +83,7 @@ export function HeadToHeadView() {
               <Table.Header>
                 <Table.Row>
                   <Table.ColumnHeader w={{ base: '90px', md: '150px' }} />
-                  {rows.map((o) => (
+                  {shown.map((o) => (
                     <Table.ColumnHeader key={o.expr.id} textAlign="center">
                       <HStack gap={1} justify="center">
                         <Box
@@ -95,7 +108,7 @@ export function HeadToHeadView() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {rows.map((r, i) => (
+                {shown.map((r, i) => (
                   <Table.Row key={r.expr.id}>
                     <Table.Cell py={1.5}>
                       <HStack gap={1}>
@@ -111,7 +124,7 @@ export function HeadToHeadView() {
                         </Text>
                       </HStack>
                     </Table.Cell>
-                    {rows.map((o, j) => {
+                    {shown.map((o, j) => {
                       const cell = matrix[i]?.[j];
                       if (!cell) {
                         return (

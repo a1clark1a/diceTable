@@ -1,4 +1,4 @@
-import type { Distribution } from '../../types';
+import { MATRIX_ROW_CAP, type Distribution } from '../../types';
 import { beatMatrix } from '../../engine/compare';
 import { shareCardPalette, shareHitColor } from '../../components/chart/palette';
 import { EM_DASH, formatPercent } from '../../components/chart/format';
@@ -37,12 +37,6 @@ export interface MatrixCardOptions {
   /** True when the table mixes totals with success counts. */
   mixedScales?: boolean;
 }
-
-// Twelve columns leave about 56px a cell after the name gutter, which still
-// holds a percentage and a truncated heading. Past that the lattice stops being
-// readable, so the extra rolls are dropped and counted on the card rather than
-// silently disappearing.
-const MATRIX_ROW_CAP = 12;
 
 const GUTTER = 190;
 const HEAD_HEIGHT = 40;

@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
 import { HeadToHeadView } from './HeadToHeadView';
+import { MATRIX_ROW_CAP } from '../../types';
 
 // Hand-computed fixtures.
 //   Strong 1d6+10 vs Weak 1d6: ranges never overlap, so the Strong row reads
@@ -148,5 +149,47 @@ describe('HeadToHeadView mixed scales', () => {
     expect(
       screen.queryByText(/Pool rows compare their success counts/),
     ).toBeNull();
+  });
+});
+
+describe('HeadToHeadView row cap', () => {
+  function manyRolls(count: number): unknown[] {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `m${i}`,
+      name: `Roll ${i}`,
+      parts: [{ id: `mp${i}`, count: 1, sides: 6 }],
+      flatModifier: i,
+      rollMode: 'normal',
+      mode: 'sum',
+    }));
+  }
+
+  it('draws at most twelve rolls and says how many it left out', () => {
+    seedState(manyRolls(40));
+    renderView();
+
+    expect(bodyRows()).toHaveLength(MATRIX_ROW_CAP);
+    expect(
+      screen.getByText(/showing the first 12 of 40 rolls/i),
+    ).toBeInTheDocument();
+  });
+
+  it('scores only the rolls it draws', () => {
+    seedState(manyRolls(40));
+    const { container } = renderView();
+
+    // The lattice is square with a null diagonal, so twelve rolls give
+    // 12 x 12 - 12 = 132 scored cells. Scoped to the body because the panel
+    // heading's own tip is a focusable trigger too.
+    const body = container.querySelector('tbody');
+    expect(body?.querySelectorAll('[tabindex="0"]')).toHaveLength(132);
+  });
+
+  it('says nothing about a cut when every roll fits', () => {
+    seedState(manyRolls(MATRIX_ROW_CAP));
+    renderView();
+
+    expect(bodyRows()).toHaveLength(MATRIX_ROW_CAP);
+    expect(screen.queryByText(/showing the first/i)).toBeNull();
   });
 });
