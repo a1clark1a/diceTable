@@ -3,6 +3,7 @@ import {
   rowHitChance,
   rowShowsUnderTarget,
   targetColumns,
+  toTargetRows,
   type TargetColumn,
   type TargetRow,
 } from './targetHitRows';
@@ -238,5 +239,42 @@ describe('a table with no numeric target set', () => {
     expect(mixed).toHaveLength(2);
     expect(rowShowsUnderTarget(sumRow, mixed[0]!)).toBe(true);
     expect(rowHitChance(sumRow, mixed[0]!, 'gte')).toBeCloseTo(6 / 36, 12);
+  });
+});
+
+describe('toTargetRows', () => {
+  function oneDie(id: string, sides: number): Expression {
+    return {
+      id,
+      name: id,
+      parts: [{ id: `${id}-part`, count: 1, sides }],
+      flatModifier: 0,
+      rollMode: 'normal',
+      mode: 'sum',
+    };
+  }
+
+  // No parts means no distribution, so this row is dropped before it is drawn.
+  const blank: Expression = {
+    id: 'blank',
+    name: 'blank',
+    parts: [],
+    flatModifier: 0,
+    rollMode: 'normal',
+    mode: 'sum',
+  };
+
+  it('keys a row to its unfiltered position so a dropped row cannot shift the rest', () => {
+    const rows = toTargetRows([oneDie('a', 6), blank, oneDie('c', 8)]);
+    expect(rows.map((r) => r.id)).toEqual(['a', 'c']);
+    // 'c' sits at array position 1 but is the third row in the table, and its
+    // colour and its dash both come off the slot. Reading the array position
+    // here is the bug: it would hand 'c' the pen the blank row would have had.
+    expect(rows.map((r) => r.slot)).toEqual([0, 2]);
+  });
+
+  it('gives every kept row a slot matching its index in the input', () => {
+    const rows = toTargetRows([oneDie('a', 6), oneDie('b', 8), oneDie('c', 10)]);
+    expect(rows.map((r) => r.slot)).toEqual([0, 1, 2]);
   });
 });

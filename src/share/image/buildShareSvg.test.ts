@@ -3,7 +3,7 @@ import { buildShareSvg, type ShareImageRow } from './buildShareSvg';
 import { expressionDistribution } from '../../engine/expression';
 import { computeRowStats } from '../../state/rowStats';
 import { expressionNotation } from '../notation';
-import { rowColorHex } from '../../components/chart/palette';
+import { rowColorHex, seriesDash } from '../../components/chart/palette';
 import type { Expression } from '../../types';
 
 // Card geometry, restated here so the expected numbers below are arithmetic a
@@ -639,5 +639,24 @@ describe('buildShareSvg self-containment', () => {
       theme: 'light',
     });
     expect(image.svg).toMatchSnapshot();
+  });
+
+  it('dashes a row by its table position, not by where it sits on the card', () => {
+    // Rows 0 and 2 of a table whose middle row went to the other panel. The
+    // picture has to dash them the way the screen does, or a shared card
+    // disagrees with the app it came from.
+    const image = buildShareSvg({
+      rows: [toRow(sumRow(1), 0), toRow(sumRow(2), 2)],
+      totalsView: 'pmf',
+      successesView: 'pmf',
+      theme: 'light',
+    });
+    const dashes = [...image.svg.matchAll(/stroke-dasharray="([^"]*)"/g)].map(
+      (m) => m[1],
+    );
+    expect(dashes).toEqual([seriesDash(0), seriesDash(2)]);
+    // Guards the actual regression: reading the array position would have
+    // given the second row slot 1's dash.
+    expect(dashes[1]).not.toBe(seriesDash(1));
   });
 });
