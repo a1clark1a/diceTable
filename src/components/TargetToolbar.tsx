@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useRef,
   useState,
   type KeyboardEvent,
 } from 'react';
@@ -108,16 +109,25 @@ function useTargetDraft(
   minRemaining: number,
   minValue?: number,
 ): TargetDraft {
-  const [draft, setDraft] = useState('');
+  const [draft, setDraftState] = useState('');
+  // Escape clears the draft and blurs, and blur commits. React has not
+  // re-rendered in between, so a commit reading state would still see the text
+  // Escape just discarded and add it as a chip anyway.
+  const draftRef = useRef('');
+
+  const setDraft = useCallback((raw: string) => {
+    draftRef.current = raw;
+    setDraftState(raw);
+  }, []);
 
   const commitDraft = useCallback(() => {
-    const parsed = parseDraft(draft, minValue);
+    const parsed = parseDraft(draftRef.current, minValue);
     setDraft('');
     if (parsed === null) return;
     if (values.includes(parsed)) return;
     if (values.length >= MAX_TARGETS) return;
     setValues([...values, parsed]);
-  }, [draft, values, setValues, minValue]);
+  }, [setDraft, values, setValues, minValue]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -137,7 +147,7 @@ function useTargetDraft(
         setValues(values.slice(0, -1));
       }
     },
-    [commitDraft, draft, values, setValues, minRemaining],
+    [commitDraft, setDraft, draft, values, setValues, minRemaining],
   );
 
   return { draft, setDraft, commitDraft, onKeyDown };

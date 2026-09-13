@@ -1,4 +1,12 @@
-import { useCallback, useRef, type KeyboardEvent, type PointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent,
+  type RefObject,
+} from 'react';
 import { Box } from '@chakra-ui/react';
 
 // The chart takes whatever the table leaves, so this floor is what stops a
@@ -16,9 +24,15 @@ const STEP = 32;
 interface RailSplitterProps {
   width: number;
   onWidth: (next: number) => void;
+  /**
+   * The row the drag divides and the column it grows. Measured rather than
+   * recomputed here, because the page padding and the gap between the columns
+   * are styling decisions that would silently drift out of any arithmetic this
+   * component kept of its own.
+   */
+  gridRef: RefObject<HTMLDivElement | null>;
+  trackRef: RefObject<HTMLDivElement | null>;
 }
-
-const clamp = (n: number): number => Math.min(TABLE_MAX, Math.max(TABLE_MIN, n));
 
 /**
  * Drags the boundary between the table and the chart. What it sets is the
@@ -27,57 +41,119 @@ const clamp = (n: number): number => Math.min(TABLE_MAX, Math.max(TABLE_MIN, n))
  * drag that leaves the element still tracks, and the pointer keeps its grab
  * when it re-enters.
  */
-export function RailSplitter({ width, onWidth }: RailSplitterProps) {
+export function RailSplitter({
+  width,
+  onWidth,
+  gridRef,
+  trackRef,
+}: RailSplitterProps) {
+  const self = useRef<HTMLDivElement>(null);
   const start = useRef<{ x: number; width: number } | null>(null);
+  // What the grid can actually hand the table. Past this the requested width is
+  // a number nothing on screen answers to, which is what left the divider
+  // standing still under a moving pointer at any viewport under 1645px.
+  const [ceiling, setCeiling] = useState(TABLE_MAX);
+
+  const measureCeiling = useCallback((): number => {
+    const grid = gridRef.current;
+    const el = self.current;
+    if (grid === null || el === null || el.offsetParent === null) return TABLE_MAX;
+    const style = window.getComputedStyle(el);
+    const span =
+      el.getBoundingClientRect().width +
+      Number.parseFloat(style.marginLeft) +
+      Number.parseFloat(style.marginRight);
+    const room = grid.getBoundingClientRect().width - span - RAIL_MIN;
+    return Math.min(TABLE_MAX, Math.max(TABLE_MIN, room));
+  }, [gridRef]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (grid === null) return;
+    const sync = () => setCeiling(measureCeiling());
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(grid);
+    return () => {
+      observer.disconnect();
+    };
+  }, [gridRef, measureCeiling]);
+
+  // A viewport that shrank past the current request has to pull it down, or the
+  // divider sits at the ceiling while the control still reports something wider.
+  useEffect(() => {
+    if (width > ceiling) onWidth(ceiling);
+  }, [width, ceiling, onWidth]);
+
+  const clamp = useCallback(
+    (n: number): number => Math.min(ceiling, Math.max(TABLE_MIN, n)),
+    [ceiling],
+  );
+
+  // Both input paths start from the track the grid produced, so a drag cannot
+  // compound a width the layout already refused.
+  const rendered = useCallback((): number => {
+    const track = trackRef.current;
+    return track === null ? width : track.getBoundingClientRect().width;
+  }, [trackRef, width]);
 
   const onPointerDown = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
       e.currentTarget.setPointerCapture(e.pointerId);
-      start.current = { x: e.clientX, width };
+      start.current = { x: e.clientX, width: rendered() };
     },
-    [width],
+    [rendered],
   );
 
   const onPointerMove = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
       const from = start.current;
       if (from === null) return;
+      // A gesture the browser ended without an up event leaves the ref set, and
+      // without this the next plain hover would resize the table.
+      if (e.buttons === 0) {
+        start.current = null;
+        return;
+      }
       // The table is on the left, so the separator tracks the pointer.
       onWidth(clamp(from.width + (e.clientX - from.x)));
     },
-    [onWidth],
+    [clamp, onWidth],
   );
 
-  const onPointerUp = useCallback((e: PointerEvent<HTMLDivElement>) => {
-    e.currentTarget.releasePointerCapture(e.pointerId);
+  const endGesture = useCallback((e: PointerEvent<HTMLDivElement>) => {
     start.current = null;
+    // Releasing a capture the browser already took back throws, and the throw
+    // would skip the reset above if it came first.
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
   }, []);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        onWidth(clamp(width - STEP));
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        onWidth(clamp(width + STEP));
-      }
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      onWidth(clamp(rendered() + (e.key === 'ArrowRight' ? STEP : -STEP)));
     },
-    [onWidth, width],
+    [clamp, onWidth, rendered],
   );
 
   return (
     <Box
+      ref={self}
       role="separator"
       aria-orientation="vertical"
       aria-label="Resize the table"
-      aria-valuenow={Math.round(width)}
+      aria-valuenow={Math.round(Math.min(width, ceiling))}
       aria-valuemin={TABLE_MIN}
-      aria-valuemax={TABLE_MAX}
+      aria-valuemax={Math.round(ceiling)}
       tabIndex={0}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+      onPointerUp={endGesture}
+      onPointerCancel={endGesture}
+      onLostPointerCapture={endGesture}
       onKeyDown={onKeyDown}
       cursor="col-resize"
       // Only meaningful once the chart has a column of its own to trade with.

@@ -1,4 +1,4 @@
-import { useState, type Ref } from 'react';
+import { memo, useState, type Ref } from 'react';
 import { Box, Stack, Text } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
 import { CHART_ROW_LIMIT } from '../../types';
@@ -31,7 +31,15 @@ function EmptyChartCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function OverlayChart({ ref }: OverlayChartProps) {
+/**
+ * Memoised because dragging the rail splitter sets state on TablePage at
+ * pointer-event rate, and every one of those renders would otherwise rebuild
+ * both Recharts surfaces for a change that only moves a grid track. The ref is
+ * the sole prop and it is stable, so the rows still arrive through context.
+ */
+export const OverlayChart = memo(function OverlayChart({
+  ref,
+}: OverlayChartProps) {
   const { panels, dists, colors, overLimit, rowCount } = useChartPanels();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -87,4 +95,4 @@ export function OverlayChart({ ref }: OverlayChartProps) {
       )}
     </Stack>
   );
-}
+});

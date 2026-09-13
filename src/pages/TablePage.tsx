@@ -31,6 +31,8 @@ interface WorkshopViewEntry extends WorkshopViewChip {
 export default function TablePage() {
   const tableFits = useTableFits();
   const chartRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const tableColRef = useRef<HTMLDivElement>(null);
   // Session-only: a remembered pixel width is wrong the moment the viewport
   // changes, so this resets with the tab rather than persisting.
   const [tableWidth, setTableWidth] = useState(TABLE_WIDTH);
@@ -50,6 +52,7 @@ export default function TablePage() {
         <>
           <WorkshopToolbar chartRef={chartRef} />
           <Grid
+            ref={gridRef}
             flex="1"
             minH={0}
             gap={{ base: 4, '2xl': 0 }}
@@ -65,7 +68,7 @@ export default function TablePage() {
             {/* The column itself no longer scrolls: the table box inside it
                 does, so the parameters row and the row actions stay in place
                 while the rolls move under them. */}
-            <Stack gap={3} minW={0} minH={0}>
+            <Stack ref={tableColRef} gap={3} minW={0} minH={0}>
               <TargetToolbar />
               <Flex
                 gap={3}
@@ -111,7 +114,12 @@ export default function TablePage() {
               </Flex>
               {tableFits ? <RollsTable /> : <RollsCards />}
             </Stack>
-            <RailSplitter width={tableWidth} onWidth={setTableWidth} />
+            <RailSplitter
+              width={tableWidth}
+              onWidth={setTableWidth}
+              gridRef={gridRef}
+              trackRef={tableColRef}
+            />
             <Box
               minW={0}
               minH={0}

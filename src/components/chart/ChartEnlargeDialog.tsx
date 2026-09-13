@@ -51,12 +51,16 @@ export function ChartEnlargeDialog({
   // Hover is local to the enlarged copy: the row it would highlight is behind
   // the dialog anyway.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  // unmountOnExit resets this, so the dialog always opens on the card whose
-  // button was pressed rather than on whatever was picked last time.
+  // This component is the trigger, so it stays mounted while unmountOnExit
+  // discards the dialog: the pick has to be put back on open or the button
+  // reopens on whatever was chosen last time.
   const [shown, setShown] = useState<Shown>(panel.key);
 
   const canShowBoth = panels.length > 1;
-  const visible = panels.filter((p) => shown === 'both' || p.key === shown);
+  const picked = panels.filter((p) => shown === 'both' || p.key === shown);
+  // Deleting the last pool row takes its panel with it while the dialog is
+  // open, and an empty body has no switcher left to recover through.
+  const visible = picked.length > 0 ? picked : panels;
   const title =
     shown === 'both'
       ? panels.map((p) => p.title).join(' and ')
@@ -70,7 +74,10 @@ export function ChartEnlargeDialog({
   return (
     <Dialog.Root
       open={open}
-      onOpenChange={(e) => setOpen(e.open)}
+      onOpenChange={(e) => {
+        setOpen(e.open);
+        if (e.open) setShown(panel.key);
+      }}
       size="cover"
       placement="center"
       lazyMount
