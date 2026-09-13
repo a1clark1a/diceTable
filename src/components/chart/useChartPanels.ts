@@ -3,7 +3,6 @@ import { isTotalsMode } from '../../engine/expression';
 import { useApp } from '../../state/useApp';
 import { useDistributions } from '../../state/useDistributions';
 import {
-  CHART_ROW_LIMIT,
   type ChartView,
   type Distribution,
   type Expression,
@@ -25,6 +24,9 @@ export interface ChartPanelData {
   titleColor: string;
   entries: LegendEntry[];
   expressions: Expression[];
+  /** Curves actually drawn, and how many this panel had to choose from. */
+  drawn: number;
+  total: number;
   effectiveView: ChartView;
   target: TargetState;
   /** Whether this panel's own scale has a target to measure against. */
@@ -35,7 +37,6 @@ export interface ChartPanels {
   panels: ChartPanelData[];
   dists: Map<string, Distribution>;
   slots: Map<string, number>;
-  overLimit: boolean;
   rowCount: number;
 }
 
@@ -47,8 +48,6 @@ export interface ChartPanels {
 export function useChartPanels(): ChartPanels {
   const { expressions, chartViews, target, poolTargets } = useApp();
   const { dists } = useDistributions();
-
-  const overLimit = expressions.length > CHART_ROW_LIMIT;
 
   // The unfiltered row position, which is the one thing every surface agrees
   // on: the table swatch, the legend, the line and the shared picture all key
@@ -67,21 +66,22 @@ export function useChartPanels(): ChartPanels {
   );
 
   const panels = useMemo(() => {
-    const sum: LegendEntry[] = [];
-    const pool: LegendEntry[] = [];
-    if (!overLimit) {
-      expressions.forEach((expr, idx) => {
-        const dist = dists.get(expr.id);
-        if (!dist || dist.size === 0) return;
-        const entry: LegendEntry = {
-          id: expr.id,
-          name: expr.name,
-          color: rowColor(idx),
-        };
-        if (isTotalsMode(expr)) sum.push(entry);
-        else pool.push(entry);
-      });
-    }
+    // One pass building the legend entry and its expression together. They used
+    // to be built from two different lists, the entries skipping rows with no
+    // distribution and the expressions not, so the legend and the curves could
+    // describe different sets and any count taken off one would be wrong.
+    const sum: { entry: LegendEntry; expr: Expression }[] = [];
+    const pool: { entry: LegendEntry; expr: Expression }[] = [];
+    expressions.forEach((expr, idx) => {
+      const dist = dists.get(expr.id);
+      if (!dist || dist.size === 0) return;
+      const pair = {
+        entry: { id: expr.id, name: expr.name, color: rowColor(idx) },
+        expr,
+      };
+      if (isTotalsMode(expr)) sum.push(pair);
+      else pool.push(pair);
+    });
 
     const out: ChartPanelData[] = [];
     if (sum.length > 0) {
@@ -90,8 +90,10 @@ export function useChartPanels(): ChartPanels {
         title: 'Totals',
         titleTip: 'totalsChart',
         titleColor: 'fg',
-        entries: sum,
-        expressions: expressions.filter(isTotalsMode),
+        entries: sum.map((p) => p.entry),
+        expressions: sum.map((p) => p.expr),
+        drawn: sum.length,
+        total: sum.length,
         effectiveView: effectiveChartView(
           chartViews.totals,
           target.values.length > 0,
@@ -106,8 +108,10 @@ export function useChartPanels(): ChartPanels {
         title: 'Successes',
         titleTip: 'successesChart',
         titleColor: 'purple.fg',
-        entries: pool,
-        expressions: expressions.filter((e) => !isTotalsMode(e)),
+        entries: pool.map((p) => p.entry),
+        expressions: pool.map((p) => p.expr),
+        drawn: pool.length,
+        total: pool.length,
         // A pool target always exists, so this panel can reach the target view
         // even while the numeric target list is empty.
         effectiveView: effectiveChartView(chartViews.successes, true),
@@ -116,13 +120,12 @@ export function useChartPanels(): ChartPanels {
       });
     }
     return out;
-  }, [overLimit, expressions, dists, chartViews, target, poolTargetState]);
+  }, [expressions, dists, chartViews, target, poolTargetState]);
 
   return {
     panels,
     dists,
     slots,
-    overLimit,
     rowCount: expressions.length,
   };
 }

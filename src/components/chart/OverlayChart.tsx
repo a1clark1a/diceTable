@@ -1,7 +1,7 @@
-import { memo, useState, type Ref } from 'react';
+import { memo, useMemo, useState, type Ref } from 'react';
 import { Box, Stack, Text } from '@chakra-ui/react';
 import { ChartColumn } from 'lucide-react';
-import { CHART_ROW_LIMIT } from '../../types';
+import { capPanels, chartRowCap } from './rowCap';
 import { ChartPanel } from './ChartPanel';
 import { ChartEnlargeDialog } from './ChartEnlargeDialog';
 import { useChartPanels } from './useChartPanels';
@@ -40,7 +40,13 @@ function EmptyChartCard({ children }: { children: React.ReactNode }) {
 export const OverlayChart = memo(function OverlayChart({
   ref,
 }: OverlayChartProps) {
-  const { panels, dists, slots, overLimit, rowCount } = useChartPanels();
+  const { panels, dists, slots } = useChartPanels();
+  // The rail takes the rail budget at every width; only the enlarged copy
+  // has the canvas to earn a bigger one.
+  const shown = useMemo(
+    () => capPanels(panels, chartRowCap('rail', false)),
+    [panels],
+  );
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
@@ -55,14 +61,7 @@ export const OverlayChart = memo(function OverlayChart({
       >
         Comparison
       </Text>
-      {overLimit ? (
-        <EmptyChartCard>
-          <Text fontSize="sm" maxW="52ch">
-            Comparison chart is disabled past {CHART_ROW_LIMIT} rolls (currently{' '}
-            {rowCount}). Each row still draws its own curve in the Shape column.
-          </Text>
-        </EmptyChartCard>
-      ) : panels.length === 0 ? (
+      {shown.length === 0 ? (
         <EmptyChartCard>
           <Text fontSize="sm">No valid rows yet. Add a roll above.</Text>
         </EmptyChartCard>
@@ -71,7 +70,7 @@ export const OverlayChart = memo(function OverlayChart({
         // panel only exists when it has series, so an all-pool table shows one
         // card rather than an empty Totals beside it.
         <Stack gap={3}>
-          {panels.map((panel) => (
+          {shown.map((panel) => (
             <Box key={panel.key}>
               <ChartPanel
                 panel={panel}

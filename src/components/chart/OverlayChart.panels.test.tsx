@@ -212,7 +212,47 @@ describe('OverlayChart panel split', () => {
     ).toEqual({ values: [4], ruling: 'gte' });
   });
 
-  it('keeps the row limit as one global gate across both modes', async () => {
+  it('shares one budget across both panels instead of gating them together', async () => {
+    // 25 of each kind. The budget is split in proportion, so neither panel can
+    // starve the other off the surface the way a first-come cut would.
+    seed([
+      ...Array.from({ length: 25 }, (_, i) => ({
+        id: `s${i}`,
+        name: `Row ${i}`,
+        mode: 'sum' as const,
+      })),
+      ...Array.from({ length: 25 }, (_, i) => ({
+        id: `p${i}`,
+        name: `Pool ${i}`,
+        mode: 'pool' as const,
+      })),
+    ]);
+    render(
+      <AllProviders>
+        <OverlayChart />
+      </AllProviders>,
+    );
+
+    const byUnit = await findImpls();
+    expect(byUnit.get('totals')).toBeDefined();
+    expect(byUnit.get('successes')).toBeDefined();
+    expect(
+      screen.getAllByText(/showing the first 10 of 25 rolls/i),
+    ).toHaveLength(2);
+    expect(screen.queryByText(/disabled past/i)).toBeNull();
+
+    // Both panels together stay inside the budget, which is what keeps a mixed
+    // table from mounting twice the series a single-kind table does.
+    const drawn = ['totals', 'successes'].reduce((n, unit) => {
+      const ids = byUnit.get(unit)?.getAttribute('data-ids') ?? '';
+      return n + (ids === '' ? 0 : ids.split(',').length);
+    }, 0);
+    expect(drawn).toBeLessThanOrEqual(21);
+  });
+
+  it('leaves a panel alone when its share already covers it', async () => {
+    // 20 sum and 1 pool: the pool panel's proportional share rounds below its
+    // one row, so it keeps that row whole and only Totals reports a cut.
     seed([
       ...Array.from({ length: 20 }, (_, i) => ({
         id: `s${i}`,
@@ -227,11 +267,12 @@ describe('OverlayChart panel split', () => {
       </AllProviders>,
     );
 
+    const byUnit = await findImpls();
+    expect(byUnit.get('successes')).toBeDefined();
+    expect(screen.getByText('Successes')).toBeInTheDocument();
     expect(
-      screen.getByText(/comparison chart is disabled past 20 rolls/i),
+      screen.getByText(/showing the first 19 of 20 rolls/i),
     ).toBeInTheDocument();
-    expect(screen.queryAllByTestId('chart-impl')).toHaveLength(0);
-    expect(screen.queryByText('Successes')).toBeNull();
   });
 
   it('keeps the Successes panel in target mode for a pool-only table with no numeric targets', async () => {

@@ -129,6 +129,13 @@ export function ChartPanel({
         focusedId={focusedId}
         onHover={onHover}
       />
+      {panel.drawn < panel.total && (
+        <HelpTerm tip={tipForId('chartRowCap')}>
+          <Text as="span" fontSize="xs" color="fg.muted">
+            Showing the first {panel.drawn} of {panel.total} rolls.
+          </Text>
+        </HelpTerm>
+      )}
       <Suspense fallback={<ChartFallback variant="overlay" />}>
         <OverlayChartImpl
           expressions={panel.expressions}

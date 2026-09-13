@@ -108,8 +108,21 @@ export type TargetRuling = 'gte' | 'gt' | 'lte' | 'lt' | 'eq';
 
 export const MAX_TARGETS = 5;
 export const MAX_EXPRESSIONS = 100;
-/** Past this the overlay chart stops drawing, and the chart card stops picturing. */
-export const CHART_ROW_LIMIT = 20;
+/**
+ * How many curves a comparison card draws before it says it cut some. Two
+ * budgets because the readable ceiling is a property of the canvas: twenty
+ * curves are followable in the enlarged copy's 1200x520 and are not in a
+ * 340x320 rail. They are equal for now; only the enlarged one can rise, and
+ * only once something other than the pen carries a curve's identity.
+ */
+export const CHART_ROW_CAP_RAIL = 20;
+export const CHART_ROW_CAP_ENLARGED = 20;
+/**
+ * Past this the chart card stops picturing. Separate from what the screen
+ * draws: the card grows 46px per row and is rasterized at 2x, so its ceiling is
+ * a canvas budget rather than a legibility one.
+ */
+export const SHARE_CARD_ROW_LIMIT = 20;
 
 export interface TargetState {
   values: number[];

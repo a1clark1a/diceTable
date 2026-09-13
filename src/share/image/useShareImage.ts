@@ -11,7 +11,7 @@ import {
   toCompareRows,
 } from '../../components/compare/compareRows';
 import { toTargetRows } from '../../components/target/targetHitRows';
-import { CHART_ROW_LIMIT, type Expression } from '../../types';
+import { SHARE_CARD_ROW_LIMIT, type Expression } from '../../types';
 import { expressionNotation } from '../notation';
 import { shareUrlFor } from '../encode';
 import { downloadBlob } from '../download';
@@ -167,7 +167,7 @@ export function useShareImage(): ShareImageActions {
     ).length;
     if (usable === 0) return 'noRows';
     // The chart card is the only one with no row cap of its own.
-    if (expressions.length > CHART_ROW_LIMIT) return 'overLimit';
+    if (expressions.length > SHARE_CARD_ROW_LIMIT) return 'overLimit';
     return 'ready';
   }, [expressions, view, target, poolTargets, targetSubView, targetFilter]);
 

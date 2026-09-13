@@ -8,6 +8,7 @@ import { useShareImage } from './useShareImage';
 import { toaster } from '../../components/share/toaster-store';
 import { SCHEMA_VERSION } from '../../state/persistedSchema';
 import { decodeFromHashFragment } from '../decode';
+import { SHARE_CARD_ROW_LIMIT } from '../../types';
 
 const STORAGE_KEY = 'dicetable.v2';
 const ENVELOPE_VERSION = 2;
@@ -553,10 +554,6 @@ describe('useShareImage render failures', () => {
   });
 });
 
-// The chart card's row cap, restated: twenty rolls still draw, and the
-// twenty-first is what tips the table view over.
-const CHART_ROW_LIMIT = 20;
-
 interface ViewUi {
   view: string;
   target?: { values: number[]; ruling: string };
@@ -782,7 +779,7 @@ describe('useShareImage cardState', () => {
   });
 
   it('is ready at the chart row cap on the table view', () => {
-    seedViewTable(manySumSeeds(CHART_ROW_LIMIT), { view: 'table' });
+    seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT), { view: 'table' });
 
     const { result } = renderHook(() => useShareImage(), { wrapper });
 
@@ -790,7 +787,7 @@ describe('useShareImage cardState', () => {
   });
 
   it('is overLimit one roll past the chart row cap on the table view', () => {
-    seedViewTable(manySumSeeds(CHART_ROW_LIMIT + 1), { view: 'table' });
+    seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT + 1), { view: 'table' });
 
     const { result } = renderHook(() => useShareImage(), { wrapper });
 
@@ -798,7 +795,7 @@ describe('useShareImage cardState', () => {
   });
 
   it('stays ready past the chart row cap on the target view', () => {
-    seedViewTable(manySumSeeds(CHART_ROW_LIMIT + 1), {
+    seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT + 1), {
       view: 'target',
       target: { values: [10], ruling: 'gte' },
     });

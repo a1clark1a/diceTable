@@ -8,11 +8,13 @@ import {
   Stack,
 } from '@chakra-ui/react';
 import { ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Distribution } from '../../types';
 import { Tooltip } from '../ui/tooltip';
 import { chipFocusRing } from '../editor/focusRings';
 import { ChartPanel } from './ChartPanel';
+import { capPanels, chartRowCap } from './rowCap';
+import { useTableFits } from '../../hooks/useBreakpoint';
 import type { ChartPanelData } from './useChartPanels';
 import type { ChartUnit } from './OverlayChartImpl';
 
@@ -56,18 +58,26 @@ export function ChartEnlargeDialog({
   // reopens on whatever was chosen last time.
   const [shown, setShown] = useState<Shown>(panel.key);
 
-  const canShowBoth = panels.length > 1;
-  const picked = panels.filter((p) => shown === 'both' || p.key === shown);
+  // A cover dialog on a 360px phone is a 360px canvas, narrower than the
+  // desktop rail, so the budget follows the canvas rather than the frame.
+  const wideCanvas = useTableFits();
+  const budgeted = useMemo(
+    () => capPanels(panels, chartRowCap('enlarged', wideCanvas)),
+    [panels, wideCanvas],
+  );
+
+  const canShowBoth = budgeted.length > 1;
+  const picked = budgeted.filter((p) => shown === 'both' || p.key === shown);
   // Deleting the last pool row takes its panel with it while the dialog is
   // open, and an empty body has no switcher left to recover through.
-  const visible = picked.length > 0 ? picked : panels;
+  const visible = picked.length > 0 ? picked : budgeted;
   const title =
     shown === 'both'
-      ? panels.map((p) => p.title).join(' and ')
+      ? budgeted.map((p) => p.title).join(' and ')
       : (visible[0]?.title ?? panel.title);
 
   const options: { value: Shown; label: string }[] = [
-    ...panels.map((p) => ({ value: p.key as Shown, label: p.title })),
+    ...budgeted.map((p) => ({ value: p.key as Shown, label: p.title })),
     { value: 'both', label: 'Both' },
   ];
 

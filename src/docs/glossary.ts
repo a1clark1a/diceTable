@@ -496,6 +496,8 @@ const uiTips: Record<string, string> = {
     'No valid rolls to picture yet. Give a roll some dice first.',
   shareImageNeedsTwo:
     'This picture needs two rolls to compare. Add another one with valid dice.',
+  chartRowCap:
+    'Only the first rolls are drawn here, so the lines stay readable. Every roll still shows its own numbers in the table.',
   shareImageOverLimit:
     'Too many rolls to fit in one picture. Remove a few rows and it comes back.',
   shareImageNoTargets:
