@@ -119,6 +119,8 @@
         "src/components/chart/ChartViewChips.tsx",
         "src/components/chart/useChartPanels.ts",
         "src/components/chart/ChartEnlargeDialog.tsx",
+        "src/components/chart/seriesXs.ts",
+        "src/components/chart/rowCap.ts",
         "src/components/inspect/InspectChart.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
@@ -294,6 +296,7 @@
         "src/engine/stats.ts",
         "src/engine/distribution.ts",
         "src/components/chart/OverlayChart.tsx",
+        "src/components/chart/rowCap.ts",
         "src/components/TargetToolbar.tsx",
         "src/components/target/TargetHitView.tsx",
         "src/components/target/TargetBars.tsx",

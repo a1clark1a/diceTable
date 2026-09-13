@@ -307,9 +307,9 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Row / Roll',
     group: 'app',
     plain:
-      'One named line in the table. Each row is independent and gets its own chart series.',
+      'One named line in the table. Each row is independent, and gets its own chart series while the chart has room to draw it.',
     details:
-      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, so dragging a row also moves its chart series.',
+      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, and it decides which rolls the chart draws first when there are more than it can show at once.',
   },
   {
     id: 'baseline',

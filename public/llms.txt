@@ -45,7 +45,7 @@ Roll modes affect summed rolls and check rolls. On a check row the mode applies 
 
 ## Comparing and balancing rolls
 
-Every row appears in an overlay chart with its own color. The chart has four views:
+Rows appear in an overlay chart, each with its own color. A big table draws the first rolls rather than all of them, so the lines stay readable, and the chart says how many of how many it drew; every roll still carries its own numbers in the table. The chart has four views:
 
 - PMF: how likely each exact result is.
 - CDF: the chance of rolling at most a given number.
