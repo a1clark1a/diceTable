@@ -282,15 +282,19 @@ describe('RollsCards baseline pin round trip', () => {
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });
 
-  it('writes the verdict line on the sibling card', async () => {
+  it('names the compare pill with the verdict', async () => {
     seedTwoSumCards();
     renderCards();
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
     );
 
+    // The sentence is the trigger's accessible name rather than free-flowing
+    // prose: a line that appears on pin used to grow every sibling card.
     expect(
-      screen.getByText('Averages 1.5 higher · steadier · hits 17% more often'),
+      screen.getByRole('button', {
+        name: 'Compare with Sum row: Averages 1.5 higher, steadier, hits 17% more often',
+      }),
     ).toBeInTheDocument();
   });
 });

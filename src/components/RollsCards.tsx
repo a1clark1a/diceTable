@@ -46,7 +46,9 @@ import {
   buildBaselineComparison,
   type BaselineComparison,
 } from './baseline/comparison';
-import { buildVerdict } from './baseline/verdict';
+import { buildRowCompare, type RowCompare } from './baseline/rowCompare';
+import { ComparePopover } from './baseline/ComparePopover';
+import { BASELINE_BAND_SHADOW } from './baseline/band';
 import { DELTA_SLOT, DeltaValue } from './baseline/DeltaLine';
 import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
@@ -234,16 +236,16 @@ const RollCard = memo(function RollCard({
     if (comparison === null || comparison.hits === null) return undefined;
     return isPool === comparison.isPool ? comparison.hits[i] : comparison.hits[0];
   };
-  const verdict = deltasActive
-    ? buildVerdict({
-        mean: stats.mean,
-        stddev: stats.stddev,
+  const compare = deltasActive
+    ? buildRowCompare({
+        stats,
         isPool,
+        sameScale,
+        hasHitValue,
         firstHit: isPool ? (poolHits?.[0]?.p ?? null) : (hits?.[0] ?? null),
-        baseMean: comparison.stats.mean,
-        baseStddev: comparison.stats.stddev,
-        baseIsPool: comparison.isPool,
-        baseFirstHit: comparison.hits?.[0] ?? null,
+        comparison,
+        target,
+        poolTargets,
       })
     : null;
   const onToggleExpand = useCallback(
@@ -294,19 +296,7 @@ const RollCard = memo(function RollCard({
       borderColor="border.subtle"
       borderRadius="10px"
       overflow="hidden"
-      // Inset shadow instead of a thicker border so pool and check cards' content
-      // stays aligned with sum cards in the stack (a 3px border would inset it
-      // 2px). A mode band wins over the baseline band so a pinned card never
-      // hides its scale cue.
-      boxShadow={
-        isPool
-          ? 'inset 3px 0 0 {colors.purple.solid}'
-          : isCheck
-            ? 'inset 3px 0 0 {colors.orange.solid}'
-            : baselineAccent
-              ? 'inset 3px 0 0 {colors.blue.solid}'
-              : undefined
-      }
+      boxShadow={baselineAccent ? BASELINE_BAND_SHADOW : undefined}
     >
       <Box p={3}>
         <HStack gap={2} align="center">
@@ -437,12 +427,6 @@ const RollCard = memo(function RollCard({
           </HStack>
         </HStack>
 
-        {verdict !== null && (
-          <Text mt={2} fontSize="xs" color="fg.muted" css={{ textWrap: 'pretty' }}>
-            {verdict}
-          </Text>
-        )}
-
         {stats.hasDist && !tooComplex && (
           <Box mt={3} bg="bg.subtle" borderRadius="md" px={3} py={2}>
             <HStack gap={3} align="center">
@@ -507,13 +491,18 @@ const RollCard = memo(function RollCard({
               )
             }
             tip={tipForId(deltaMode ? 'baseline' : 'meanSigma')}
+            accessory={
+              compare !== null && compare.crossScale ? (
+                <ComparePopover compare={compare} variant="mark" />
+              ) : undefined
+            }
+            {...(deltaMode && compare !== null ? { compare } : {})}
             value={
               !stats.hasDist ? (
                 EM_DASH
               ) : deltaMode && comparison !== null ? (
                 <HStack as="span" gap={3} justify="center">
                   <DeltaValue
-                    tip={tipForId('deltaAvg')}
                     text={formatDelta(meanDelta, 2)}
                     ariaLabel={avgDeltaAria(
                       meanDelta,
@@ -522,7 +511,6 @@ const RollCard = memo(function RollCard({
                     tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
                   />
                   <DeltaValue
-                    tip={tipForId('deltaSpread')}
                     text={formatDelta(sigmaDelta, 2)}
                     ariaLabel={spreadDeltaAria(
                       sigmaDelta,
@@ -554,18 +542,6 @@ const RollCard = memo(function RollCard({
                   >
                     {formatNumber(stats.stddev, 2)}
                   </InspectSigma>
-                  {deltasActive && !sameScale && (
-                    <Text
-                      fontSize="xs"
-                      color="fg.muted"
-                      fontFamily="body"
-                      css={{ textWrap: 'pretty' }}
-                    >
-                      {hasHitValue
-                        ? 'different scale, compare Hit % instead'
-                        : 'different scale from the baseline'}
-                    </Text>
-                  )}
                 </>
               )
             }
@@ -655,6 +631,22 @@ const RollCard = memo(function RollCard({
   );
 });
 
+const PILL_BOX = {
+  bg: 'bg.subtle',
+  borderRadius: 'md',
+  px: 2,
+  py: 1.5,
+  textAlign: 'center',
+} as const;
+
+const PILL_LABEL_TYPE = {
+  fontSize: '2xs',
+  fontWeight: 'semibold',
+  color: 'fg.muted',
+  textTransform: 'uppercase',
+  letterSpacing: 'wider',
+} as const;
+
 interface StatPillProps {
   label: ReactNode;
   value: ReactNode;
@@ -662,40 +654,32 @@ interface StatPillProps {
   accessory?: ReactNode;
   /** Lets a pill span the stats grid when its content needs the full card width. */
   gridColumn?: BoxProps['gridColumn'];
+  /** Set to make the whole pill open the baseline comparison. */
+  compare?: RowCompare;
 }
 
-function StatPill({ label, value, tip, accessory, gridColumn }: StatPillProps) {
-  return (
-    <Box
-      bg="bg.subtle"
-      borderRadius="md"
-      px={2}
-      py={1.5}
-      textAlign="center"
-      gridColumn={gridColumn}
-    >
+function StatPill({
+  label,
+  value,
+  tip,
+  accessory,
+  gridColumn,
+  compare,
+}: StatPillProps) {
+  const heading = (
+    <Text as="span" {...PILL_LABEL_TYPE}>
+      {label}
+    </Text>
+  );
+  const body = (
+    <>
       <HStack as="span" gap={1} justify="center">
-        <HelpTerm tip={tip}>
-          <Text
-            as="span"
-            fontSize="2xs"
-            fontWeight="semibold"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="wider"
-          >
-            {label}
-          </Text>
-        </HelpTerm>
+        {/* A tabbable HelpTerm inside the trigger would be a second tab stop in
+            one control, so the compare state drops it and the panel names the
+            rows instead. */}
+        {compare === undefined ? <HelpTerm tip={tip}>{heading}</HelpTerm> : heading}
         {accessory !== undefined && (
-          <Box
-            as="span"
-            fontSize="2xs"
-            fontWeight="semibold"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="wider"
-          >
+          <Box as="span" {...PILL_LABEL_TYPE}>
             {accessory}
           </Box>
         )}
@@ -707,6 +691,26 @@ function StatPill({ label, value, tip, accessory, gridColumn }: StatPillProps) {
       >
         {value}
       </Box>
+    </>
+  );
+
+  if (compare !== undefined) {
+    return (
+      <ComparePopover
+        compare={compare}
+        variant="surface"
+        triggerProps={{
+          ...PILL_BOX,
+          ...(gridColumn !== undefined ? { gridColumn } : {}),
+        }}
+      >
+        {body}
+      </ComparePopover>
+    );
+  }
+  return (
+    <Box {...PILL_BOX} gridColumn={gridColumn}>
+      {body}
     </Box>
   );
 }

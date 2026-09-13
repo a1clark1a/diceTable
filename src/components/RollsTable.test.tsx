@@ -533,7 +533,7 @@ describe('RollsTable baseline pin round trip', () => {
     ).toBeInTheDocument();
   });
 
-  it('titles the sibling deltas with the verdict', async () => {
+  it('names the compare trigger with the verdict', async () => {
     seedTwoSumRows();
     renderTable();
     fireEvent.click(
@@ -541,10 +541,10 @@ describe('RollsTable baseline pin round trip', () => {
     );
 
     expect(
-      document.querySelector(
-        '[title="Averages 1.5 higher · steadier · hits 17% more often"]',
-      ),
-    ).not.toBeNull();
+      screen.getByRole('button', {
+        name: 'Compare with Sum row: Averages 1.5 higher, steadier, hits 17% more often',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('pinning a second row moves the baseline instead of adding one', async () => {
@@ -573,8 +573,10 @@ describe('RollsTable baseline pin round trip', () => {
     expect(screen.getByText('+1.50')).toBeInTheDocument();
     expect(screen.queryByText('+16.7%')).toBeNull();
     expect(
-      document.querySelector('[title="Averages 1.5 higher · steadier"]'),
-    ).not.toBeNull();
+      screen.getByRole('button', {
+        name: 'Compare with Sum row: Averages 1.5 higher, steadier',
+      }),
+    ).toBeInTheDocument();
   });
 });
 

@@ -40,7 +40,10 @@ export function HitDeltaValue({ delta }: { delta: number }) {
 }
 
 interface DeltaValueProps {
-  tip: string;
+  /** Omitted inside the compare trigger: a tabbable HelpTerm there would be
+   *  interactive content nested in a button, and a second tab stop in one
+   *  control. The column header carries the same tip. */
+  tip?: string;
   text: string;
   ariaLabel: string;
   tone: DeltaTone;
@@ -60,20 +63,19 @@ export function DeltaValue({
   tone,
   neutral = false,
 }: DeltaValueProps) {
-  return (
-    <HelpTerm tip={tip}>
-      <Text
-        as="span"
-        fontSize="xs"
-        color={neutral ? 'fg.muted' : deltaToneColor(tone)}
-        aria-label={ariaLabel}
-        display="inline-block"
-        minW={DELTA_SLOT}
-        textAlign="end"
-        style={{ fontVariantNumeric: 'tabular-nums' }}
-      >
-        {text}
-      </Text>
-    </HelpTerm>
+  const label = (
+    <Text
+      as="span"
+      fontSize="xs"
+      color={neutral ? 'fg.muted' : deltaToneColor(tone)}
+      aria-label={ariaLabel}
+      display="inline-block"
+      minW={DELTA_SLOT}
+      textAlign="end"
+      style={{ fontVariantNumeric: 'tabular-nums' }}
+    >
+      {text}
+    </Text>
   );
+  return tip === undefined ? label : <HelpTerm tip={tip}>{label}</HelpTerm>;
 }

@@ -8,7 +8,7 @@ import {
   Table,
   Text,
 } from '@chakra-ui/react';
-import { ChevronDown, Info, Pin, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Pin, Plus, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
@@ -22,7 +22,6 @@ import {
   type TargetState,
 } from '../types';
 import { Tooltip } from './ui/tooltip';
-import { chipFocusRing } from './editor/focusRings';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
   CheckSucceedsChip,
@@ -45,7 +44,9 @@ import {
   buildBaselineComparison,
   type BaselineComparison,
 } from './baseline/comparison';
-import { buildVerdict } from './baseline/verdict';
+import { buildRowCompare } from './baseline/rowCompare';
+import { ComparePopover } from './baseline/ComparePopover';
+import { BASELINE_BAND_COLOR, BASELINE_BAND_WIDTH } from './baseline/band';
 import { DELTA_SLOT, DeltaValue, STAT_COLUMN } from './baseline/DeltaLine';
 import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
@@ -96,7 +97,11 @@ const COLUMN_HEADER_TYPE = {
     color: 'fg.muted',
     position: 'sticky',
     top: 0,
-    zIndex: 1,
+    // Above the pinned row-actions cells, which are sticky at 1: at 2xl the rows
+    // scroll under this header, and a tie hands the paint to the tbody for
+    // coming later in the document. This rule is a descendant selector, so it
+    // also outranks any zIndex set on a header cell itself.
+    zIndex: 2,
     bg: 'bg.subtle',
   },
 } as const;
@@ -134,15 +139,6 @@ function DeltaSubLabel({ tip, children }: { tip: string; children: ReactNode }) 
     </HelpTerm>
   );
 }
-
-// The mean cell has 124px of content space and the widest value already takes
-// 92, so there is no room for words on that line and a second line would grow
-// every cross-scale row the moment a baseline is pinned. A 12px mark fits, and
-// the sentence it stands for lives in its tooltip.
-const DIFFERENT_SCALE_HIT =
-  'This roll counts successes and the baseline totals dice, so their averages are not comparable. Compare Hit % instead.';
-const DIFFERENT_SCALE =
-  'This roll and the baseline are on different scales, so their averages are not comparable.';
 
 function parseMod(raw: string): number {
   const trimmed = raw.trim();
@@ -217,7 +213,7 @@ export function RollsTable() {
                   content, so a table wider than it needs puts the surplus
                   into the roll names rather than between two columns. */}
               <Table.ColumnHeader
-                borderLeftWidth="3px"
+                borderLeftWidth={BASELINE_BAND_WIDTH}
                 borderLeftColor="transparent"
                 w="100%"
                 minW="190px"
@@ -296,7 +292,6 @@ export function RollsTable() {
                 textAlign="end"
                 w="140px"
                 {...STICKY_ACTIONS}
-                zIndex={2}
               >
                 {' '}
               </Table.ColumnHeader>
@@ -327,7 +322,7 @@ export function RollsTable() {
               <Table.Cell
                 colSpan={showHit ? 8 : 7}
                 py={3}
-                borderLeftWidth="3px"
+                borderLeftWidth={BASELINE_BAND_WIDTH}
                 borderLeftColor="transparent"
               >
                 <Tooltip
@@ -441,16 +436,16 @@ const RollTableRow = memo(function RollTableRow({
     if (comparison === null || comparison.hits === null) return undefined;
     return isPool === comparison.isPool ? comparison.hits[i] : comparison.hits[0];
   };
-  const verdict = deltasActive
-    ? buildVerdict({
-        mean: stats.mean,
-        stddev: stats.stddev,
+  const compare = deltasActive
+    ? buildRowCompare({
+        stats,
         isPool,
+        sameScale,
+        hasHitValue,
         firstHit: isPool ? (poolHits?.[0]?.p ?? null) : (hits?.[0] ?? null),
-        baseMean: comparison.stats.mean,
-        baseStddev: comparison.stats.stddev,
-        baseIsPool: comparison.isPool,
-        baseFirstHit: comparison.hits?.[0] ?? null,
+        comparison,
+        target,
+        poolTargets,
       })
     : null;
   const onToggleExpand = useCallback(
@@ -507,11 +502,9 @@ const RollTableRow = memo(function RollTableRow({
           '& [data-actions]': { bg: rowHoverBg },
         }}
       >
-        {/* The band means one thing: this is the pinned row. Transparent on
-            every other row so the left edges still line up. */}
         <Table.Cell
-          borderLeftWidth="3px"
-          borderLeftColor={baselineAccent ? 'blue.solid' : 'transparent'}
+          borderLeftWidth={BASELINE_BAND_WIDTH}
+          borderLeftColor={baselineAccent ? BASELINE_BAND_COLOR : 'transparent'}
         >
           <HStack gap={2} minW="150px">
             <Box
@@ -601,33 +594,28 @@ const RollTableRow = memo(function RollTableRow({
         >
           {!stats.hasDist ? (
             EM_DASH
-          ) : deltasActive && sameScale ? (
-            <HStack
-              as="span"
-              gap={4}
-              justify="flex-end"
-              {...(verdict !== null ? { title: verdict } : {})}
-            >
-              <DeltaValue
-                tip={tipForId('deltaAvg')}
-                text={formatDelta(meanDelta, 2)}
-                ariaLabel={avgDeltaAria(
-                  meanDelta,
-                  deltaTone(meanDelta, STAT_DELTA_EPS),
-                )}
-                tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
-              />
-              <DeltaValue
-                tip={tipForId('deltaSpread')}
-                text={formatDelta(sigmaDelta, 2)}
-                ariaLabel={spreadDeltaAria(
-                  sigmaDelta,
-                  deltaTone(sigmaDelta, STAT_DELTA_EPS),
-                )}
-                tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
-                neutral
-              />
-            </HStack>
+          ) : compare !== null && sameScale ? (
+            <ComparePopover compare={compare} variant="inline">
+              <HStack as="span" gap={4} justify="flex-end">
+                <DeltaValue
+                  text={formatDelta(meanDelta, 2)}
+                  ariaLabel={avgDeltaAria(
+                    meanDelta,
+                    deltaTone(meanDelta, STAT_DELTA_EPS),
+                  )}
+                  tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
+                />
+                <DeltaValue
+                  text={formatDelta(sigmaDelta, 2)}
+                  ariaLabel={spreadDeltaAria(
+                    sigmaDelta,
+                    deltaTone(sigmaDelta, STAT_DELTA_EPS),
+                  )}
+                  tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
+                  neutral
+                />
+              </HStack>
+            </ComparePopover>
           ) : (
             <>
               <InspectMean
@@ -650,26 +638,16 @@ const RollTableRow = memo(function RollTableRow({
               >
                 {formatNumber(stats.stddev, 2)}
               </InspectSigma>
-              {deltasActive && !sameScale && (
-                <Tooltip
-                  content={hasHitValue ? DIFFERENT_SCALE_HIT : DIFFERENT_SCALE}
-                >
-                  <Box
-                    as="span"
-                    display="inline-flex"
-                    alignItems="center"
-                    color="fg.muted"
-                    ms={1}
-                    tabIndex={0}
-                    role="img"
-                    aria-label={
-                      hasHitValue ? DIFFERENT_SCALE_HIT : DIFFERENT_SCALE
-                    }
-                    _focusVisible={chipFocusRing}
-                  >
-                    <Info size={12} />
-                  </Box>
-                </Tooltip>
+              {compare !== null && compare.crossScale && (
+                // The mean cell has 124px of content space and the widest value
+                // already takes 92, so there is no room for words on that line
+                // and a second line would grow the row. A 12px mark fits, and
+                // the sentence it stands for lives in the panel it opens.
+                <ComparePopover
+                  compare={compare}
+                  variant="mark"
+                  triggerProps={{ ms: 1 }}
+                />
               )}
             </>
           )}
@@ -825,8 +803,8 @@ const RollTableRow = memo(function RollTableRow({
             colSpan={showHit ? 8 : 7}
             p={0}
             bg="bg.subtle"
-            borderLeftWidth="3px"
-            borderLeftColor={baselineAccent ? 'blue.solid' : 'transparent'}
+            borderLeftWidth={BASELINE_BAND_WIDTH}
+            borderLeftColor={baselineAccent ? BASELINE_BAND_COLOR : 'transparent'}
           >
             <RollExpand expression={expr} />
           </Table.Cell>

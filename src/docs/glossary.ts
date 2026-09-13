@@ -474,6 +474,12 @@ const uiTips: Record<string, string> = {
     'How much more or less spread out this roll is than the baseline. Neither direction is automatically better.',
   deltaHit:
     'How much more or less often this roll meets the target than the baseline, in percentage points. Green means more often than the baseline, red less.',
+  rowCompare:
+    'How this roll compares to the baseline you pinned. Open it for the summary and the numbers behind it.',
+  differentScale:
+    'This roll and the baseline are on different scales, so their averages are not comparable.',
+  differentScaleHit:
+    'This roll counts successes and the baseline totals dice, so their averages are not comparable. Compare Hit % instead.',
   baselineCompare:
     'Every other row now shows how it differs from this one, green better and red worse. The Hit % colour is separate: that one rates each roll on its own.',
   baselinePin: 'Pin as baseline to compare the other rolls against it.',

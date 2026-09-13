@@ -332,9 +332,23 @@ describe('baseline deltas treat a check row as sum scale', () => {
   it('calls a check row a different scale from a pool baseline', () => {
     seed([POOL_ROW, CHECK_ROW], { baselineId: 'pool-row' });
     renderIn(<RollsTable />);
-    // The marker is an icon now; its accessible name carries the sentence.
+    // The marker opens the comparison panel; its accessible name carries the
+    // verdict the row used to compute and throw away.
     expect(
-      screen.getByRole('img', { name: /not comparable/i }),
+      screen.getByRole('button', { name: /counts successes, so totals/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('carries the hit verdict on a cross-scale row rather than dropping it', () => {
+    seed([POOL_ROW, CHECK_ROW], {
+      baselineId: 'pool-row',
+      targetValues: [10],
+    });
+    renderIn(<RollsTable />);
+    expect(
+      screen.getByRole('button', {
+        name: /^Compare with Dice pool: Different scale, but hits /,
+      }),
     ).toBeInTheDocument();
   });
 });
