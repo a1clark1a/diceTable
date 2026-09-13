@@ -477,3 +477,78 @@ describe('ShapeHeaderLabel', () => {
     expect(screen.getByText('Target')).toBeInTheDocument();
   });
 });
+
+describe('Sparkline bucketing', () => {
+  // A 2,000-sided die spans 2,000 results in an 80-unit box: 0.04 of a unit
+  // each, which is neither readable nor tappable, and one rect plus one title
+  // per result in a column that draws one of these per row.
+  const WIDE = uniformDistribution(2000);
+
+  function hitRects(container: HTMLElement): Element[] {
+    return [...container.querySelectorAll('rect')].filter(
+      (r) => r.querySelector('title') !== null,
+    );
+  }
+
+  it('stops at forty hit zones however many results a row has', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={WIDE} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(hitRects(container)).toHaveLength(40);
+  });
+
+  it('keeps one zone per result for a row that fits', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(6)} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(hitRects(container)).toHaveLength(6);
+  });
+
+  it('names the range a bucket covers rather than one result inside it', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={WIDE} color="#000" view="pmf" />
+      </Plain>,
+    );
+    const first = hitRects(container)[0]?.querySelector('title')?.textContent;
+    // A single result's chance here is 0.05%; the bucket holds fifty of them,
+    // so labelling it with one result's number would understate it fiftyfold.
+    expect(first).toMatch(/^1 to 50: /);
+  });
+
+  it('keeps a single-result label when a bucket holds one result', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(6)} color="#000" view="pmf" />
+      </Plain>,
+    );
+    const first = hitRects(container)[0]?.querySelector('title')?.textContent;
+    expect(first).toBe('1: 16.7%');
+  });
+
+  it('reads a cumulative bucket at its far edge, never by adding running totals', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={WIDE} color="#000" view="cdf" />
+      </Plain>,
+    );
+    const zones = hitRects(container);
+    const last = zones[zones.length - 1]?.querySelector('title')?.textContent;
+    expect(last).toBe('≤ 2000: 100%');
+  });
+
+  it('draws a bounded curve for a wide row', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={WIDE} color="#000" view="cdf" />
+      </Plain>,
+    );
+    const d = container.querySelector('path')?.getAttribute('d') ?? '';
+    // One command per bucket, not one per result: 2,000 would be ~2,000.
+    expect((d.match(/[ML]/g) ?? []).length).toBeLessThan(200);
+  });
+});
