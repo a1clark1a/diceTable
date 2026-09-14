@@ -219,6 +219,11 @@ interface ChartPanelProps {
   height?: string;
   /** The rail's card offers it; the enlarged copy is already enlarged. */
   enlarge?: ReactNode;
+  /**
+   * The enlarged copy's way out of the field and back to a page. Only that
+   * surface can draw a field, so only that surface has anything to offer here.
+   */
+  fieldToggle?: ReactNode;
 }
 
 export function ChartPanel({
@@ -235,6 +240,7 @@ export function ChartPanel({
   unit,
   height,
   enlarge,
+  fieldToggle,
 }: ChartPanelProps) {
   // Focus stays panel-local: singling out a pool row highlights it among pool
   // series without dimming the other panel's rows.
@@ -296,6 +302,7 @@ export function ChartPanel({
             hasTarget={panel.hasTarget}
             groupLabel={`${panel.title} chart view`}
           />
+          {fieldToggle}
           {enlarge}
         </HStack>
       </HStack>

@@ -161,7 +161,7 @@ export function TargetCurves({ rows, target }: TargetCurvesProps) {
           </Text>
         </HelpTerm>
         {offered && (
-          <Tooltip content={tipForId('targetCurvePage')}>
+          <Tooltip content={tipForId('chartPageTwenty')}>
             <Button
               size="xs"
               variant={isPaged ? 'solid' : 'ghost'}

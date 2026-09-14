@@ -466,7 +466,7 @@ const uiTips: Record<string, string> = {
     'Click to sort rolls by this target. Another click flips the order, one more clears it.',
   targetCurves:
     'Each line shows a roll’s chance to hit for every possible target at once. Dashed lines mark your current targets.',
-  targetCurvePage:
+  chartPageTwenty:
     'Draw twenty rolls at a time instead of all of them, then page through the rest. Handy once there are too many lines to tell apart.',
   targetBars:
     'How often each roll meets this target. Longer, greener bars mean more reliable.',

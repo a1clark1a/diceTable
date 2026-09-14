@@ -280,3 +280,82 @@ describe('the field threshold is a real edge', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('the field is the default, not the only option', () => {
+  it('pages on request and goes back, without touching the rail', async () => {
+    seed(sums(100));
+    const dialog = await openDialog();
+    const inside = within(dialog);
+    const toggle = inside.getByRole('button', { name: '20 at a time' });
+
+    // Default is the field: the option is offered, not already taken.
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await waitFor(() =>
+      expect(inside.getByText(/drawing all 100 rolls/i)).toBeInTheDocument(),
+    );
+
+    fireEvent.click(toggle);
+    await waitFor(() =>
+      expect(inside.getByTestId('chart-impl')).toHaveAttribute(
+        'data-drawn',
+        '20',
+      ),
+    );
+    expect(inside.getByText(/showing 1 to 20 of 100 rolls/i)).toBeInTheDocument();
+    expect(
+      inside.getByRole('button', { name: /more rolls on the totals chart/i }),
+    ).toBeInTheDocument();
+    expect(inside.queryByText(/drawing all/i)).toBeNull();
+    expect(
+      inside.getByRole('button', { name: '20 at a time' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    // And back, which is the half a one-way switch would have got wrong.
+    fireEvent.click(inside.getByRole('button', { name: '20 at a time' }));
+    await waitFor(() =>
+      expect(inside.getByText(/drawing all 100 rolls/i)).toBeInTheDocument(),
+    );
+  });
+
+  it('pages through the whole table once the option is on', async () => {
+    seed(sums(100));
+    const dialog = await openDialog();
+    const inside = within(dialog);
+
+    fireEvent.click(inside.getByRole('button', { name: '20 at a time' }));
+    await waitFor(() =>
+      expect(inside.getByText(/showing 1 to 20 of 100 rolls/i)).toBeInTheDocument(),
+    );
+    fireEvent.click(
+      inside.getByRole('button', { name: /more rolls on the totals chart/i }),
+    );
+    expect(inside.getByText(/showing 21 to 40 of 100 rolls/i)).toBeInTheDocument();
+  });
+
+  it('does not offer a choice that would change nothing', async () => {
+    // The field needs more rolls than a page holds before paging means
+    // anything, and a surface that is already paging has no field to leave.
+    seed(sums(20));
+    const { unmount } = render(
+      <AllProviders>
+        <OverlayChart />
+      </AllProviders>,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Enlarge the Totals chart' }),
+    );
+    const small = await screen.findByRole('dialog');
+    expect(
+      within(small).queryByRole('button', { name: '20 at a time' }),
+    ).toBeNull();
+    unmount();
+
+    window.localStorage.clear();
+    mockQueries(() => false);
+    seed(sums(100));
+    const narrow = await openDialog();
+    expect(
+      within(narrow).queryByRole('button', { name: '20 at a time' }),
+    ).toBeNull();
+  });
+});

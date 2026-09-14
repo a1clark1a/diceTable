@@ -15,6 +15,8 @@ import { chipFocusRing } from '../editor/focusRings';
 import { ChartPanel } from './ChartPanel';
 import { useSeriesFocus } from './useSeriesFocus';
 import { enlargedRowCap, pagePanels, type ChartPages } from './rowCap';
+import { CHART_ROW_CAP_RAIL } from '../../types';
+import { tipForId } from '../../docs/glossary';
 import { panelDrawPoints } from './drawCost';
 import { useFinePointer, useWideChart } from '../../hooks/useBreakpoint';
 import type { ChartPanelData } from './useChartPanels';
@@ -81,12 +83,26 @@ export function ChartEnlargeDialog({
     () => (solo === undefined ? 0 : panelDrawPoints(solo.expressions)),
     [solo],
   );
-  const pageSize = enlargedRowCap({
+  // Whether the field is on offer at all, before asking whether it is wanted.
+  const fieldCap = enlargedRowCap({
     wideCanvas,
     finePointer,
     solo,
     drawPoints,
   });
+  // Offered only where the choice changes something: a table that fits one page
+  // has nothing to page through, and a surface already paging has no field to
+  // leave.
+  const canField =
+    fieldCap > CHART_ROW_CAP_RAIL &&
+    (solo?.entries.length ?? 0) > CHART_ROW_CAP_RAIL;
+  // Transient, like the page itself. The field stays the default because it is
+  // the reason this surface has its own budget at all, but reading twenty rolls
+  // in their own pens is a different and equally real way to use the same
+  // table, so it is a choice rather than a consequence of the viewport.
+  const [paged, setPaged] = useState(false);
+  const usePage = paged && canField;
+  const pageSize = usePage ? CHART_ROW_CAP_RAIL : fieldCap;
   const budgeted = useMemo(
     () => pagePanels(panels, pageSize, pages),
     [panels, pageSize, pages],
@@ -196,6 +212,31 @@ export function ChartEnlargeDialog({
                     pageSize={pageSize}
                     onPage={onPage}
                     unit={unitFor(p)}
+                    {...(canField && solo !== undefined && p.key === solo.key
+                      ? {
+                          fieldToggle: (
+                            <Tooltip content={tipForId('chartPageTwenty')}>
+                              <Button
+                                size="xs"
+                                variant={usePage ? 'solid' : 'ghost'}
+                                colorPalette={usePage ? 'blue' : 'gray'}
+                                aria-pressed={usePage}
+                                h={{ base: '40px', md: '20px' }}
+                                minW={0}
+                                px={2}
+                                borderRadius="3px"
+                                fontFamily="mono"
+                                fontSize="10px"
+                                fontWeight="500"
+                                _focusVisible={chipFocusRing}
+                                onClick={() => setPaged(!usePage)}
+                              >
+                                {CHART_ROW_CAP_RAIL} at a time
+                              </Button>
+                            </Tooltip>
+                          ),
+                        }
+                      : {})}
                     // Two panels share the dialog's height, so each takes
                     // roughly half rather than one being pushed off-screen.
                     height={
