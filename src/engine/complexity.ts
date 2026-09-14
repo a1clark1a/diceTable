@@ -29,15 +29,19 @@ export function partComplexity(part: DicePart): number {
   let cost = 0;
 
   if (part.explode) {
-    const cap =
-      Number.isInteger(part.explode.depthCap) && part.explode.depthCap >= 0
-        ? part.explode.depthCap
-        : DEFAULT_EXPLODE_CAP;
-    cost += part.sides * cap;
+    cost += part.sides * explodeCap(part.explode);
   }
 
+  // applyKeep enumerates weak compositions of `count` over the die's DISTINCT
+  // VALUES, and those come from singleDieDistribution, which has already applied
+  // reroll and explode. Charging `sides` prices a die that no longer exists: an
+  // exploding d6 at the default cap shows 56 distinct faces, not 6, so 6d6
+  // keeping 5 scored 522 against a 1e5 gate and then ran for 25 seconds on the
+  // main thread. partMaxFace bounds the post-explode face set from above, which
+  // is the honest thing to charge and stays a pure function of the part.
   if (part.keep) {
-    const leaves = binomial(part.count + part.sides - 1, part.sides - 1);
+    const faces = partMaxFace(part);
+    const leaves = binomial(part.count + faces - 1, faces - 1);
     if (leaves === COMPLEXITY_OVERFLOW) return COMPLEXITY_OVERFLOW;
     cost += leaves;
   }
@@ -60,13 +64,34 @@ function poolComplexity(expr: Expression): number {
   return dice * dice;
 }
 
+function explodeCap(rule: NonNullable<DicePart['explode']>): number {
+  return Number.isInteger(rule.depthCap) && rule.depthCap >= 0
+    ? rule.depthCap
+    : DEFAULT_EXPLODE_CAP;
+}
+
+/**
+ * The largest total one die can reach, chain included.
+ *
+ * A chain is at most cap + 1 dice, but only the first cap of them have to show
+ * an exploding face to keep it going, so they are bounded by the highest face
+ * that actually explodes rather than by the highest face on the die. Reading it
+ * as sides * (cap + 1) charges every chain die the top of the die: a d100
+ * exploding on 1 at cap 50 reaches 150, and was scored 5,100, which is enough
+ * on its own to have supportWidth refuse a row whose real support is 149 wide.
+ *
+ * A face above `sides` can never come up, so it never explodes and never counts.
+ */
 function partMaxFace(part: DicePart): number {
-  if (!part.explode || part.explode.onFaces.length === 0) return part.sides;
-  const cap =
-    Number.isInteger(part.explode.depthCap) && part.explode.depthCap >= 0
-      ? part.explode.depthCap
-      : DEFAULT_EXPLODE_CAP;
-  return part.sides * (cap + 1);
+  if (!part.explode) return part.sides;
+  let top = 0;
+  for (const face of part.explode.onFaces) {
+    if (Number.isInteger(face) && face >= 1 && face <= part.sides && face > top) {
+      top = face;
+    }
+  }
+  if (top === 0) return part.sides;
+  return part.sides + explodeCap(part.explode) * top;
 }
 
 // The keep-across walk holds one accumulator per (per-part counted vector,

@@ -65,6 +65,54 @@ describe('partComplexity — keep multinomial leaves', () => {
     ).toBe(true);
   });
 
+  // The enumeration runs over the die's distinct values after reroll and
+  // explode, so a part scored on `sides` is scored on a die that no longer
+  // exists. Each of these was admitted while taking between a tenth of a second
+  // and half an hour of synchronous main-thread time.
+  it.each([
+    ['4d6kh3', 4, 3],
+    ['5d6kh3', 5, 3],
+    ['6d6kh5', 6, 5],
+    ['8d6kh7', 8, 7],
+  ])('refuses %s once its exploding faces are counted', (_label, count, n) => {
+    const exploding = part({
+      count,
+      sides: 6,
+      keep: { type: 'highest', n },
+      explode: { onFaces: [6], depthCap: 10 },
+    });
+    expect(partTooComplex(exploding)).toBe(true);
+    // The same shape without the chain is cheap and has to stay admitted.
+    expect(partTooComplex(part({ count, sides: 6, keep: { type: 'highest', n } }))).toBe(
+      false,
+    );
+  });
+
+  it('charges a chain by the face that explodes, not by the top of the die', () => {
+    // A d100 exploding on 1 reaches 150, not 5,100: only the faces that keep the
+    // chain going are chained, and the last roll is the only unrestricted one.
+    const lowTrigger = expr({
+      parts: [part({ count: 3, sides: 100, explode: { onFaces: [1], depthCap: 50 } })],
+    });
+    expect(supportWidth(lowTrigger)).toBe(448);
+    expect(expressionTooComplex(lowTrigger)).toBe(false);
+    expect(expressionDistribution(lowTrigger).size).toBe(445);
+
+    // Exploding on the top face really is that wide, and stays refused.
+    const topTrigger = expr({
+      parts: [part({ count: 3, sides: 100, explode: { onFaces: [100], depthCap: 50 } })],
+    });
+    expect(expressionTooComplex(topTrigger)).toBe(true);
+  });
+
+  it('ignores a trigger face the die cannot show', () => {
+    // onFaces is not range-checked at the type level, and a face above the die
+    // never comes up, so it never explodes and must not be charged for.
+    const unreachable = part({ count: 3, sides: 6, explode: { onFaces: [99], depthCap: 50 } });
+    expect(supportWidth(expr({ parts: [unreachable] }))).toBe(16);
+    expect(partTooComplex(unreachable)).toBe(false);
+  });
+
   it('a cost of exactly the cap is allowed, one over is not', () => {
     const atCap = part({ count: 1, sides: 10000, explode: { onFaces: [10000], depthCap: 10 } });
     const overCap = part({ count: 1, sides: 10001, explode: { onFaces: [10001], depthCap: 10 } });
