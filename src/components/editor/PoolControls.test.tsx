@@ -2,23 +2,12 @@ import * as React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
-import { PoolBadge, ExpressionModeToggle, PoolThresholdEditor } from './PoolControls';
+import { ExpressionModeToggle, PoolThresholdEditor } from './PoolControls';
 import type { ExpressionMode, SuccessThreshold } from '../../types';
 
 const Provider = ({ children }: { children: React.ReactNode }) => (
   <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
 );
-
-describe('PoolBadge', () => {
-  it('renders a Pool label', () => {
-    render(
-      <Provider>
-        <PoolBadge />
-      </Provider>,
-    );
-    expect(screen.getByText('Pool')).toBeInTheDocument();
-  });
-});
 
 describe('ExpressionModeToggle', () => {
   function renderToggle(mode: ExpressionMode, onSelect = vi.fn()) {

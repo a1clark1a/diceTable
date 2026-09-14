@@ -8,7 +8,7 @@ export interface ShareImage {
 
 export const CARD_WIDTH = 920;
 export const PADDING = 28;
-export const TITLE_HEIGHT = 42;
+const TITLE_HEIGHT = 42;
 export const PANEL_HEADING = 22;
 export const PLOT_HEIGHT = 300;
 export const AXIS_GUTTER = 52;
@@ -24,14 +24,14 @@ export const FOOTER_HEIGHT = 34;
 // (row cap, mixed scales, rolls left out), which reaches 113 code points. At
 // 11px that is roughly 660px of ink, and the credit on the left takes about
 // 132px of the 864px live width, so the pair still does not collide.
-export const NOTE_CHARS = 120;
+const NOTE_CHARS = 120;
 
 // The comparison views' full caption runs past NOTE_CHARS, so both compare
 // cards state the same caveat in the space a footer aside has. One constant,
 // because two cards print it and they must not drift apart.
 export const MIXED_SCALE_CARD_NOTE = 'Pool rows are counted in successes, not totals';
 
-export const TITLE_CHARS = 70;
+const TITLE_CHARS = 70;
 export const NAME_CHARS = 28;
 export const NOTATION_CHARS = 72;
 

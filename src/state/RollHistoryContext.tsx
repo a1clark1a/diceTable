@@ -46,21 +46,6 @@ export function RollHistoryProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const roll = useCallback(
-    (exprId: string, dist: Distribution): number | null => {
-      const result = sampleDistribution(dist);
-      if (result === null) return null;
-      setHistories((prev) => {
-        const next = new Map(prev);
-        const existing = next.get(exprId) ?? [];
-        next.set(exprId, [result, ...existing].slice(0, HISTORY_LIMIT));
-        return next;
-      });
-      return result;
-    },
-    [],
-  );
-
   const rollMany = useCallback(
     (exprId: string, dist: Distribution, count: number): number[] => {
       if (count <= 0 || dist.size === 0) return [];
@@ -103,8 +88,8 @@ export function RollHistoryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<RollHistoryValue>(
-    () => ({ roll, rollMany, getHistory, lastResult, clearHistory }),
-    [roll, rollMany, getHistory, lastResult, clearHistory],
+    () => ({ rollMany, getHistory, lastResult, clearHistory }),
+    [rollMany, getHistory, lastResult, clearHistory],
   );
 
   return (

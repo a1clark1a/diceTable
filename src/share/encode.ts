@@ -4,9 +4,14 @@ import { buildExportEnvelope } from './format';
 
 export const HASH_PREFIX = '#data=';
 
-// URL-hash payloads stay client-side (never sent to a server) but link previewers
-// in some chat clients truncate beyond ~2 KB. Typical 5-row tables compress to
-// well under that; very large tables may exceed it.
+// URL-hash payloads stay client-side, never sent to a server, and browsers carry
+// tens of kilobytes of hash without complaint. The number that bites is smaller:
+// some chat clients truncate a link past roughly 2 KB when building a preview
+// card, which breaks the link they show rather than the link itself.
+//
+// Measured with real ids on the wire, 20 rows already passed that at 2,675
+// characters and 100 rows reached 9,802. Dropping the ids, which every import
+// throws away anyway, takes the same tables to 994 and 2,746.
 export function encodeRollsToHash(rolls: Expression[]): string {
   const envelope = buildExportEnvelope(rolls);
   const json = JSON.stringify(envelope);

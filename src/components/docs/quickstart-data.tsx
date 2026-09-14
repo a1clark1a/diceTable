@@ -29,7 +29,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         </Text>
         <Text color="fg.muted" fontSize="sm">
           The colored swatch on the left of each row matches that row’s color
-          in the comparison chart below.
+          in the comparison chart.
         </Text>
       </Stack>
     ),
@@ -38,13 +38,13 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 2,
     title: 'Read dice notation',
     plain:
-      'DiceTable uses standard tabletop shorthand. Tap any token to edit it inline. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the Sum / Pool / Check toggle under the dice to Pool and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher". Check is the third setting, for rolls that decide whether something happens: 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4".',
+      'DiceTable uses standard tabletop shorthand. Tap the notation to see the full distribution behind it, or open the row to change the dice. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the roll’s Sum / Pool / Check toggle to Pool and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher". Check is the third setting, for rolls that decide whether something happens: 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4".',
     body: (
       <Stack gap={2}>
         <Text>
-          DiceTable uses the standard tabletop shorthand. Tap any token in the
-          table to edit it inline. For example, <Code>4d6kh3+2</Code> reads
-          as:
+          DiceTable uses the standard tabletop shorthand. Tap the notation to see
+          the full distribution behind it, or open the row to change the dice.
+          For example, <Code>4d6kh3+2</Code> reads as:
         </Text>
         <List.Root pl={5}>
           <List.Item>
@@ -59,8 +59,8 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         </List.Root>
         <Text>
           A roll can also <strong>count successes</strong> instead of adding.
-          Switch the <strong>Sum / Pool / Check</strong> toggle under the dice
-          to <strong>Pool</strong> and the notation reads like{' '}
+          Switch the <strong>Sum / Pool / Check</strong> toggle beside the dice,
+          or under them on a phone, to <strong>Pool</strong> and the notation reads like{' '}
           <Code>7d10 · count ≥8</Code>: out of seven d10s, how many show 8 or
           higher?
         </Text>
@@ -77,12 +77,14 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 3,
     title: 'Read the chart',
     plain:
-      'The bottom panel overlays every row. Switch views with the toggle above the chart: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
+      'The comparison chart overlays your rolls on one set of axes, beside the table when the screen is wide enough and below it when it is not. Each chart carries its own view buttons in its header, next to the title: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. The Shape sparkline in each row keeps its own view setting. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
     body: (
       <Stack gap={2}>
         <Text>
-          The bottom panel overlays every row. Switch views with the toggle
-          above the chart:
+          The comparison chart overlays your rolls on one set of axes, beside
+          the table when the screen is wide enough and below it when it is
+          not. Each chart carries its own view buttons in its header, next to
+          the title:
         </Text>
         <List.Root pl={5}>
           <List.Item>
@@ -101,8 +103,9 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           </List.Item>
         </List.Root>
         <Text>
-          The <strong>Shape</strong> sparkline in each row mirrors the active
-          view. Click it (or the Mean / σ values) to open a larger inspector.
+          The <strong>Shape</strong> sparkline in each row keeps its own view
+          setting, so it can show a different view from the chart. Click it (or
+          the Mean / σ values) to open a larger inspector.
         </Text>
         <Text color="fg.muted" fontSize="sm">
           A check roll that misses often would pile all of that chance onto one
@@ -218,12 +221,17 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 7,
     title: 'Compare rolls',
     plain:
-      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Hover or tab to a name in the legend to dim the others and focus a single series.',
+      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them.',
     body: (
       <Text>
         Add more rows. Each appears in the chart with its own color, matching
-        the swatch in the table. Hover (or tab to) a name in the chart legend
-        to dim the others and focus a single series.
+        the swatch in the table. Click, tap or press a name in the chart
+        legend to single that roll out and keep it singled out; press it again,
+        press Escape, or tap the chart to go back. Past twenty rolls the chart
+        draws twenty at a time and names the range it is showing, with arrows
+        to reach the rest. Enlarge it on a wide screen and it draws every roll
+        at once instead, faintly, so picking a name shows you where that roll
+        sits among all of them.
       </Text>
     ),
   },
@@ -231,16 +239,19 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 8,
     title: 'Set targets and read Hit %',
     plain:
-      'Type one or more targets in the toolbar, for example AC 14 or save DC 16. A Hit % column shows how often each row clears each target, using the comparison you pick: at least, greater than, at most, less than, or exactly.',
+      'The Target control above the table reads None until you set one. Open it, tapping Edit on a phone, then type a number and press Enter for each target, for example AC 14 or save DC 16. A Hit % column shows how often each row clears each target, using the comparison you pick in the same panel: at least, greater than, at most, less than, or exactly.',
     body: (
       <Stack gap={2}>
         <Text>
-          Type one or more targets in the toolbar (e.g. AC 14, save DC 16). A
-          new <strong>Hit %</strong> column appears showing how often each row
-          clears each target.
+          The <strong>Target</strong> control above the table reads{' '}
+          <strong>None</strong> until you set one. Open it (tap{' '}
+          <strong>Edit</strong> on a phone), then type a number and press Enter
+          for each target you want (e.g. AC 14, save DC 16), and a{' '}
+          <strong>Hit %</strong> column appears showing how often each row
+          clears each one.
         </Text>
         <Text>
-          The dropdown next to <strong>Target</strong> picks how a roll is
+          The dropdown at the top of that same panel picks how a roll is
           compared:
         </Text>
         <List.Root pl={5}>
@@ -270,11 +281,11 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 9,
     title: 'Switch workshop views',
     plain:
-      'The chips above the table switch between four views of the same rolls. Table & chart is the editable list with the overlay chart. Target hit compares every roll against your targets as a grid, curves, or bars. Roll-off shows each roll’s chance of having the single highest result if every roll rolled once. Head-to-head is a matrix of one-on-one odds: how often the row roll beats the column roll, ignoring everyone else.',
+      'The tabs above the table switch between four views of the same rolls. Table & chart is the editable list with the overlay chart. Target hit compares every roll against your targets as a grid, curves, or bars. Roll-off shows each roll’s chance of having the single highest result if every roll rolled once. Head-to-head is a matrix of one-on-one odds: how often the row roll beats the column roll, ignoring everyone else.',
     body: (
       <Stack gap={2}>
         <Text>
-          The chips above the table switch between four views of the same
+          The tabs above the table switch between four views of the same
           rolls:
         </Text>
         <List.Root pl={5}>
@@ -310,11 +321,11 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 10,
     title: 'Roll the dice',
     plain:
-      'Click the dice icon on any Sum roll to roll it. The result appears next to the row, and the popover can roll a batch of 1 to 1000 to show the average, the range, and recent history. The roller uses the same odds the chart shows.',
+      'Click the dice icon on any roll that is not a pool to roll it. The result appears next to the row, and the popover can roll a batch of 1 to 1000 to show the average, the range, and recent history. The roller uses the same odds the chart shows.',
     body: (
       <Text>
-        Click the <strong>dice icon</strong> on any Sum roll to actually roll
-        it.
+        Click the <strong>dice icon</strong> on any roll that is not a pool to
+        actually roll it.
         The result appears next to the row, and the popover lets you roll a
         batch of 1 to 1000 to see the average, the range, and recent history.
         The roller uses the same odds the chart shows, so it’s a sanity
@@ -326,7 +337,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 11,
     title: 'Share and import',
     plain:
-      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button in the toolbar makes a picture of the view you are on, following the sub-view, filter and sort you have set (Curves always plots the sum rolls, whatever the filter says), and copying it puts the link on the clipboard as text at the same time.',
+      'Use Share in the top bar to copy a link, copy raw JSON, or download a .json file. Opening a link loads the same rolls; importing a file or JSON lets you merge into the current table or replace it. The Image button in the top bar makes a picture of the view you are on, following the sub-view, filter and sort you have set (Curves always plots the sum rolls, whatever the filter says), and copying it puts the link on the clipboard as text at the same time.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -336,7 +347,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           current table or replace it.
         </Text>
         <Text>
-          The <strong>Image</strong> button in the toolbar, and{' '}
+          The <strong>Image</strong> button in the top bar, and{' '}
           <strong>Copy image</strong> in the Share menu, make a picture of what
           you are looking at, with an optional title. It follows the controls
           you set, so the Target hit picture uses the Grid, Curves or Bars you

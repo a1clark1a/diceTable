@@ -1,4 +1,5 @@
 import type { ChartView, Distribution, TargetState } from '../../types';
+import { SHARE_CARD_ROW_LIMIT } from '../../types';
 import { sortedKeys } from '../../engine/distribution';
 import { hitProbability } from '../../engine/stats';
 import {
@@ -47,6 +48,8 @@ export interface ShareImageRow {
   id: string;
   name: string;
   notation: string;
+  /** Unfiltered row position, so the picture dashes the way the screen does. */
+  slot: number;
   color: string;
   dist: Distribution;
   canMiss: boolean;
@@ -58,7 +61,13 @@ export interface ShareImageRow {
 
 export interface ShareImageOptions {
   rows: ShareImageRow[];
-  view: ChartView;
+  /**
+   * One view per panel, because the two panels own their view separately on
+   * screen and the picture mirrors the screen. Each still resolves the target
+   * view against its own target.
+   */
+  totalsView: ChartView;
+  successesView: ChartView;
   theme: 'light' | 'dark';
   /** Optional heading. The header band is left out entirely when it is blank. */
   title?: string;
@@ -250,7 +259,7 @@ function drawPanel({
     }
 
     const stepWidth = xSpan / Math.max(1, globalMax - globalMin);
-    prepared.forEach(({ row, series }, index) => {
+    prepared.forEach(({ row, series }) => {
       const points: string[] = [];
       for (let x = globalMin; x <= globalMax; x++) {
         const p = evalSeriesAt(series, x, view);
@@ -265,7 +274,7 @@ function drawPanel({
         }
       }
       parts.push(
-        `<polyline points="${points.join(' ')}" fill="none" stroke="${row.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="${seriesDash(index)}"/>`,
+        `<polyline points="${points.join(' ')}" fill="none" stroke="${row.color}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="${seriesDash(row.slot)}"/>`,
       );
     });
 
@@ -312,6 +321,14 @@ function drawPanel({
   };
 }
 
+// The card is the only one of four with no row cap, and its height is a
+// canvas budget rather than a legibility one: 46px a row, rasterized at 2x, so
+// 100 rows is 1840 x 10944 and about 80MB of pixel buffer on a phone. Twenty
+// keeps it at 3584 tall, which is also exactly what the screen draws.
+function capNote(shown: number, total: number): string {
+  return `showing the first ${shown} of ${total} rolls`;
+}
+
 function unfitNote(count: number): string {
   return count === 1
     ? '1 roll does not fit these bars'
@@ -322,17 +339,27 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const { rows, theme } = options;
   const target = options.target ?? NO_TARGET;
   const poolTarget = options.poolTarget ?? NO_TARGET;
-  const view = effectiveChartView(options.view, target.values.length > 0);
+  const view = effectiveChartView(options.totalsView, target.values.length > 0);
   const poolView = effectiveChartView(
-    options.view,
+    options.successesView,
     poolTarget.values.length > 0,
   );
   const palette = shareCardPalette(theme);
   const scale = scaleFor(options.scale);
   const title = (options.title ?? '').trim();
 
-  const usable = rows.filter((r) => r.dist.size > 0);
-  const poolUsable = (options.poolRows ?? []).filter((r) => r.dist.size > 0);
+  const allUsable = rows.filter((r) => r.dist.size > 0);
+  const allPoolUsable = (options.poolRows ?? []).filter((r) => r.dist.size > 0);
+  // Shared in proportion between the two panels, the same rule the screen uses,
+  // so one kind cannot push the other off the card.
+  const drawable = allUsable.length + allPoolUsable.length;
+  const share = (n: number): number =>
+    n === 0 || drawable <= SHARE_CARD_ROW_LIMIT
+      ? n
+      : Math.max(1, Math.floor((n / drawable) * SHARE_CARD_ROW_LIMIT));
+  const usable = allUsable.slice(0, share(allUsable.length));
+  const poolUsable = allPoolUsable.slice(0, share(allPoolUsable.length));
+  const drawn = usable.length + poolUsable.length;
   // Headings only earn their space once a Successes panel exists, the same rule
   // the chart uses on screen: an all-sum card keeps the unlabeled single-chart
   // look, and a pool-only card gets the heading that carries its unit.
@@ -374,6 +401,7 @@ export function buildShareSvg(options: ShareImageOptions): ShareImage {
   const height = cursor + FOOTER_HEIGHT + PADDING;
 
   const notes = [(options.note ?? '').trim()];
+  if (drawn < drawable) notes.push(capNote(drawn, drawable));
   if (hidden > 0) notes.push(unfitNote(hidden));
 
   return renderCard({

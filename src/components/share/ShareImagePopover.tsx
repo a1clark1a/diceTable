@@ -11,7 +11,6 @@ import { tipForId } from '../../docs/glossary';
 const BLOCKED_TIP: Record<Exclude<ShareCardState, 'ready'>, string> = {
   noRows: 'shareImageNoRows',
   needsTwo: 'shareImageNeedsTwo',
-  overLimit: 'shareImageOverLimit',
   noTargets: 'shareImageNoTargets',
   noSumRows: 'shareImageNoSumRows',
 };
@@ -29,7 +28,9 @@ export function ShareImagePopover() {
   // not a popover trigger while blocked, so there is nothing to click through.
   const trigger = (
     <Button
-      variant="outline"
+      // Ghost, not outline: it sits beside Import and Share in the identity
+      // bar, and an outline made it read as the only boxed control up there.
+      variant="ghost"
       size="sm"
       colorPalette="gray"
       aria-disabled={!ready}

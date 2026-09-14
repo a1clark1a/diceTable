@@ -24,8 +24,8 @@ const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
 };
 
 export function ShapeHeaderLabel() {
-  const { chartView, target, poolTargets, expressions } = useApp();
-  const view = shapeHeaderView(chartView, target, poolTargets, expressions);
+  const { chartViews, target, poolTargets, expressions } = useApp();
+  const view = shapeHeaderView(chartViews.shape, target, poolTargets, expressions);
   if (view === null) {
     return <HelpTerm tip={tipForId('shapeMixed')}>Shape</HelpTerm>;
   }
@@ -135,6 +135,13 @@ function targetMatches(x: number, target: TargetState): boolean {
   }
 }
 
+// The box is 80 units wide, so a 1,981-value row gives each result 0.04 of a
+// unit: unreadable, untappable, and one DOM node pair each in a column that
+// draws one of these per row with no virtualization. Forty buckets is two units
+// apiece, which is a fingertip. A row with fewer results than this keeps one
+// bucket per result and is drawn exactly as it was.
+const SPARK_BUCKETS = 40;
+
 function buildGeometry(
   dist: Distribution,
   view: ChartView,
@@ -154,10 +161,12 @@ function buildGeometry(
 
   const baselineY = height - 0.5;
   const usableHeight = baselineY;
-  const stepWidth = width / span;
 
   const heightAt = new Array<number>(span);
   const tipAt = new Array<string>(span);
+  // Only the pmf-shaped views aggregate by adding; the cumulative ones read an
+  // edge instead, because summing running totals prints a number no roll makes.
+  const massAt = new Array<number>(span).fill(0);
 
   let cappedIndex = -1;
 
@@ -179,6 +188,7 @@ function buildGeometry(
       const xValue = min + i;
       const p = dist.get(xValue) ?? 0;
       heightAt[i] = Math.min(p / maxP, 1) * filledHeight;
+      massAt[i] = p;
       tipAt[i] = `${xValue}: ${formatPct(p)}`;
       if (canMiss && xValue === 0 && miss > maxP) cappedIndex = i;
     }
@@ -200,13 +210,50 @@ function buildGeometry(
     }
   }
 
-  const topPoints: Point[] = new Array(span);
-  const hitZones: HitZone[] = new Array(span);
-  for (let i = 0; i < span; i++) {
-    const x = i * stepWidth;
-    const y = baselineY - heightAt[i]!;
-    topPoints[i] = { x, y };
-    hitZones[i] = { x, w: stepWidth, tip: tipAt[i]! };
+  // One bucket per result until the row outgrows the budget. Every structure
+  // below is reduced on this same index, so the curve, the hit zones, the mode
+  // marker and the target overlay cannot fall out of step with each other.
+  const buckets = Math.min(span, SPARK_BUCKETS);
+  const perBucket = span / buckets;
+  const bucketOf = (i: number): number =>
+    Math.min(buckets - 1, Math.floor(i / perBucket));
+  const bucketStep = width / buckets;
+
+  const topPoints: Point[] = new Array(buckets);
+  const hitZones: HitZone[] = new Array(buckets);
+  for (let b = 0; b < buckets; b++) {
+    const from = Math.floor(b * perBucket);
+    const to = Math.min(span, Math.floor((b + 1) * perBucket)) - 1;
+    const x = b * bucketStep;
+
+    let y: number;
+    let tip: string;
+    if (resolvedView === 'cdf') {
+      // Cumulative: the bucket's value is the running total at its far edge.
+      y = baselineY - heightAt[to]!;
+      tip = tipAt[to]!;
+    } else if (resolvedView === 'ccdf') {
+      y = baselineY - heightAt[from]!;
+      tip = tipAt[from]!;
+    } else {
+      // The tallest result in the bucket, so a peak is never flattened by the
+      // ones beside it. The tip adds the masses instead, because the honest
+      // answer for a range is the chance of landing anywhere in it.
+      let tallest = heightAt[from]!;
+      let mass = 0;
+      for (let i = from; i <= to; i++) {
+        if (heightAt[i]! > tallest) tallest = heightAt[i]!;
+        mass += massAt[i]!;
+      }
+      y = baselineY - tallest;
+      tip =
+        from === to
+          ? tipAt[from]!
+          : `${min + from} to ${min + to}: ${formatPct(mass)}`;
+    }
+
+    topPoints[b] = { x, y };
+    hitZones[b] = { x, w: bucketStep, tip };
   }
 
   let modeIndex = -1;
@@ -227,11 +274,17 @@ function buildGeometry(
     }
     if (modeCount === 1) modeIndex = modeAt;
   }
+  // Both markers point at a result; once results share a bucket they have to
+  // point at the bucket that holds it.
+  if (modeIndex >= 0) modeIndex = bucketOf(modeIndex);
+  if (cappedIndex >= 0) cappedIndex = bucketOf(cappedIndex);
 
-  const matchMask = new Array<boolean>(span).fill(false);
+  // A bucket is highlighted when any result inside it matches, so the overlay
+  // never loses a hit to rounding.
+  const matchMask = new Array<boolean>(buckets).fill(false);
   if (resolvedView === 'target' && target && target.values.length > 0) {
     for (let i = 0; i < span; i++) {
-      matchMask[i] = targetMatches(min + i, target);
+      if (targetMatches(min + i, target)) matchMask[bucketOf(i)] = true;
     }
   }
 
@@ -241,7 +294,7 @@ function buildGeometry(
     cappedIndex,
     modeIndex,
     matchMask,
-    stepWidth,
+    stepWidth: bucketStep,
     baselineY,
     effectiveView: resolvedView,
     empty: false,

@@ -16,7 +16,7 @@ Deep dives live in [docs/architecture/](docs/architecture/): the engine, local-s
 2. **Discuss before building.** Anything beyond a typo, a small bugfix, or type/lint/a11y tightening starts as an issue, not a PR. Never invent features the maintainer has not agreed to.
 3. **The engine stays pure and exact.** `src/engine/**` imports no React, Chakra, or chart modules. Probabilities come from enumerating and convolving distributions. No normal approximations, no Monte Carlo, ever.
 4. **TypeScript strict.** `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes` are on. No `any`; use `unknown` plus type guards or discriminated unions.
-5. **UI conventions.** Chakra primitives over raw HTML. Semantic theme tokens (`bg.subtle`, `fg.muted`) over hex. Mobile-first: a UI change is not done until it works at 360 px in both color modes.
+5. **UI conventions.** Chakra primitives over raw HTML. Semantic theme tokens (`bg.subtle`, `fg.muted`) over hex; the only files allowed to carry hex are `src/theme.ts`, `src/components/chart/palette.ts`, and `index.html`. Mobile-first: a UI change is not done until it works at 360 px in both color modes.
 6. **Never touch:** `public/favicon.svg` (hand-crafted by the maintainer), the `version` field in `package.json` (releases are tagged by the maintainer), `LICENSE`.
 7. **No new dependencies** without a prior issue where the maintainer agreed.
 8. **Match local style.** Read a neighboring file before writing a new one. Comments explain a non-obvious why, never a what. No em-dashes in prose.

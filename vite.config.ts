@@ -50,8 +50,8 @@ export default defineConfig({
         short_name: 'DiceTable',
         description:
           'Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution.',
-        theme_color: '#fafafa',
-        background_color: '#fafafa',
+        theme_color: '#f2f1ed',
+        background_color: '#f2f1ed',
         display: 'minimal-ui',
         start_url: '/',
         icons: [

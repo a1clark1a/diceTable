@@ -8,6 +8,7 @@ import { useShareImage } from './useShareImage';
 import { toaster } from '../../components/share/toaster-store';
 import { SCHEMA_VERSION } from '../../state/persistedSchema';
 import { decodeFromHashFragment } from '../decode';
+import { SHARE_CARD_ROW_LIMIT } from '../../types';
 
 const STORAGE_KEY = 'dicetable.v2';
 const ENVELOPE_VERSION = 2;
@@ -292,19 +293,18 @@ describe('useShareImage copyImage', () => {
     expect(captured).toHaveLength(1);
     const text = await textFlavourOf(captured[0]!);
     expect(text.startsWith(LINK_PREFIX)).toBe(true);
-    expect(decodeFromHashFragment(new URL(text).hash)).toEqual({
-      ok: true,
-      rolls: [
-        {
-          id: 'seed-sum',
-          name: 'Shortsword',
-          parts: [{ id: 'seed-sum-part', count: 2, sides: 6 }],
-          flatModifier: 0,
-          rollMode: 'normal',
-          mode: 'sum',
-        },
-      ],
-    });
+    // The wire no longer carries ids, so the roll arrives with a fresh one.
+    const link = decodeFromHashFragment(new URL(text).hash);
+    if (!link.ok) throw new Error();
+    expect(link.rolls).toHaveLength(1);
+    const [roll] = link.rolls;
+    expect(roll?.name).toBe('Shortsword');
+    expect(roll?.parts).toEqual([
+      { id: expect.any(String), count: 2, sides: 6 },
+    ]);
+    expect(roll?.flatModifier).toBe(0);
+    expect(roll?.rollMode).toBe('normal');
+    expect(roll?.mode).toBe('sum');
   });
 
   // A real clipboard write waits for the pending picture before it settles,
@@ -357,7 +357,8 @@ describe('useShareImage shareSheet', () => {
     expect(data?.text?.startsWith(LINK_PREFIX)).toBe(true);
     const decoded = decodeFromHashFragment(new URL(data?.text ?? '').hash);
     if (!decoded.ok) throw new Error(`link did not decode: ${decoded.error}`);
-    expect(decoded.rolls[0]?.id).toBe('seed-sum');
+    // Ids are synthesized on arrival now; what must survive is the roll.
+    expect(decoded.rolls[0]?.name).toBe('Shortsword');
     expect(toasts).toHaveLength(0);
     expect(downloads).toHaveLength(0);
   });
@@ -417,8 +418,8 @@ describe('useShareImage picture contents', () => {
     });
 
     const svg = renderedSvg();
-    expect(svg).toContain('stroke="#ea580c"');
-    expect(svg).toContain('stroke="#2563eb"');
+    expect(svg).toContain('stroke="#673406"');
+    expect(svg).toContain('stroke="#21396a"');
   });
 
   it('stacks several pool rows into the one successes panel', async () => {
@@ -433,7 +434,7 @@ describe('useShareImage picture contents', () => {
     expect(svg).not.toContain('not in this picture');
     expect(countOf(svg, '<polyline')).toBe(3);
     expect(countOf(svg, '>SUCCESSES</text>')).toBe(1);
-    expect(svg).toContain('stroke="#16a34a"');
+    expect(svg).toContain('stroke="#075b3c"');
   });
 
   it('draws a table of only pool rows as a successes panel', async () => {
@@ -463,7 +464,7 @@ describe('useShareImage picture contents', () => {
     expect(svg).toContain('>1 roll left out (too complex)</text>');
     expect(svg).not.toContain('pool roll');
     expect(countOf(svg, '<polyline')).toBe(1);
-    expect(svg).toContain('stroke="#ea580c"');
+    expect(svg).toContain('stroke="#673406"');
   });
 
   // A pool row beside a too-complex one leaves only the too-complex note: the
@@ -498,7 +499,7 @@ describe('useShareImage picture contents', () => {
     const svg = renderedSvg();
     expect(svg).toContain('>45%</text>');
     expect(svg).toContain(
-      '<circle cx="113.83" cy="46" r="4" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>',
+      '<circle cx="113.83" cy="46" r="4" fill="#21396a" stroke="#f2f1ed" stroke-width="2"/>',
     );
   });
 });
@@ -514,7 +515,7 @@ describe('useShareImage theme', () => {
     });
 
     expect(renderedSvg()).toContain(
-      '<rect x="0" y="0" width="920" height="484" fill="#ffffff"/>',
+      '<rect x="0" y="0" width="920" height="484" fill="#f2f1ed"/>',
     );
   });
 
@@ -528,8 +529,8 @@ describe('useShareImage theme', () => {
     });
 
     const svg = renderedSvg();
-    expect(svg).toContain('<rect x="0" y="0" width="920" height="484" fill="#0b1220"/>');
-    expect(svg).not.toContain('#ffffff');
+    expect(svg).toContain('<rect x="0" y="0" width="920" height="484" fill="#131519"/>');
+    expect(svg).not.toContain('#f2f1ed');
   });
 });
 
@@ -552,10 +553,6 @@ describe('useShareImage render failures', () => {
     expect(result.current.busy).toBe(false);
   });
 });
-
-// The chart card's row cap, restated: twenty rolls still draw, and the
-// twenty-first is what tips the table view over.
-const CHART_ROW_LIMIT = 20;
 
 interface ViewUi {
   view: string;
@@ -782,23 +779,31 @@ describe('useShareImage cardState', () => {
   });
 
   it('is ready at the chart row cap on the table view', () => {
-    seedViewTable(manySumSeeds(CHART_ROW_LIMIT), { view: 'table' });
+    seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT), { view: 'table' });
 
     const { result } = renderHook(() => useShareImage(), { wrapper });
 
     expect(result.current.cardState).toBe('ready');
   });
 
-  it('is overLimit one roll past the chart row cap on the table view', () => {
-    seedViewTable(manySumSeeds(CHART_ROW_LIMIT + 1), { view: 'table' });
+  it('stays ready past the chart row cap, because the card now cuts and says so', () => {
+    seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT + 1), { view: 'table' });
 
     const { result } = renderHook(() => useShareImage(), { wrapper });
 
-    expect(result.current.cardState).toBe('overLimit');
+    expect(result.current.cardState).toBe('ready');
+  });
+
+  it('stays ready at a hundred rolls rather than refusing to draw', () => {
+    seedViewTable(manySumSeeds(100), { view: 'table' });
+
+    const { result } = renderHook(() => useShareImage(), { wrapper });
+
+    expect(result.current.cardState).toBe('ready');
   });
 
   it('stays ready past the chart row cap on the target view', () => {
-    seedViewTable(manySumSeeds(CHART_ROW_LIMIT + 1), {
+    seedViewTable(manySumSeeds(SHARE_CARD_ROW_LIMIT + 1), {
       view: 'target',
       target: { values: [10], ruling: 'gte' },
     });

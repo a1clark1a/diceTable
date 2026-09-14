@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
+import { openParams, paramsPanel } from '../test/params';
 import { TargetToolbar } from './TargetToolbar';
 
 const Providers = ({ children }: { children: React.ReactNode }) => (
@@ -11,12 +12,17 @@ const Providers = ({ children }: { children: React.ReactNode }) => (
   </ChakraProvider>
 );
 
-function renderToolbar() {
-  return render(
+async function renderToolbar() {
+  const result = render(
     <Providers>
       <TargetToolbar />
     </Providers>,
   );
+  // Both editors open for the run of the test. Opening is a no-op for a group
+  // that is not on screen, so a pool-less table still renders pool-less.
+  await openParams('Edit targets');
+  await openParams('Edit pool targets');
+  return result;
 }
 
 function getInput(): HTMLInputElement {
@@ -34,15 +40,15 @@ afterEach(() => {
 });
 
 describe('TargetToolbar', () => {
-  it('starts with no target chips', () => {
-    renderToolbar();
+  it('starts with no target chips', async () => {
+    await renderToolbar();
     expect(
       screen.queryByRole('button', { name: /^Remove target/i }),
     ).toBeNull();
   });
 
-  it('adds a target chip when a number is entered and Enter is pressed', () => {
-    renderToolbar();
+  it('adds a target chip when a number is entered and Enter is pressed', async () => {
+    await renderToolbar();
     addValue('13');
     expect(
       screen.getByRole('button', { name: 'Remove target ≥ 13' }),
@@ -50,8 +56,8 @@ describe('TargetToolbar', () => {
     expect(getInput().value).toBe('');
   });
 
-  it('rejects a duplicate value silently', () => {
-    renderToolbar();
+  it('rejects a duplicate value silently', async () => {
+    await renderToolbar();
     addValue('13');
     addValue('13');
     expect(
@@ -59,8 +65,8 @@ describe('TargetToolbar', () => {
     ).toHaveLength(1);
   });
 
-  it('removes a chip when its X button is clicked', () => {
-    renderToolbar();
+  it('removes a chip when its X button is clicked', async () => {
+    await renderToolbar();
     addValue('13');
     addValue('16');
     fireEvent.click(
@@ -74,8 +80,8 @@ describe('TargetToolbar', () => {
     ).toBeInTheDocument();
   });
 
-  it('disables the input once five targets are present', () => {
-    renderToolbar();
+  it('disables the input once five targets are present', async () => {
+    await renderToolbar();
     addValue('10');
     addValue('11');
     addValue('12');
@@ -84,8 +90,8 @@ describe('TargetToolbar', () => {
     expect(getInput().disabled).toBe(true);
   });
 
-  it('removes the last chip when Backspace is pressed on an empty input', () => {
-    renderToolbar();
+  it('removes the last chip when Backspace is pressed on an empty input', async () => {
+    await renderToolbar();
     addValue('13');
     addValue('16');
     fireEvent.keyDown(getInput(), { key: 'Backspace' });
@@ -97,8 +103,8 @@ describe('TargetToolbar', () => {
     ).toBeInTheDocument();
   });
 
-  it('reflects the current ruling symbol on every chip', () => {
-    renderToolbar();
+  it('reflects the current ruling symbol on every chip', async () => {
+    await renderToolbar();
     addValue('13');
     addValue('16');
     fireEvent.change(screen.getByLabelText('Target ruling'), {
@@ -112,8 +118,8 @@ describe('TargetToolbar', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not add a chip for non-numeric input', () => {
-    renderToolbar();
+  it('does not add a chip for non-numeric input', async () => {
+    await renderToolbar();
     const input = getInput();
     fireEvent.change(input, { target: { value: 'abc' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -123,8 +129,8 @@ describe('TargetToolbar', () => {
     expect(input.value).toBe('');
   });
 
-  it('keeps chips sorted ascending regardless of insertion order', () => {
-    renderToolbar();
+  it('keeps chips sorted ascending regardless of insertion order', async () => {
+    await renderToolbar();
     addValue('19');
     addValue('13');
     addValue('16');
@@ -202,6 +208,10 @@ function getPoolInput(): HTMLInputElement {
   return screen.getByLabelText('Add pool target') as HTMLInputElement;
 }
 
+function poolPanel() {
+  return paramsPanel('Pool targets');
+}
+
 function addPoolValue(raw: string) {
   const input = getPoolInput();
   fireEvent.change(input, { target: { value: raw } });
@@ -214,31 +224,32 @@ function poolChipLabels(): string[] {
     .map((b) => b.getAttribute('aria-label') ?? '');
 }
 
-// Matches whichever guidance sentence the toolbar is currently showing, so a
-// test can read the hint back without naming the one it expects.
-const HINT_PATTERN =
-  /^(Add a target to show Hit % per row\.|Add a target to show Hit % for sum rows\.|Pool rows use the pool target below\.|Add another target or clear to hide Hit %\.|Up to \d+ targets\. Remove one to add another\.)$/;
-
+// The guidance rides the control it describes rather than sitting inline, so
+// it is read off the input instead of out of the document body.
 function hintText(): string {
-  return screen.getByText(HINT_PATTERN).textContent ?? '';
+  return getInput().getAttribute('title') ?? '';
+}
+
+function poolHintText(): string {
+  return getPoolInput().getAttribute('title') ?? '';
 }
 
 describe('TargetToolbar pool target row', () => {
-  it('does not render when a target is set but no pool row exists', () => {
-    renderToolbar();
+  it('does not render when a target is set but no pool row exists', async () => {
+    await renderToolbar();
     addValue('13');
     expect(queryPoolInput()).toBeNull();
   });
 
-  it('renders on a pool row with no numeric target, the only target it uses', () => {
+  it('renders on a pool row with no numeric target, the only target it uses', async () => {
     seedPoolRow();
-    renderToolbar();
+    await renderToolbar();
     expect(queryPoolInput()).not.toBeNull();
   });
 
-  it('stays put as numeric targets are added and removed around it', () => {
+  it('stays put as numeric targets are added and removed around it', async () => {
     seedPoolRow();
-    renderToolbar();
+    await renderToolbar();
     addValue('13');
     expect(getPoolInput()).toBeInTheDocument();
     fireEvent.click(
@@ -247,24 +258,24 @@ describe('TargetToolbar pool target row', () => {
     expect(getPoolInput()).toBeInTheDocument();
   });
 
-  it('shows the persisted pool target as a chip', () => {
+  it('shows the persisted pool target as a chip', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 4 });
-    renderToolbar();
-    expect(screen.getByText('4')).toBeInTheDocument();
+    await renderToolbar();
+    expect(poolPanel().getByText('4')).toBeInTheDocument();
   });
 
-  it('hydrates a persisted list into one chip per pool target', () => {
+  it('hydrates a persisted list into one chip per pool target', async () => {
     seedPoolRow({ targetValues: [10], poolTargets: [1, 3] });
-    renderToolbar();
+    await renderToolbar();
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 1',
       'Remove pool target ≥ 3',
     ]);
   });
 
-  it('adds a pool target chip on Enter and clears the draft', () => {
+  it('adds a pool target chip on Enter and clears the draft', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 2 });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('6');
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 2',
@@ -273,9 +284,9 @@ describe('TargetToolbar pool target row', () => {
     expect(getPoolInput().value).toBe('');
   });
 
-  it('sorts an added pool target into the list', () => {
+  it('sorts an added pool target into the list', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 4 });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('2');
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 2',
@@ -283,17 +294,17 @@ describe('TargetToolbar pool target row', () => {
     ]);
   });
 
-  it('rejects a duplicate pool target silently', () => {
+  it('rejects a duplicate pool target silently', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 2 });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('2');
     expect(poolChipLabels()).toHaveLength(0);
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(poolPanel().getByText('2')).toBeInTheDocument();
   });
 
-  it('clamps a pool target below one up to one', () => {
+  it('clamps a pool target below one up to one', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 3 });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('0');
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 1',
@@ -301,18 +312,18 @@ describe('TargetToolbar pool target row', () => {
     ]);
   });
 
-  it('ignores a draft that is not a number', () => {
+  it('ignores a draft that is not a number', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 3 });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('abc');
     expect(poolChipLabels()).toHaveLength(0);
-    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(poolPanel().getByText('3')).toBeInTheDocument();
     expect(getPoolInput().value).toBe('');
   });
 
-  it('clears an uncommitted pool draft on Escape', () => {
+  it('clears an uncommitted pool draft on Escape', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 4 });
-    renderToolbar();
+    await renderToolbar();
     const input = getPoolInput();
     fireEvent.change(input, { target: { value: '9' } });
     expect(input.value).toBe('9');
@@ -321,40 +332,40 @@ describe('TargetToolbar pool target row', () => {
     expect(poolChipLabels()).toHaveLength(0);
   });
 
-  it('takes the last chip back on Backspace with an empty draft', () => {
+  it('takes the last chip back on Backspace with an empty draft', async () => {
     seedPoolRow({ targetValues: [10], poolTargets: [1, 3] });
-    renderToolbar();
+    await renderToolbar();
     fireEvent.keyDown(getPoolInput(), { key: 'Backspace' });
     expect(poolChipLabels()).toHaveLength(0);
-    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(poolPanel().getByText('1')).toBeInTheDocument();
   });
 
-  it('gives the last remaining pool target no remove control', () => {
+  it('gives the last remaining pool target no remove control', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 2 });
-    renderToolbar();
+    await renderToolbar();
     expect(poolChipLabels()).toHaveLength(0);
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(poolPanel().getByText('2')).toBeInTheDocument();
   });
 
-  it('keeps the last pool target through Backspace', () => {
+  it('keeps the last pool target through Backspace', async () => {
     seedPoolRow({ targetValues: [10], poolTarget: 2 });
-    renderToolbar();
+    await renderToolbar();
     fireEvent.keyDown(getPoolInput(), { key: 'Backspace' });
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(poolPanel().getByText('2')).toBeInTheDocument();
   });
 
-  it('disables the pool input at the cap', () => {
+  it('disables the pool input at the cap', async () => {
     seedPoolRow({ targetValues: [10], poolTargets: [1, 2, 3, 4, 5] });
-    renderToolbar();
+    await renderToolbar();
     expect(getPoolInput().disabled).toBe(true);
-    expect(
-      screen.getByText('Up to 5 pool targets. Remove one to add another.'),
-    ).toBeInTheDocument();
+    expect(poolHintText()).toBe(
+      'Up to 5 pool targets. Remove one to add another.',
+    );
   });
 
-  it('adds a pool target when no numeric target is set', () => {
+  it('adds a pool target when no numeric target is set', async () => {
     seedPoolRow({ poolTarget: 1 });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('2');
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 1',
@@ -362,59 +373,49 @@ describe('TargetToolbar pool target row', () => {
     ]);
   });
 
-  it('asks for a target for the sum rows when a table holds both kinds', () => {
+  it('asks for a target for the sum rows when a table holds both kinds', async () => {
     seedPoolRow({ rows: ['pool', 'sum'] });
-    renderToolbar();
-    expect(
-      screen.getByText('Add a target to show Hit % for sum rows.'),
-    ).toBeInTheDocument();
+    await renderToolbar();
+    expect(hintText()).toBe('Add a target to show Hit % for sum rows.');
   });
 
-  it('asks a sum-only table for a target but a pool-only table for neither', () => {
+  it('asks a sum-only table for a target but a pool-only table for neither', async () => {
     seedPoolRow({ rows: ['sum'] });
-    const sumOnly = renderToolbar();
+    const sumOnly = await renderToolbar();
     const sumHint = hintText();
     sumOnly.unmount();
     window.localStorage.clear();
 
     seedPoolRow({ rows: ['pool'] });
-    renderToolbar();
+    await renderToolbar();
     const poolHint = hintText();
 
     expect(sumHint).toBe('Add a target to show Hit % per row.');
-    expect(poolHint).toBe('Pool rows use the pool target below.');
+    expect(poolHint).toBe('Pool rows answer to Pool target instead.');
     expect(sumHint).not.toBe(poolHint);
   });
 
-  it('points a pool-only table at the pool target instead of a numeric one', () => {
+  it('points a pool-only table at the pool target instead of a numeric one', async () => {
     seedPoolRow({ rows: ['pool'] });
-    renderToolbar();
-    expect(
-      screen.getByText('Pool rows use the pool target below.'),
-    ).toBeInTheDocument();
+    await renderToolbar();
+    expect(hintText()).toBe('Pool rows answer to Pool target instead.');
   });
 
-  it('swaps the pool wording out and back as the last numeric target comes and goes', () => {
+  it('swaps the pool wording out and back as the last numeric target comes and goes', async () => {
     seedPoolRow({ rows: ['pool'] });
-    renderToolbar();
+    await renderToolbar();
     addValue('4');
-    expect(
-      screen.getByText('Add another target or clear to hide Hit %.'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Pool rows use the pool target below.'),
-    ).toBeNull();
+    expect(hintText()).toBe('Add another target or clear to hide Hit %.');
+    expect(hintText()).not.toBe('Pool rows answer to Pool target instead.');
     fireEvent.click(screen.getByRole('button', { name: 'Remove target ≥ 4' }));
-    expect(
-      screen.getByText('Pool rows use the pool target below.'),
-    ).toBeInTheDocument();
+    expect(hintText()).toBe('Pool rows answer to Pool target instead.');
   });
 });
 
 describe('TargetToolbar draft clamping', () => {
-  it('commits a negative pool draft as the floor the row keeps', () => {
+  it('commits a negative pool draft as the floor the row keeps', async () => {
     seedPoolRow({ poolTargets: [3] });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('-4');
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 1',
@@ -422,9 +423,9 @@ describe('TargetToolbar draft clamping', () => {
     ]);
   });
 
-  it('leaves the list alone when a pool draft below the floor is already in it', () => {
+  it('leaves the list alone when a pool draft below the floor is already in it', async () => {
     seedPoolRow({ poolTargets: [1, 3] });
-    renderToolbar();
+    await renderToolbar();
     addPoolValue('0');
     expect(poolChipLabels()).toEqual([
       'Remove pool target ≥ 1',
@@ -433,8 +434,8 @@ describe('TargetToolbar draft clamping', () => {
     expect(getPoolInput().value).toBe('');
   });
 
-  it('keeps a negative numeric target, which a modifier can reach', () => {
-    renderToolbar();
+  it('keeps a negative numeric target, which a modifier can reach', async () => {
+    await renderToolbar();
     addValue('-3');
     expect(
       screen.getByRole('button', { name: 'Remove target ≥ -3' }),

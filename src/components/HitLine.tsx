@@ -13,7 +13,6 @@ interface HitLineProps {
   p: number;
   /** Set to show the gap against the baseline instead of the raw percentage. */
   baseHit?: number | undefined;
-  maxDelta: number;
   /** Table cells right-align their column; card pills centre theirs. */
   justify?: StackProps['justify'];
 }
@@ -31,7 +30,6 @@ export function HitLine({
   label,
   p,
   baseHit,
-  maxDelta,
   justify = 'flex-end',
 }: HitLineProps) {
   return (
@@ -42,7 +40,7 @@ export function HitLine({
         </Box>
       )}
       {baseHit !== undefined ? (
-        <HitDeltaValue delta={p - baseHit} maxDelta={maxDelta} />
+        <HitDeltaValue delta={p - baseHit} />
       ) : (
         <Box as="span" minW="52px" textAlign="end" flexShrink={0}>
           <Text

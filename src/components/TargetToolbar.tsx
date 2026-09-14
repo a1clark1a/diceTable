@@ -1,14 +1,17 @@
 import {
   useCallback,
+  useRef,
   useState,
   type KeyboardEvent,
 } from 'react';
 import {
+  Box,
+  Flex,
   HStack,
+  Stack,
   IconButton,
   Input,
   NativeSelect,
-  Stack,
   Text,
   Wrap,
   WrapItem,
@@ -16,15 +19,69 @@ import {
 import { X } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import { MAX_TARGETS, type TargetRuling } from '../types';
-import { HelpTerm } from './ui/help-term';
+import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { RULING_OPTIONS, RULING_SYMBOL, isTargetRuling } from './targetRulingMeta';
+import { RollModeControl } from './RollModeControl';
+import { tapTarget } from './tapTarget';
+import { ParamControl } from './ParamControl';
 
 // Clamping in parse means the duplicate and cap checks below run on the value
 // the store will actually keep, rather than on a raw draft the store then
 // floors out from under them. Garbage and out-of-range input landing on the
 // nearest bound is the same trade NumberStepper.parseClamped makes.
+interface AddTargetInputProps {
+  draft: string;
+  setDraft: (raw: string) => void;
+  commitDraft: () => void;
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+  isFull: boolean;
+  hint: string;
+  ariaLabel: string;
+}
+
+function AddTargetInput({
+  draft,
+  setDraft,
+  commitDraft,
+  onKeyDown,
+  isFull,
+  hint,
+  ariaLabel,
+}: AddTargetInputProps) {
+  return (
+    <Tooltip content={hint}>
+      <Input
+        size="sm"
+        type="text"
+        inputMode="numeric"
+        placeholder="+"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commitDraft}
+        onKeyDown={onKeyDown}
+        disabled={isFull}
+        w={tapTarget('36px')}
+        h={tapTarget('28px')}
+        px={0}
+        flexShrink={0}
+        textAlign="center"
+        fontFamily="mono"
+        fontSize="14px"
+        bg="bg.subtle"
+        borderWidth="1px"
+        borderColor="border"
+        borderRadius="4px"
+        aria-label={ariaLabel}
+        title={hint}
+        _placeholder={{ color: 'fg.muted', opacity: 1 }}
+        style={{ fontVariantNumeric: 'tabular-nums' }}
+      />
+    </Tooltip>
+  );
+}
+
 function parseDraft(raw: string, minValue?: number): number | null {
   const trimmed = raw.trim();
   if (trimmed === '') return null;
@@ -52,16 +109,25 @@ function useTargetDraft(
   minRemaining: number,
   minValue?: number,
 ): TargetDraft {
-  const [draft, setDraft] = useState('');
+  const [draft, setDraftState] = useState('');
+  // Escape clears the draft and blurs, and blur commits. React has not
+  // re-rendered in between, so a commit reading state would still see the text
+  // Escape just discarded and add it as a chip anyway.
+  const draftRef = useRef('');
+
+  const setDraft = useCallback((raw: string) => {
+    draftRef.current = raw;
+    setDraftState(raw);
+  }, []);
 
   const commitDraft = useCallback(() => {
-    const parsed = parseDraft(draft, minValue);
+    const parsed = parseDraft(draftRef.current, minValue);
     setDraft('');
     if (parsed === null) return;
     if (values.includes(parsed)) return;
     if (values.length >= MAX_TARGETS) return;
     setValues([...values, parsed]);
-  }, [draft, values, setValues, minValue]);
+  }, [setDraft, values, setValues, minValue]);
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
@@ -81,7 +147,7 @@ function useTargetDraft(
         setValues(values.slice(0, -1));
       }
     },
-    [commitDraft, draft, values, setValues, minRemaining],
+    [commitDraft, setDraft, draft, values, setValues, minRemaining],
   );
 
   return { draft, setDraft, commitDraft, onKeyDown };
@@ -119,94 +185,117 @@ export function TargetToolbar() {
       : hasPoolRow
         ? hasSumRow
           ? 'Add a target to show Hit % for sum rows.'
-          : 'Pool rows use the pool target below.'
+          : 'Pool rows answer to Pool target instead.'
         : 'Add a target to show Hit % per row.';
 
-  return (
-    <Stack gap={2}>
-      <HStack
-        gap={2}
-        px={3}
-        py={2}
-        bg="bg.panel"
-        borderWidth="1px"
+  // Defined once and rendered in both the inline row and the sheet, so the two
+  // layouts can never drift apart.
+  const targetRuling = (
+    // "≥ at least" needs about 115px; the old 150 padded the widest fixed
+    // control in the row for no gain.
+    <NativeSelect.Root size="sm" maxW="124px" minW="104px" flexShrink={1}>
+      <NativeSelect.Field
+        h={tapTarget('36px')}
         borderColor="border.subtle"
-        borderRadius="md"
-        flexWrap="wrap"
+        value={target.ruling}
+        onChange={(e) => {
+          if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
+        }}
+        aria-label="Target ruling"
+        title="How to compare each roll to the target."
       >
-        <HelpTerm tip={tipForId('target')}>
-          <Text
-            as="span"
-            fontSize="xs"
-            fontWeight="semibold"
-            color="fg.muted"
-            textTransform="uppercase"
-            letterSpacing="wider"
-          >
-            Target
-          </Text>
-        </HelpTerm>
-        <NativeSelect.Root size="sm" maxW="180px">
-          <NativeSelect.Field
-            value={target.ruling}
-            onChange={(e) => {
-              if (isTargetRuling(e.target.value)) setTarget({ ruling: e.target.value });
-            }}
-            aria-label="Target ruling"
-            title="How to compare each roll to the target."
-          >
-            {RULING_OPTIONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.shortLabel}
-              </option>
-            ))}
-          </NativeSelect.Field>
-          <NativeSelect.Indicator />
-        </NativeSelect.Root>
-        <Wrap gap={1} flexShrink={1}>
-          {target.values.map((v) => (
-            <WrapItem key={v}>
-              <TargetChip
-                ruling={target.ruling}
-                value={v}
-                onRemove={() => removeValue(v)}
-              />
-            </WrapItem>
-          ))}
-        </Wrap>
-        <Input
-          size="sm"
-          type="text"
-          inputMode="numeric"
-          placeholder={isFull ? '—' : 'Add'}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitDraft}
+        {RULING_OPTIONS.map((r) => (
+          <option key={r.value} value={r.value}>
+            {r.shortLabel}
+          </option>
+        ))}
+      </NativeSelect.Field>
+      <NativeSelect.Indicator />
+    </NativeSelect.Root>
+  );
+  const targetValues = (
+    <Wrap gap={1} minW={0} align="center">
+      {target.values.map((v) => (
+        <WrapItem key={v}>
+          <TargetChip
+            ruling={target.ruling}
+            value={v}
+            onRemove={() => removeValue(v)}
+            showRuling={false}
+          />
+        </WrapItem>
+      ))}
+      <WrapItem>
+        <AddTargetInput
+          draft={draft}
+          setDraft={setDraft}
+          commitDraft={commitDraft}
           onKeyDown={onKeyDown}
-          disabled={isFull}
-          maxW="80px"
-          textAlign="right"
-          fontFamily="mono"
-          aria-label="Add target value"
+          isFull={isFull}
+          hint={hint}
+          ariaLabel="Add target value"
         />
-        {/* Guidance is desktop-only noise until the row is full, where the
-            hint is the only thing explaining the dead input beside it. */}
-        <Text
-          fontSize="xs"
-          color="fg.muted"
-          ml="auto"
-          display={isFull ? 'inline' : { base: 'none', md: 'inline' }}
-        >
-          {hint}
-        </Text>
-      </HStack>
+      </WrapItem>
+    </Wrap>
+  );
+
+  return (
+    <Flex
+      columnGap={{ base: 2, xl: 6 }}
+      rowGap={2}
+      align="center"
+      wrap="wrap"
+      minH={{ base: '44px', md: '46px' }}
+      // A flex item in a column parent shrinks to its min-height by default,
+      // which pinned this bar at one row while its chips wrapped to three and
+      // painted over the table underneath.
+      flexShrink={0}
+    >
+      <ParamControl
+        label="Target"
+        accent="blue.fg"
+        title="Targets"
+        editLabel="Edit targets"
+        tip={tipForId('target')}
+        summary={
+          target.values.length === 0 ? (
+            <Text color="fg.muted">None</Text>
+          ) : (
+            <>
+              <RulingSymbol ruling={target.ruling} color="blue.fg" />
+              <Text
+                color="fg"
+                fontFamily="mono"
+                truncate
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                {target.values.join(' ')}
+              </Text>
+            </>
+          )
+        }
+      >
+        <Stack gap={3}>
+          {targetRuling}
+          {targetValues}
+          <Text fontSize="xs" color="fg.muted">
+            {hint}
+          </Text>
+        </Stack>
+      </ParamControl>
       {hasPoolRow && (
         <PoolTargetRow
           poolTargets={poolTargets}
           setPoolTargets={setPoolTargets}
         />
       )}
-    </Stack>
+      {/* Below md the same control is a radio group in the sticky toolbar's
+          overflow menu, so showing it here too spends a line of a phone screen
+          on a duplicate. */}
+      <Box display={{ base: 'none', md: 'contents' }}>
+        <RollModeControl />
+      </Box>
+    </Flex>
   );
 }
 
@@ -237,75 +326,66 @@ function PoolTargetRow({ poolTargets, setPoolTargets }: PoolTargetRowProps) {
       ? 'Hit % on pool rows uses these counts.'
       : 'Add another count to compare thresholds side by side.';
 
+  const values = (
+    <Wrap gap={1} minW={0} align="center">
+      {poolTargets.map((v) => (
+        <WrapItem key={v}>
+          <TargetChip
+            ruling="gte"
+            value={v}
+            variant="pool"
+            // The list never empties, so the last threshold keeps no remove
+            // control rather than offering one that refuses.
+            onRemove={poolTargets.length > 1 ? () => removeValue(v) : undefined}
+          />
+        </WrapItem>
+      ))}
+      {/* No unit inside the editor: the trigger's summary reads "≥ 1 2 3
+          successes" and the hint below names them as counts, so a third copy
+          would only ever sit between the values and the add box. */}
+      <WrapItem>
+        <AddTargetInput
+          draft={draft}
+          setDraft={setDraft}
+          commitDraft={commitDraft}
+          onKeyDown={onKeyDown}
+          isFull={isFull}
+          hint={hint}
+          ariaLabel="Add pool target"
+        />
+      </WrapItem>
+    </Wrap>
+  );
+
   return (
-    <HStack
-      gap={2}
-      px={3}
-      py={2}
-      bg="bg.panel"
-      borderWidth="1px"
-      borderColor="border.subtle"
-      borderLeftWidth="3px"
-      borderLeftColor="purple.solid"
-      borderRadius="md"
-      flexWrap="wrap"
+    <ParamControl
+      label="Pool target"
+      accent="purple.fg"
+      title="Pool targets"
+      editLabel="Edit pool targets"
+      tip={tipForId('poolTarget')}
+      summary={
+        <>
+          <RulingSymbol ruling="gte" color="purple.fg" />
+          <Text
+            color="fg"
+            fontFamily="mono"
+            truncate
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {poolTargets.join(' ')}
+          </Text>
+          <Text color="fg.muted">successes</Text>
+        </>
+      }
     >
-      <HelpTerm tip={tipForId('poolTarget')}>
-        <Text
-          as="span"
-          fontSize="xs"
-          fontWeight="semibold"
-          color="purple.fg"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          Pool target
+      <Stack gap={3}>
+        {values}
+        <Text fontSize="xs" color="fg.muted">
+          {hint}
         </Text>
-      </HelpTerm>
-      <Wrap gap={1} flexShrink={1}>
-        {poolTargets.map((v) => (
-          <WrapItem key={v}>
-            <TargetChip
-              ruling="gte"
-              value={v}
-              variant="pool"
-              // The list never empties, so the last threshold keeps no remove
-              // control rather than offering one that refuses.
-              onRemove={
-                poolTargets.length > 1 ? () => removeValue(v) : undefined
-              }
-            />
-          </WrapItem>
-        ))}
-      </Wrap>
-      <Input
-        size="sm"
-        type="text"
-        inputMode="numeric"
-        placeholder={isFull ? '—' : 'Add'}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commitDraft}
-        onKeyDown={onKeyDown}
-        disabled={isFull}
-        maxW="80px"
-        textAlign="right"
-        fontFamily="mono"
-        aria-label="Add pool target"
-        style={{ fontVariantNumeric: 'tabular-nums' }}
-      />
-      <Text fontSize="xs" color="fg.muted">
-        successes
-      </Text>
-      <Text
-        fontSize="xs"
-        color="fg.muted"
-        ml="auto"
-        display={isFull ? 'inline' : { base: 'none', md: 'inline' }}
-      >
-        {hint}
-      </Text>
-    </HStack>
+      </Stack>
+    </ParamControl>
   );
 }
 
@@ -323,6 +403,12 @@ interface TargetChipProps {
   /** Omitted on a chip the row must keep, which then renders no remove control. */
   onRemove?: (() => void) | undefined;
   variant?: keyof typeof CHIP_VARIANTS;
+  /**
+   * Target chips sit beside the ruling select that already names the
+   * comparison, so repeating it on every chip is ten glyphs of noise. Pool
+   * chips have no such control and keep theirs.
+   */
+  showRuling?: boolean;
 }
 
 function TargetChip({
@@ -330,6 +416,7 @@ function TargetChip({
   value,
   onRemove,
   variant = 'target',
+  showRuling = true,
 }: TargetChipProps) {
   const symbol = RULING_SYMBOL[ruling];
   const { noun, accent, gap } = CHIP_VARIANTS[variant];
@@ -341,13 +428,13 @@ function TargetChip({
       borderColor="border.subtle"
       borderRadius="full"
       pl={2}
-      pr={onRemove ? 1 : 2}
+      pr={onRemove !== undefined ? 1 : 2}
       py={0.5}
       fontFamily="mono"
       fontSize="xs"
     >
       <HStack as="span" gap={gap}>
-        <RulingSymbol ruling={ruling} color={accent} />
+        {showRuling && <RulingSymbol ruling={ruling} color={accent} />}
         <Text as="span" style={{ fontVariantNumeric: 'tabular-nums' }}>
           {value}
         </Text>
@@ -359,6 +446,9 @@ function TargetChip({
           variant="ghost"
           onClick={onRemove}
           title={`Remove ${noun}`}
+          h={tapTarget('24px')}
+          minW={tapTarget('24px')}
+
         >
           <X size={12} />
         </IconButton>

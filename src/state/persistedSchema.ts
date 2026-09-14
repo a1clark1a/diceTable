@@ -1,6 +1,7 @@
 import {
   MAX_EXPRESSIONS,
   MAX_TARGETS,
+  type ChartSurface,
   type ChartView,
   type CheckEffect,
   type CheckSpec,
@@ -30,9 +31,9 @@ import { isSingleDieCheck } from '../engine/critEffect';
 // envelope version in AppContext. The envelope gate rejects any version it does
 // not recognise before validation ever runs, so bumping both together would wipe
 // every saved table instead of migrating it.
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
-const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4, 5];
+const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4, 5, 6];
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
 const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool', 'check'];
@@ -320,7 +321,7 @@ function validateGridSort(v: unknown): GridSort | null {
 function defaultUi(): PersistedState['ui'] {
   return {
     expandedId: null,
-    chartView: 'pmf',
+    chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
     target: { values: [], ruling: 'gte' },
     view: 'table',
     poolTargets: [1],
@@ -332,15 +333,27 @@ function defaultUi(): PersistedState['ui'] {
   };
 }
 
+// Envelopes written before the views split carried one `chartView` for every
+// surface. Seeding all three from it keeps a saved choice instead of snapping a
+// returning user back to the default.
+function validateChartViews(
+  v: Record<string, unknown>,
+): Record<ChartSurface, ChartView> {
+  const legacy = isOneOf(v.chartView, CHART_VIEWS) ? v.chartView : 'pmf';
+  const raw = v.chartViews;
+  const pick = (surface: ChartSurface): ChartView =>
+    isRecord(raw) && isOneOf(raw[surface], CHART_VIEWS) ? raw[surface] : legacy;
+  return {
+    totals: pick('totals'),
+    successes: pick('successes'),
+    shape: pick('shape'),
+  };
+}
+
 function validateUi(v: unknown): PersistedState['ui'] {
   if (!isRecord(v)) return defaultUi();
-  const expandedId =
-    v.expandedId === null
-      ? null
-      : typeof v.expandedId === 'string'
-        ? v.expandedId
-        : null;
-  const chartView = isOneOf(v.chartView, CHART_VIEWS) ? v.chartView : 'pmf';
+  const expandedId = typeof v.expandedId === 'string' ? v.expandedId : null;
+  const chartViews = validateChartViews(v);
   const target = validateTarget(v.target);
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';
   const poolTargets = validatePoolTargets(v);
@@ -359,7 +372,7 @@ function validateUi(v: unknown): PersistedState['ui'] {
     : 'win';
   return {
     expandedId,
-    chartView,
+    chartViews,
     target,
     view,
     poolTargets,

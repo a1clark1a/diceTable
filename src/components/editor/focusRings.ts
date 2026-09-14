@@ -17,3 +17,11 @@ export const chipFocusRing = {
   outlineColor: 'blue.solid',
   outlineOffset: '2px',
 };
+
+// A flushed field has no resting border but its bottom hairline. Chakra does
+// give it a focus treatment, but as colorPalette.focusRing, which is gray by
+// default and measures 2.2:1 on the panel. Pin it to the blue the chips use.
+export const flushedFocusRing = {
+  borderColor: 'blue.solid',
+  boxShadow: '0px 1px 0px 0px var(--chakra-colors-blue-solid)',
+};

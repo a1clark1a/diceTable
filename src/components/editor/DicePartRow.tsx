@@ -86,7 +86,7 @@ function KeepRuleEditor({ keep, errorKeepN, onChange }: KeepRuleEditorProps) {
           invalid={errorKeepN !== undefined}
         />
         {errorKeepN !== undefined && (
-          <Text fontSize="xs" color="red.solid">
+          <Text fontSize="xs" color="red.fg">
             {errorKeepN}
           </Text>
         )}
@@ -125,7 +125,7 @@ function ExplodeRuleEditor({
           ariaLabel="Explode faces"
         />
         {errorExplodeFaces !== undefined && (
-          <Text fontSize="xs" color="red.solid" mt={1}>
+          <Text fontSize="xs" color="red.fg" mt={1}>
             {errorExplodeFaces}
           </Text>
         )}
@@ -143,7 +143,7 @@ function ExplodeRuleEditor({
           invalid={errorExplodeDepth !== undefined}
         />
         {errorExplodeDepth !== undefined && (
-          <Text fontSize="xs" color="red.solid">
+          <Text fontSize="xs" color="red.fg">
             {errorExplodeDepth}
           </Text>
         )}
@@ -239,6 +239,12 @@ export const DicePartRow = memo(function DicePartRow({
             value={part.count}
             onCommit={commitCount}
             min={1}
+            // Sides is capped at 1000 and keep-n at 999; count had no ceiling at
+            // all, and NumberStepper skips every clamp when max is undefined, so
+            // a pasted 100000 committed verbatim. The complexity guard refuses
+            // the rows that would actually hurt; this just stops the field being
+            // the one number in the editor with no bound.
+            max={999}
             ariaLabel="Count"
             invalid={errors.count !== undefined}
           />
@@ -259,7 +265,7 @@ export const DicePartRow = memo(function DicePartRow({
         )}
       </HStack>
       {errors.count !== undefined && (
-        <Text fontSize="xs" color="red.solid" mt={1}>
+        <Text fontSize="xs" color="red.fg" mt={1}>
           {errors.count}
         </Text>
       )}
@@ -329,7 +335,7 @@ export const DicePartRow = memo(function DicePartRow({
         </Box>
       </HStack>
       {errors.sides !== undefined && (
-        <Text fontSize="xs" color="red.solid" mt={1}>
+        <Text fontSize="xs" color="red.fg" mt={1}>
           {errors.sides}
         </Text>
       )}
@@ -403,7 +409,7 @@ export const DicePartRow = memo(function DicePartRow({
                   ariaLabel="Reroll faces"
                 />
                 {errors.rerollValues !== undefined && (
-                  <Text fontSize="xs" color="red.solid" mt={1}>
+                  <Text fontSize="xs" color="red.fg" mt={1}>
                     {errors.rerollValues}
                   </Text>
                 )}

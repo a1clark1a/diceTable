@@ -143,15 +143,6 @@ describe('AppContext expression cap', () => {
     expect(result.current.expressions).toHaveLength(100);
   });
 
-  it('duplicateExpression is a no-op when already at the cap', () => {
-    seedExpressions(100);
-    const { result } = renderHook(() => useApp(), { wrapper });
-    act(() => {
-      result.current.duplicateExpression('e0');
-    });
-    expect(result.current.expressions).toHaveLength(100);
-  });
-
   it('addExpressions accepts all incoming when there is room', () => {
     seedExpressions(50);
     const { result } = renderHook(() => useApp(), { wrapper });
@@ -633,21 +624,6 @@ describe('AppContext baseline lifecycle', () => {
     ).toHaveLength(1);
   });
 
-  it('duplicateExpression keeps the baseline on the original, not the copy', () => {
-    seedTwoRows();
-    const { result } = renderHook(() => useApp(), { wrapper });
-    act(() => {
-      result.current.setBaselineId('e0');
-    });
-    act(() => {
-      result.current.duplicateExpression('e0');
-    });
-    expect(result.current.baselineId).toBe('e0');
-    expect(result.current.expressions).toHaveLength(3);
-    expect(
-      result.current.expressions.filter((e) => e.id === 'e0'),
-    ).toHaveLength(1);
-  });
 });
 
 // keepAcross and a per-part keep must never coexist: validatePersistedState
@@ -945,44 +921,6 @@ describe('AppContext row lifecycle', () => {
     expect(row.mode).toBe('sum');
   });
 
-  it('duplicateExpression inserts the copy directly after its source', () => {
-    seedRows([
-      sumRow({ parts: [{ id: 'p0', count: 2, sides: 6 }] }),
-      sumRow({ id: 'e1', name: 'Row 1', parts: [{ id: 'p1', count: 1, sides: 6 }] }),
-    ]);
-    const { result } = renderHook(() => useApp(), { wrapper });
-    act(() => {
-      result.current.duplicateExpression('e0');
-    });
-    expect(result.current.expressions.map((e) => e.name)).toEqual([
-      'Row 0',
-      'Row 0 (copy)',
-      'Row 1',
-    ]);
-  });
-
-  it('duplicateExpression gives the copy fresh row and part ids but the same dice', () => {
-    seedRows([sumRow({ parts: [{ id: 'p0', count: 2, sides: 6 }] })]);
-    const { result } = renderHook(() => useApp(), { wrapper });
-    act(() => {
-      result.current.duplicateExpression('e0');
-    });
-    const copy = result.current.expressions[1]!;
-    expect(copy.id).not.toBe('e0');
-    expect(copy.parts[0]!.id).not.toBe('p0');
-    expect(copy.parts[0]).toMatchObject({ count: 2, sides: 6 });
-    expect(result.current.expressions[0]!.name).toBe('Row 0');
-  });
-
-  it('duplicateExpression expands the copy', () => {
-    seedRows([sumRow()]);
-    const { result } = renderHook(() => useApp(), { wrapper });
-    act(() => {
-      result.current.duplicateExpression('e0');
-    });
-    expect(result.current.expandedId).toBe(result.current.expressions[1]!.id);
-  });
-
   it('deleting a different row leaves the expanded row expanded', () => {
     seedTwoRows();
     const { result } = renderHook(() => useApp(), { wrapper });
@@ -1073,7 +1011,7 @@ describe('AppContext row lifecycle', () => {
       expressions: result.current.expressions,
       ui: {
         expandedId: result.current.expandedId,
-        chartView: result.current.chartView,
+        chartViews: result.current.chartViews,
         target: result.current.target,
         view: result.current.view,
         poolTargets: result.current.poolTargets,

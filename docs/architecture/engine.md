@@ -180,7 +180,7 @@ These are public for composition and heavily used in tests, but you rarely call 
 
 | File | Functions |
 | --- | --- |
-| [`distribution.ts`](../../src/engine/distribution.ts) | `emptyDistribution`, `uniformDistribution`, `totalMass`, `normalise`, `shift`, `convolve`, `convolveMany`, `pruneSmall`, `sortedKeys` |
+| [`distribution.ts`](../../src/engine/distribution.ts) | `emptyDistribution`, `uniformDistribution`, `totalMass`, `normalise`, `shift`, `convolve`, `convolveMany`, `sortedKeys` |
 | [`parts.ts`](../../src/engine/parts.ts) | `applyReroll`, `applyExplode`, `singleDieDistribution`, `partDistribution` |
 | [`expression.ts`](../../src/engine/expression.ts) | `applyRollMode`, `expressionDistribution` |
 | [`complexity.ts`](../../src/engine/complexity.ts) | `partComplexity`, `expressionComplexity`, `partTooComplex`, `expressionTooComplex`, `MAX_COMPLEXITY`, `COMPLEXITY_OVERFLOW` |

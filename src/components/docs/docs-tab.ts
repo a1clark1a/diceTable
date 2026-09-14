@@ -1,6 +1,6 @@
 export type DocsTab = 'quickstart' | 'glossary' | 'math';
 
-export const DOCS_TAB_VALUES: readonly DocsTab[] = [
+const DOCS_TAB_VALUES: readonly DocsTab[] = [
   'quickstart',
   'glossary',
   'math',

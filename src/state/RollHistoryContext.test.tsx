@@ -23,13 +23,13 @@ describe('RollHistoryProvider', () => {
     expect(result.current.lastResult('nope')).toBeNull();
   });
 
-  it('returns null and records nothing when rolling an empty distribution', () => {
+  it('returns nothing and records nothing when rolling an empty distribution', () => {
     const { result } = renderHook(() => useRollHistory(), { wrapper });
-    let returned: number | null = -1;
+    let returned: number[] = [-1];
     act(() => {
-      returned = result.current.roll('id', new Map());
+      returned = result.current.rollMany('id', new Map(), 1);
     });
-    expect(returned).toBeNull();
+    expect(returned).toEqual([]);
     expect(result.current.getHistory('id')).toEqual([]);
   });
 
@@ -38,7 +38,7 @@ describe('RollHistoryProvider', () => {
     const dist = new Map([[42, 1]]);
     act(() => {
       for (let i = 0; i < HISTORY_LIMIT + 5; i++) {
-        result.current.roll('e', dist);
+        result.current.rollMany('e', dist, 1);
       }
     });
     const hist = result.current.getHistory('e');
@@ -58,7 +58,7 @@ describe('RollHistoryProvider', () => {
     const rowId = result.current.app.expressions[0]!.id;
     const dist = new Map([[1, 1]]);
     act(() => {
-      result.current.hist.roll(rowId, dist);
+      result.current.hist.rollMany(rowId, dist, 1);
     });
     expect(result.current.hist.getHistory(rowId).length).toBe(1);
 
@@ -83,8 +83,8 @@ describe('RollHistoryProvider', () => {
     const firstId = ids[0]!;
     const secondId = ids[1]!;
     act(() => {
-      result.current.hist.roll(firstId, dist);
-      result.current.hist.roll(secondId, dist);
+      result.current.hist.rollMany(firstId, dist, 1);
+      result.current.hist.rollMany(secondId, dist, 1);
     });
     expect(result.current.hist.getHistory(firstId).length).toBe(1);
     expect(result.current.hist.getHistory(secondId).length).toBe(1);

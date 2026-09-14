@@ -17,7 +17,7 @@ A focused dice probability tool for tabletop and strategy gaming. Build a single
 
 - One flat table of named rolls. Each row is a dice expression with optional modifiers, keep / reroll / explode rules, and a roll mode (normal / advantage / disadvantage).
 - Stat columns for mean, min, max, mode, standard deviation, and an optional Hit % against a target value.
-- A comparison chart below the table that overlays every row's distribution (PMF, CDF, or CCDF) for direct visual comparison.
+- A comparison chart that overlays every row's distribution (PMF, CDF, or CCDF) for direct visual comparison, beside the table on a wide screen and below it on a narrow one.
 - Mobile-first card layout for screens under 720 px.
 - All math is exact. Probabilities are computed by full convolution of dice distributions, not by Monte Carlo or normal approximations.
 
