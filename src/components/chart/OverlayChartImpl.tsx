@@ -31,6 +31,13 @@ import { formatPercentCompact, targetLabelFits } from './format';
 import { buildSeriesEval, evalSeriesAt, type SeriesEval } from './seriesEval';
 import { seriesXs } from './seriesXs';
 import {
+  fieldPen,
+  LIT_CLASS,
+  LIT_Z_INDEX,
+  SPIKE_MARKER_DRAW_CAP,
+} from './fieldPen';
+import { partitionTooltipRows } from './tooltipRows';
+import {
   formatMissPercent,
   missDescription,
   planZeroSpikes,
@@ -163,6 +170,11 @@ const TOOLTIP_ROW_CAP = 8;
 // are a pixel apart, which is also where they stop being affordable.
 const DOT_BUDGET = 1200;
 
+// The lit overlay stays mounted with nothing to draw rather than unmounting,
+// so Recharts registers its zIndex layer once and never switches portals.
+const EMPTY_POINTS: never[] = [];
+const LIT_ACTIVE_DOT = { r: 5, strokeWidth: 0 } as const;
+
 interface ChartTooltipProps {
   active?: boolean | undefined;
   label?: string | number | undefined;
@@ -171,6 +183,8 @@ interface ChartTooltipProps {
   view: ChartView;
   /** Rows whose bar is capped on the PMF view; their real number lives here. */
   spikeIds: ReadonlySet<string>;
+  /** The lit roll, pinned to the top so the row cap can never drop it. */
+  focusedId?: string | null | undefined;
 }
 
 // Values are computed from the series rather than read out of Recharts'
@@ -193,6 +207,7 @@ function ChartTooltip({
   series,
   view,
   spikeIds,
+  focusedId = null,
 }: ChartTooltipProps) {
   const yInverse = useYAxisInverseScale();
   if (!active || series.length === 0) return null;
@@ -218,8 +233,13 @@ function ChartTooltip({
     if (typeof at !== 'number' || !Number.isFinite(at)) return 0;
     return Math.abs(a.value - at) - Math.abs(b.value - at);
   });
-  const shown = ordered.slice(0, TOOLTIP_ROW_CAP);
-  const hidden = ordered.length - shown.length;
+  // The lit row is a row above the cap rather than the first of the capped
+  // ones: the spiked rows keep the places they were promised.
+  const { pinned, shown, hidden } = partitionTooltipRows(
+    ordered,
+    focusedId,
+    TOOLTIP_ROW_CAP,
+  );
 
   return (
     <Box
@@ -240,6 +260,26 @@ function ChartTooltip({
         Result: {x}
       </Text>
       <Stack gap={1}>
+        {pinned !== null && (
+          <HStack gap={4} justify="space-between" fontWeight={600} color="fg">
+            <HStack gap={1.5} minW={0}>
+              <Box
+                w="8px"
+                h="8px"
+                borderRadius="2px"
+                bg={pinned.color}
+                flexShrink={0}
+              />
+              <Text truncate>{pinned.name}</Text>
+            </HStack>
+            <Text
+              fontFamily="mono"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {formatTooltipValue(pinned.value)}
+            </Text>
+          </HStack>
+        )}
         {shown.map((row) => (
           <HStack key={row.id} gap={4} justify="space-between">
             <HStack gap={1.5} minW={0}>
@@ -296,11 +336,18 @@ export default function OverlayChartImpl({
     () => new Set(spikes.markers.map((m) => m.id)),
     [spikes],
   );
+  // Past the threshold the curves are a field rather than a set of pens, and
+  // the pen it hands back is a module constant, so a focus change touches no
+  // series prop at all: the opacity moves in CSS instead.
+  const pen = fieldPen(plotted.length, effectiveView);
+  const field = pen !== null;
+
   const showDots = useMemo(() => {
+    if (pen !== null) return false;
     let points = 0;
     for (const p of plotted) points += p.points.length;
     return points <= DOT_BUDGET;
-  }, [plotted]);
+  }, [plotted, pen]);
 
   const focusedId =
     incomingFocus !== null && series.some((s) => s.id === incomingFocus)
@@ -326,9 +373,23 @@ export default function OverlayChartImpl({
 
   const domainMax = yDomain[1];
 
+  const lit =
+    focusedId === null ? null : plotted.find((p) => p.id === focusedId) ?? null;
+  // A hundred capped-bar markers pile into one column and stop being labels.
+  // Only the drawing is capped: missDescription below still names every row
+  // that misses, so the number is never lost, just not stacked on itself.
+  const drawnMarkers = field
+    ? spikes.markers.slice(0, SPIKE_MARKER_DRAW_CAP)
+    : spikes.markers;
+
   return (
     <>
-      <Box w="100%" h={height ?? { base: '260px', md: '320px' }}>
+      <Box
+        w="100%"
+        h={height ?? { base: '260px', md: '320px' }}
+        {...(pen !== null ? { css: pen.css } : {})}
+        {...(field && focusedId !== null ? { 'data-lit': '' } : {})}
+      >
       <ResponsiveContainer
         width="100%"
         height="100%"
@@ -383,10 +444,36 @@ export default function OverlayChartImpl({
                 series={series}
                 view={effectiveView}
                 spikeIds={spikeIds}
+                focusedId={field ? focusedId : null}
               />
             }
           />
-          {effectiveView === 'pmf'
+          {/* Two pens, and the field one is a separate branch rather than a
+              tuning of the other. The sparse branch below is what a rail and a
+              phone draw, it has no measured problem, and its dots composite
+              against a per-series opacity the field does not have.
+              No dash on either field curve or lit curve. Dash is an identity
+              channel, and a field is the surface that has given up on per-curve
+              identity by construction: eight patterns across a hundred rolls
+              name nothing, and at this weight and opacity they only fray the
+              mass the field exists to show. The lit curve has no one to be told
+              apart from. */}
+          {field && pen !== null
+            ? plotted.map((s) => (
+                <Line
+                  key={s.id}
+                  data={s.points}
+                  dataKey={s.id}
+                  name={s.name}
+                  type={effectiveView === 'pmf' ? 'step' : 'monotone'}
+                  stroke={s.color}
+                  strokeWidth={pen.width}
+                  dot={false}
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+              ))
+            : effectiveView === 'pmf'
             ? plotted.map((s) => {
                 const focused = focusedId === s.id;
                 const opacity =
@@ -439,9 +526,31 @@ export default function OverlayChartImpl({
                   />
                 );
               })}
+          {/* The lit roll, painted in its own layer one step above the field.
+              Every field curve is in the layer Recharts portals Line into, so
+              being last in this array would not put a stroke on top of them;
+              a different zIndex is a different portal, which does. It stays
+              mounted with nothing to draw so that layer is registered once. */}
+          {field && pen !== null && (
+            <Line
+              key="dt-lit-overlay"
+              className={LIT_CLASS}
+              zIndex={LIT_Z_INDEX}
+              data={lit?.points ?? EMPTY_POINTS}
+              dataKey={lit?.id ?? 'dt-lit'}
+              name={lit?.name ?? ''}
+              type={effectiveView === 'pmf' ? 'step' : 'monotone'}
+              stroke={lit?.color ?? 'none'}
+              strokeWidth={pen.litWidth}
+              strokeOpacity={1}
+              dot={false}
+              activeDot={LIT_ACTIVE_DOT}
+              isAnimationActive={false}
+            />
+          )}
           {/* The capped bars keep their true value everywhere it can be read:
               the label here, the tooltip at 0, and the description below. */}
-          {spikes.markers.map((marker) => (
+          {drawnMarkers.map((marker) => (
             <ReferenceDot
               key={marker.id}
               x={0}

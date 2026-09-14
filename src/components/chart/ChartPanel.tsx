@@ -1,15 +1,19 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import {
   Box,
   Button,
   HStack,
   Stack,
   Text,
+  VisuallyHidden,
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
 import { RangePager } from './RangePager';
 import { pageCount } from './rowCap';
+import { CHART_FIELD_THRESHOLD } from './fieldPen';
+import { litSummary } from './litSummary';
+import { getRowData } from '../../state/useDistributions';
 import type { Distribution } from '../../types';
 import { ChartFallback } from './ChartFallback';
 import { HelpTerm } from '../ui/help-term';
@@ -26,6 +30,8 @@ interface PanelLegendProps {
   pickedId: string | null;
   onPreview: (id: string | null) => void;
   onPick: (id: string) => void;
+  /** The chart is drawing a field, so this list is the only index into it. */
+  dense?: boolean;
 }
 
 // The number every other capped legend in the app uses, so a reader meets one
@@ -40,12 +46,14 @@ export function PanelLegend({
   pickedId,
   onPreview,
   onPick,
+  dense = false,
 }: PanelLegendProps) {
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? entries : entries.slice(0, LEGEND_CAP);
   const hidden = entries.length - shown.length;
+  const total = entries.length;
 
-  return (
+  const chips = (
     <Wrap gap={3}>
       {shown.map((s) => {
         const dim = focusedId !== null && focusedId !== s.id;
@@ -76,7 +84,14 @@ export function PanelLegend({
                 outlineColor: 'blue.solid',
                 outlineOffset: '2px',
               }}
-              aria-label={`Focus ${s.name} in chart`}
+              // Row names repeat and eight hues repeat thirteen times over a
+              // hundred rolls, so on a field the name alone does not say which
+              // chip this is.
+              aria-label={
+                dense
+                  ? `Focus ${s.name}, roll ${entries.indexOf(s) + 1} of ${total}, in chart`
+                  : `Focus ${s.name} in chart`
+              }
               aria-pressed={pickedId === s.id}
               onClick={() => onPick(s.id)}
               onKeyDown={(e) => {
@@ -104,23 +119,57 @@ export function PanelLegend({
           </WrapItem>
         );
       })}
-      {(hidden > 0 || expanded) && (
-        <WrapItem>
-          <Button
-            size="xs"
-            variant="ghost"
-            h="auto"
-            minW={0}
-            px={1}
-            fontWeight="normal"
-            color="fg.muted"
-            onClick={() => setExpanded((v) => !v)}
-          >
-            {expanded ? 'Show fewer' : `+${hidden} more`}
-          </Button>
-        </WrapItem>
-      )}
     </Wrap>
+  );
+
+  const expander = (hidden > 0 || expanded) && (
+    <Button
+      size="xs"
+      variant="ghost"
+      h="auto"
+      minW={0}
+      px={1}
+      alignSelf="flex-start"
+      fontWeight="normal"
+      color="fg.muted"
+      onClick={() => setExpanded((v) => !v)}
+    >
+      {expanded ? 'Show fewer' : `+${hidden} more`}
+    </Button>
+  );
+
+  // A hundred names expanded in place would push the chart off the card, so on
+  // a field the list scrolls. The expander sits outside that box: below seven
+  // rows of chips and a hundred tab stops is not where the way back belongs.
+  //
+  // maxH in lh rather than px so a raised default font size or a 200% zoom
+  // still shows whole rows. The padding is for the chips' grown hit area and
+  // focus ring, which a scroll container would otherwise clip, horizontally
+  // too because overflow-y auto computes overflow-x auto with it.
+  if (!dense) {
+    return (
+      <Stack gap={0}>
+        {chips}
+        {expander}
+      </Stack>
+    );
+  }
+  return (
+    <Stack gap={1}>
+      <Box
+        role="group"
+        aria-label="Rolls drawn on this chart"
+        maxH="9lh"
+        overflowY="auto"
+        overscrollBehavior="contain"
+        px="2px"
+        py="14px"
+        scrollPaddingBlock="14px"
+      >
+        {chips}
+      </Box>
+      {expander}
+    </Stack>
   );
 }
 
@@ -192,6 +241,27 @@ export function ChartPanel({
   const owns = (id: string | null): boolean =>
     id !== null && panel.entries.some((e) => e.id === id);
   const focusedId = owns(incomingFocus) ? incomingFocus : null;
+  const ownPick = owns(pickedId) ? pickedId : null;
+  // Kept in step with OverlayChartImpl's own test by the same threshold over
+  // the same count; the legend has to become an index at the moment the curves
+  // stop being individually followable, not a render later.
+  const dense = panel.drawn > CHART_FIELD_THRESHOLD;
+  // Reading a mean is a cached WeakMap hit per row, so this costs nothing that
+  // drawing the row did not already cost.
+  const summary = useMemo(
+    () =>
+      dense
+        ? litSummary(
+            panel.expressions.map((expr, i) => ({
+              id: expr.id,
+              name: panel.entries[i]?.name ?? expr.name,
+              mean: getRowData(expr).stats.mean,
+            })),
+            ownPick,
+          )
+        : '',
+    [dense, panel.expressions, panel.entries, ownPick],
+  );
   return (
     <Stack
       gap={2}
@@ -232,16 +302,41 @@ export function ChartPanel({
       <PanelLegend
         entries={panel.entries}
         focusedId={focusedId}
-        pickedId={owns(pickedId) ? pickedId : null}
+        pickedId={ownPick}
         onPreview={onPreview}
         onPick={onPick}
+        dense={dense}
       />
-      {panel.drawn < panel.total && onPage !== undefined && (
+      {/* The slot under the legend never goes quiet: it says what was cut, or
+          says nothing was. A card that silently drew everything would be the
+          one card in the app that does not account for itself. */}
+      {panel.drawn < panel.total && onPage !== undefined ? (
         <ChartPager panel={panel} pageSize={pageSize} onPage={onPage} />
+      ) : dense ? (
+        <HelpTerm tip={tipForId('chartFieldView')}>
+          <Text as="span" fontSize="xs" color="fg.muted">
+            Drawing all {panel.total} rolls. Pick a name to light one up.
+          </Text>
+        </HelpTerm>
+      ) : null}
+      {/* The field answers "where does my roll sit among all of them" by
+          showing it, which is nothing without sight. Rank by average is the
+          same answer in a sentence. Only a sticky pick announces; a preview
+          changes too fast to read. */}
+      {dense && (
+        <VisuallyHidden role="status" aria-live="polite">
+          {summary}
+        </VisuallyHidden>
       )}
       {/* Empty chart ground clears the pick, so nobody is stranded isolated
-          with no obvious way back. */}
-      <Box onClick={() => onClear()}>
+          with no obvious way back. Panel-scoped: with both charts on screen,
+          clicking one canvas has no business dropping a pick made on the
+          other, which is the panel this one is dimming itself against. */}
+      <Box
+        onClick={() => {
+          if (owns(incomingFocus) || owns(pickedId)) onClear();
+        }}
+      >
       <Suspense fallback={<ChartFallback variant="overlay" />}>
         <OverlayChartImpl
           expressions={panel.expressions}

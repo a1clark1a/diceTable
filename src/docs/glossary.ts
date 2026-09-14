@@ -498,6 +498,8 @@ const uiTips: Record<string, string> = {
     'No valid rolls to picture yet. Give a roll some dice first.',
   shareImageNeedsTwo:
     'This picture needs two rolls to compare. Add another one with valid dice.',
+  chartFieldView:
+    'Every roll is drawn at once, faintly. Pick a name from the legend to light that roll up against the rest.',
   chartRowCap:
     'A page of rolls at a time, so the lines stay readable. Use the arrows to reach the rest. Every roll still shows its own numbers in the table.',
   shareImageNoTargets:

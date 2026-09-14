@@ -45,7 +45,7 @@ Roll modes affect summed rolls and check rolls. On a check row the mode applies 
 
 ## Comparing and balancing rolls
 
-Rows appear in an overlay chart, each with its own color. A big table is drawn twenty rolls at a time, so the lines stay readable: the chart names the range it is showing ("Showing 21 to 40 of 75 rolls") and pages through the rest in table order, with totals and successes paging separately. Every roll still carries its own numbers in the table. The chart has four views:
+Rows appear in an overlay chart, each with its own color. A big table is drawn twenty rolls at a time, so the lines stay readable: the chart names the range it is showing ("Showing 21 to 40 of 75 rolls") and pages through the rest in table order, with totals and successes paging separately. Enlarging one chart on a wide screen with a mouse draws every roll at once instead, as a faint field: past about thirty rolls there are more curves than there are ways to tell one pen from another, so picking a name from the legend lights that roll up against all the others rather than asking anyone to follow a hundred lines. A phone, a touch screen, a narrow window, or both charts on screen at once all keep the paged twenty. Every roll still carries its own numbers in the table. The chart has four views:
 
 - PMF: how likely each exact result is.
 - CDF: the chance of rolling at most a given number.

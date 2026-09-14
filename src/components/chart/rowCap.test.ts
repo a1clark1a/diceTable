@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { chartRowCap, pageCount, pagePanels } from './rowCap';
+import { chartRowCap, enlargedRowCap, pageCount, pagePanels } from './rowCap';
 import type { ChartPanelData } from './useChartPanels';
 import {
+  CHART_DRAW_POINT_BUDGET,
   CHART_ROW_CAP_ENLARGED,
   CHART_ROW_CAP_RAIL,
+  MAX_EXPRESSIONS,
   type TargetState,
 } from '../../types';
 
@@ -130,5 +132,56 @@ describe('pagePanels', () => {
   it('treats a negative page as the first one', () => {
     const [totals] = pagePanels([panel('totals', 75, 's')], 20, { totals: -2 });
     expect(totals!.from).toBe(0);
+  });
+});
+
+describe('enlargedRowCap', () => {
+  const solo = panel('totals', 100, 's');
+  const all = {
+    wideCanvas: true,
+    finePointer: true,
+    solo,
+    drawPoints: 2400,
+  };
+
+  it('draws the whole table only when every condition holds', () => {
+    expect(enlargedRowCap(all)).toBe(MAX_EXPRESSIONS);
+  });
+
+  it('falls back to the rail page on each condition on its own', () => {
+    // One assertion per conjunct, because a fallback that fires for the wrong
+    // reason is a fallback that will stop firing when that reason changes.
+    expect(enlargedRowCap({ ...all, wideCanvas: false })).toBe(
+      CHART_ROW_CAP_RAIL,
+    );
+    expect(enlargedRowCap({ ...all, finePointer: false })).toBe(
+      CHART_ROW_CAP_RAIL,
+    );
+    expect(enlargedRowCap({ ...all, solo: undefined })).toBe(
+      CHART_ROW_CAP_RAIL,
+    );
+    expect(
+      enlargedRowCap({ ...all, solo: { ...solo, effectiveView: 'target' } }),
+    ).toBe(CHART_ROW_CAP_RAIL);
+    expect(
+      enlargedRowCap({ ...all, drawPoints: CHART_DRAW_POINT_BUDGET + 1 }),
+    ).toBe(CHART_ROW_CAP_RAIL);
+  });
+
+  it('admits a draw exactly at the budget', () => {
+    expect(
+      enlargedRowCap({ ...all, drawPoints: CHART_DRAW_POINT_BUDGET }),
+    ).toBe(MAX_EXPRESSIONS);
+  });
+
+  it('leaves a whole-table page with nothing to page', () => {
+    // pagePanels returns the panel untouched once the page covers it, which is
+    // what keeps the pager from mounting without needing a flag to hide it.
+    const panels = [panel('totals', 100, 't')];
+    expect(pagePanels(panels, MAX_EXPRESSIONS, {})[0]).toBe(panels[0]);
+    const paged = pagePanels(panels, CHART_ROW_CAP_RAIL, {})[0];
+    expect(paged).not.toBe(panels[0]);
+    expect(paged?.drawn).toBe(20);
+    expect(paged?.total).toBe(100);
   });
 });

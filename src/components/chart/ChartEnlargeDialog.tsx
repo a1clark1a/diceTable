@@ -14,8 +14,9 @@ import { Tooltip } from '../ui/tooltip';
 import { chipFocusRing } from '../editor/focusRings';
 import { ChartPanel } from './ChartPanel';
 import { useSeriesFocus } from './useSeriesFocus';
-import { chartRowCap, pagePanels, type ChartPages } from './rowCap';
-import { useTableFits } from '../../hooks/useBreakpoint';
+import { enlargedRowCap, pagePanels, type ChartPages } from './rowCap';
+import { panelDrawPoints } from './drawCost';
+import { useFinePointer, useWideChart } from '../../hooks/useBreakpoint';
 import type { ChartPanelData } from './useChartPanels';
 import type { ChartUnit } from './OverlayChartImpl';
 
@@ -61,14 +62,31 @@ export function ChartEnlargeDialog({
 
   // A cover dialog on a 360px phone is a 360px canvas, narrower than the
   // desktop rail, so the budget follows the canvas rather than the frame.
-  const wideCanvas = useTableFits();
+  const wideCanvas = useWideChart();
+  const finePointer = useFinePointer();
   // The enlarged copy pages on its own: opening it should not move the rail,
   // and closing it should not leave the rail somewhere the user did not put it.
   const [pages, setPages] = useState<ChartPages>({});
   const onPage = useCallback((key: ChartPanelData['key'], page: number) => {
     setPages((prev) => ({ ...prev, [key]: Math.max(0, page) }));
   }, []);
-  const pageSize = chartRowCap('enlarged', wideCanvas);
+  // Which panels are on screen has to be settled before the budget, because
+  // the budget depends on there being exactly one of them. The empty-set
+  // fallback is the same one `visible` applies below, and it has to be: the
+  // two disagreeing would size the page against a panel nobody is looking at.
+  const showing = panels.filter((p) => shown === 'both' || p.key === shown);
+  const onScreen = showing.length > 0 ? showing : panels;
+  const solo = onScreen.length === 1 ? onScreen[0] : undefined;
+  const drawPoints = useMemo(
+    () => (solo === undefined ? 0 : panelDrawPoints(solo.expressions)),
+    [solo],
+  );
+  const pageSize = enlargedRowCap({
+    wideCanvas,
+    finePointer,
+    solo,
+    drawPoints,
+  });
   const budgeted = useMemo(
     () => pagePanels(panels, pageSize, pages),
     [panels, pageSize, pages],

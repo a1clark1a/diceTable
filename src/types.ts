@@ -109,14 +109,31 @@ export type TargetRuling = 'gte' | 'gt' | 'lte' | 'lt' | 'eq';
 export const MAX_TARGETS = 5;
 export const MAX_EXPRESSIONS = 100;
 /**
- * How many curves a comparison card draws before it says it cut some. Two
- * budgets because the readable ceiling is a property of the canvas: twenty
- * curves are followable in the enlarged copy's 1200x520 and are not in a
- * 340x320 rail. They are equal for now; only the enlarged one can rise, and
- * only once something other than the pen carries a curve's identity.
+ * How many curves a comparison card draws at once. Two budgets because the
+ * readable ceiling is a property of the canvas: twenty curves are followable in
+ * the enlarged copy's 1200x520 and are not in a 340x320 rail.
+ *
+ * The enlarged number is the whole table because on that canvas identity no
+ * longer comes from the pen. Eight hues and eight dashes give eight
+ * distinguishable pens, so at a hundred rolls thirteen share each one and no
+ * cap value fixes that. What the wide canvas draws instead is a field: every
+ * roll at once and faint, with one lit on demand, which answers where a roll
+ * sits among the rest rather than asking anyone to tell a hundred apart.
+ *
+ * The rail keeps twenty and pages. So does the enlarged copy on anything that
+ * is not a genuinely wide canvas with a pointer, which includes a phone, where
+ * the cover dialog is a 360px canvas narrower than the desktop rail.
  */
 export const CHART_ROW_CAP_RAIL = 20;
-export const CHART_ROW_CAP_ENLARGED = 20;
+export const CHART_ROW_CAP_ENLARGED = MAX_EXPRESSIONS;
+/**
+ * How many plotted points one wide-canvas panel may draw before it gives up the
+ * field and pages instead. A hundred rows of 20d100 is on the order of 200,000
+ * points, which is already heavy at twenty curves; the surface refuses that
+ * draw rather than raising a cap it cannot honour, and says so the way it
+ * already says it cut rows.
+ */
+export const CHART_DRAW_POINT_BUDGET = 20000;
 /**
  * Past this the chart card stops picturing. Separate from what the screen
  * draws: the card grows 46px per row and is rasterized at 2x, so its ceiling is

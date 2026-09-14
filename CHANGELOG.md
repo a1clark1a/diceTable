@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Enlarging one chart on a wide screen now draws every roll at once, however many there are. Past about thirty the curves stop being drawn in their own colour and dash and become a field: all of them at once and faint, with the one you point at lit up on top. That is a different question from the paged view and a more useful one at a hundred rolls, because eight colours and eight dashes only ever make eight tellable-apart pens, so past that no cap and no amount of extra canvas helps. Seeing where your roll sits in the spread of the whole table does not need you to tell a hundred lines apart. Pick a name from the legend to light one, pick it again to put it back, and the tooltip pins the lit roll at the top so its number is never the one the list drops. A screen reader hears where the roll ranks instead, since a picture is nothing without sight.
+- The rail keeps its page of twenty, and so does an enlarged chart on anything that is not really a wide canvas with a pointer: a phone, a touch screen, a narrow window, both charts on screen at once, the target view, or a table of dice wide enough that drawing a hundred curves would stall. Each of those keeps exactly what it drew before, and the ones that page still say which rolls they are showing.
+
 ### Changed
 
 - Target hit's Curves can draw twenty rolls at a time. It draws every roll by default and still does, since reading one roll against all the others is the point of that view, but a hundred lines on one canvas is a wall rather than a comparison. A "20 at a time" button above the chart pages through them the way the comparison chart does. The scale stays on the whole table whichever page you are on, so the lines on one page can be read against the ones on the next, and a page names every roll it draws in the legend instead of stopping the list at twelve.
