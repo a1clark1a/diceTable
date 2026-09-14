@@ -1,5 +1,6 @@
 import { HStack, IconButton, Text } from '@chakra-ui/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { HelpTerm } from '../ui/help-term';
 import { tapTarget } from '../tapTarget';
 
 const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
@@ -14,7 +15,8 @@ interface RangePagerProps {
   /** Names the surface in the button labels, e.g. "Totals chart". */
   what: string;
   onPage: (page: number) => void;
-  children?: React.ReactNode;
+  /** Explanation hung on the caption itself, where the words it explains are. */
+  tip?: React.ReactNode;
 }
 
 /**
@@ -32,14 +34,20 @@ export function RangePager({
   pages,
   what,
   onPage,
-  children,
+  tip,
 }: RangePagerProps) {
+  const caption = (
+    <Text as="span">
+      Showing {from + 1} to {from + shown} of {total} rolls
+    </Text>
+  );
   return (
     <HStack gap={1} fontSize="xs" color="fg.muted" w="100%">
-      {children}
-      <Text as="span">
-        Showing {from + 1} to {from + shown} of {total} rolls
-      </Text>
+      {tip === undefined ? (
+        caption
+      ) : (
+        <HelpTerm tip={tip}>{caption}</HelpTerm>
+      )}
       <HStack gap={0} ms="auto" flexShrink={0}>
         <IconButton
           size="xs"

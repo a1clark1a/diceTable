@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Box, Button, HStack, Text } from '@chakra-ui/react';
 import { HelpTerm } from '../ui/help-term';
+import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { tapTarget } from '../tapTarget';
 import { RangePager } from '../chart/RangePager';
@@ -160,7 +161,7 @@ export function TargetCurves({ rows, target }: TargetCurvesProps) {
           </Text>
         </HelpTerm>
         {offered && (
-          <HelpTerm tip={tipForId('targetCurvePage')}>
+          <Tooltip content={tipForId('targetCurvePage')}>
             <Button
               size="xs"
               variant={isPaged ? 'solid' : 'ghost'}
@@ -174,7 +175,7 @@ export function TargetCurves({ rows, target }: TargetCurvesProps) {
             >
               {CURVE_PAGE} at a time
             </Button>
-          </HelpTerm>
+          </Tooltip>
         )}
       </HStack>
       {isPaged && (
@@ -187,6 +188,7 @@ export function TargetCurves({ rows, target }: TargetCurvesProps) {
             pages={pages}
             what="target curves"
             onPage={setPage}
+            tip={tipForId('chartRowCap')}
           />
         </Box>
       )}

@@ -148,13 +148,8 @@ function ChartPager({ panel, pageSize, onPage }: ChartPagerProps) {
       pages={pageCount(panel.total, pageSize)}
       what={`${panel.title} chart`}
       onPage={(page) => onPage(panel.key, page)}
-    >
-      <HelpTerm tip={tipForId('chartRowCap')}>
-        <Text as="span" srOnly>
-          Rolls drawn
-        </Text>
-      </HelpTerm>
-    </RangePager>
+      tip={tipForId('chartRowCap')}
+    />
   );
 }
 
