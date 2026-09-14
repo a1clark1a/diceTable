@@ -187,13 +187,15 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     group: 'roll-modes',
     plain: 'Roll the whole expression twice and take the higher result.',
     details:
-      'On a check roll, advantage applies to the check itself and never to the effect, so it raises how often the roll clears the bar (and how often it crits) without changing what lands.',
+      'Taking the higher of two rolls shifts the whole curve upward, so low results thin out and high ones crowd together. The best possible result does not change, you just reach it far more often: on 1d20 the chance of a 20 goes from 5% to 9.75%. On a check roll, advantage applies to the check itself and never to the effect, so it raises how often the roll clears the bar (and how often it crits) without changing what lands.',
   },
   {
     id: 'disadvantage',
     term: 'Disadvantage',
     group: 'roll-modes',
     plain: 'Roll the whole expression twice and take the lower result.',
+    details:
+      'Taking the lower of two rolls shifts the whole curve downward, so high results thin out and low ones crowd together. The worst possible result does not change, you just land on it far more often: on 1d20 the chance of a 1 goes from 5% to 9.75%. On a check roll, disadvantage applies to the check itself and never to the effect, so it lowers how often the roll clears the bar (and how often it crits) without changing what lands.',
   },
 
   {
