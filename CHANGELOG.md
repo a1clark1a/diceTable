@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A roll that explodes on a low face is no longer refused for being wide. Exploding a d100 on a 1 was measured as though every extra die could land on 100, which made a roll reaching 150 look like one reaching 5,100.
 - A critical that rolls more dice than an ordinary hit is now measured on the dice it really rolls. A check whose critical doubles its damage was sized by the smaller roll, so a critical twice too big to draw could still be accepted.
 - A roll that keeps more dice than it has stays blank instead of quietly answering. The editor already called it a mistake in red, and the number beside it now agrees.
+- The warning about a roll that can never stop exploding now asks the right question. Picking the same face twice, or picking faces the die does not have, was read as exploding on everything and refused. Meanwhile a d6 that rerolls 1 to 3 and explodes on 4 to 6 really can never stop, and that passed, leaving a blank row and no reason for it.
 
 ## [2.1.0] - 2026-09-14
 

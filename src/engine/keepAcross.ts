@@ -8,6 +8,18 @@ interface DieGroup {
   count: number;
 }
 
+/**
+ * The level walk indexes dense arrays by face value and rests on the identity
+ * "sum of the top n = Σ min(n, dice at or above t)", which holds for faces of
+ * at least 1 and silently returns the wrong probabilities below that rather
+ * than erring. Nothing reachable produces such a face today: a die starts at
+ * 1..sides, reroll only removes faces and explode only adds. This refuses the
+ * roll rather than answer it wrongly if that ever stops being true.
+ */
+function facesAreWalkable(faces: readonly number[]): boolean {
+  return faces.length > 0 && (faces[0] ?? 0) >= 1;
+}
+
 function buildGroups(parts: readonly DicePart[]): DieGroup[] | null {
   if (parts.length === 0) return null;
   const groups: DieGroup[] = [];
@@ -17,6 +29,7 @@ function buildGroups(parts: readonly DicePart[]): DieGroup[] | null {
     const single = singleDieDistribution(part);
     if (single.size === 0) return null;
     const faces = sortedKeys(single);
+    if (!facesAreWalkable(faces)) return null;
     groups.push({
       faces,
       probs: faces.map((f) => single.get(f) ?? 0),
@@ -287,6 +300,8 @@ export function keepFromSingleDie(
   if (single.size === 0) return emptyDistribution();
 
   const faces = sortedKeys(single);
+  if (!facesAreWalkable(faces)) return emptyDistribution();
+
   const group: DieGroup = {
     faces,
     probs: faces.map((f) => single.get(f) ?? 0),
