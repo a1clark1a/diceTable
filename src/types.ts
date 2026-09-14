@@ -141,12 +141,33 @@ export const CHART_DRAW_POINT_BUDGET = 20000;
  */
 export const SHARE_CARD_ROW_LIMIT = 20;
 /**
- * Rows in the head-to-head lattice, on screen and on its card. Twelve columns
- * leave about 56px a cell after the name gutter, which still holds a percentage
- * and a truncated heading. It is also n squared work and n squared tooltips, so
- * the cut happens before the matrix is computed rather than after.
+ * Rows in the head-to-head lattice on screen.
+ *
+ * Twelve was never what the maths could afford. A hundred rolls of ordinary
+ * dice score in about 5ms, and even at twenty-four the pairwise work is under
+ * half a millisecond; what cost was the grid mounting one tooltip component per
+ * cell, which is n squared of them. That is one shared tooltip now, so the
+ * number is free to describe the canvas instead of the machinery.
+ *
+ * Twenty-four is what the screen can carry: about 57px a column after the name
+ * gutter, which holds a percentage, with the name column pinned and the rest
+ * scrolling sideways. The cut still happens before the matrix is computed
+ * rather than after, because unscored pairs are the cheap ones.
  */
-export const MATRIX_ROW_CAP = 12;
+export const MATRIX_ROW_CAP = 24;
+/**
+ * The picture of that grid stops sooner than the screen does, because the card
+ * is a fixed 920px wide and divides it by the row count: every extra roll takes
+ * width from every column at once. At sixteen a cell still holds "100.0%" with
+ * room to spare and a heading still shows six characters of a name. Past that
+ * the figures start touching and the headings stop naming anything.
+ *
+ * The screen has no such ceiling: it scrolls sideways and keeps the name column
+ * pinned. Two numbers because they are two canvases, the same reason
+ * SHARE_CARD_ROW_LIMIT is not the chart's number. Each surface states its own
+ * cut, so neither can lie about what it drew.
+ */
+export const MATRIX_CARD_ROW_LIMIT = 16;
 
 export interface TargetState {
   values: number[];

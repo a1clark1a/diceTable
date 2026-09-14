@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
 import { HeadToHeadView } from './HeadToHeadView';
@@ -164,13 +164,15 @@ describe('HeadToHeadView row cap', () => {
     }));
   }
 
-  it('draws at most twelve rolls and says how many it left out', () => {
+  it('draws at most the cap and says how many it left out', () => {
     seedState(manyRolls(40));
     renderView();
 
     expect(bodyRows()).toHaveLength(MATRIX_ROW_CAP);
     expect(
-      screen.getByText(/showing the first 12 of 40 rolls/i),
+      screen.getByText(
+        new RegExp(`showing the first ${MATRIX_ROW_CAP} of 40 rolls`, 'i'),
+      ),
     ).toBeInTheDocument();
   });
 
@@ -178,11 +180,45 @@ describe('HeadToHeadView row cap', () => {
     seedState(manyRolls(40));
     const { container } = renderView();
 
-    // The lattice is square with a null diagonal, so twelve rolls give
-    // 12 x 12 - 12 = 132 scored cells. Scoped to the body because the panel
-    // heading's own tip is a focusable trigger too.
+    // The lattice is square with a null diagonal, so n rolls give n squared
+    // minus n scored cells. Scoped to the body because the panel heading's own
+    // tip is a focusable trigger too.
     const body = container.querySelector('tbody');
-    expect(body?.querySelectorAll('[tabindex="0"]')).toHaveLength(132);
+    expect(body?.querySelectorAll('[tabindex="0"]')).toHaveLength(
+      MATRIX_ROW_CAP * MATRIX_ROW_CAP - MATRIX_ROW_CAP,
+    );
+  });
+
+  it('carries the sentence on every cell, not only the hovered one', () => {
+    // The grid shares one tooltip instead of mounting one per cell, so the
+    // accessible name has to live on the cell itself or a screen reader would
+    // hear a bare percentage.
+    seedState(manyRolls(3));
+    const { container } = renderView();
+
+    const cells = Array.from(
+      container.querySelectorAll('tbody [tabindex="0"]'),
+    );
+    expect(cells).toHaveLength(6);
+    for (const cell of cells) {
+      expect(cell.getAttribute('aria-label')).toMatch(
+        /beats .* of the time; they tie/,
+      );
+    }
+  });
+
+  it('shows one tooltip on hover and takes it away again', () => {
+    seedState(manyRolls(3));
+    const { container } = renderView();
+    const cell = container.querySelector('tbody [tabindex="0"]') as HTMLElement;
+
+    fireEvent.mouseEnter(cell);
+    const sentence = cell.getAttribute('aria-label') ?? '';
+    // Twice over: once as the cell's own name, once in the shared tooltip.
+    expect(screen.getAllByText(sentence)).toHaveLength(1);
+
+    fireEvent.mouseLeave(cell);
+    expect(screen.queryByText(sentence)).toBeNull();
   });
 
   it('says nothing about a cut when every roll fits', () => {

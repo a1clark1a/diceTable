@@ -1,4 +1,4 @@
-import { MATRIX_ROW_CAP, type Distribution } from '../../types';
+import { MATRIX_CARD_ROW_LIMIT, type Distribution } from '../../types';
 import { beatMatrix } from '../../engine/compare';
 import { shareCardPalette, shareHitColor } from '../../components/chart/palette';
 import { EM_DASH, formatPercent } from '../../components/chart/format';
@@ -58,7 +58,7 @@ function cellWeight(win: number): number {
 }
 
 function capNote(total: number): string {
-  return `showing the first ${MATRIX_ROW_CAP} of ${total} rolls`;
+  return `showing the first ${MATRIX_CARD_ROW_LIMIT} of ${total} rolls`;
 }
 
 export function buildMatrixSvg(options: MatrixCardOptions): ShareImage {
@@ -66,7 +66,7 @@ export function buildMatrixSvg(options: MatrixCardOptions): ShareImage {
   const scale = scaleFor(options.scale);
   const title = (options.title ?? '').trim();
 
-  const rows = options.rows.slice(0, MATRIX_ROW_CAP);
+  const rows = options.rows.slice(0, MATRIX_CARD_ROW_LIMIT);
   const dropped = options.rows.length - rows.length;
   const enough = rows.length >= 2;
 
