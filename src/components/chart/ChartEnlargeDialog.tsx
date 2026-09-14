@@ -119,7 +119,7 @@ export function ChartEnlargeDialog({
       : (visible[0]?.title ?? panel.title);
 
   const options: { value: Shown; label: string }[] = [
-    ...budgeted.map((p) => ({ value: p.key as Shown, label: p.title })),
+    ...budgeted.map((p) => ({ value: p.key, label: p.title })),
     { value: 'both', label: 'Both' },
   ];
 

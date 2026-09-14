@@ -540,52 +540,6 @@ describe('AppContext dropping an unreadable critical', () => {
 });
 
 describe('AppContext copying and importing check rows', () => {
-  it('gives a duplicated check row its own effect part ids', () => {
-    const { result, id, row } = setup();
-    switchTo(result, id, 'check');
-    const originalEffectId = row().check!.effect.parts[0]!.id;
-    act(() => {
-      result.current.duplicateExpression(id);
-    });
-    const copy = result.current.expressions[1]!;
-    const copiedEffectId = checkOf(copy).effect.parts[0]?.id;
-    expect(copiedEffectId).toEqual(expect.any(String));
-    expect(copiedEffectId).not.toBe(originalEffectId);
-  });
-
-  it('leaves the original effect part id untouched when duplicating', () => {
-    const { result, id, row } = setup();
-    switchTo(result, id, 'check');
-    const originalEffectId = row().check!.effect.parts[0]!.id;
-    act(() => {
-      result.current.duplicateExpression(id);
-    });
-    expect(result.current.expressions[0]!.check?.effect.parts[0]?.id).toBe(
-      originalEffectId,
-    );
-  });
-
-  it('copies the spec values onto the duplicate', () => {
-    const { result, id, row } = setup();
-    switchTo(result, id, 'check');
-    patchCheck(result, id, {
-      ...row().check!,
-      threshold: { direction: 'gte', value: 14 },
-      onFailure: 'half',
-      crit: { onFaces: [19, 20], effect: 'maxPlusRoll' },
-    });
-    act(() => {
-      result.current.duplicateExpression(id);
-    });
-    const copy = result.current.expressions[1]!;
-    expect(copy.check?.threshold).toEqual({ direction: 'gte', value: 14 });
-    expect(copy.check?.onFailure).toBe('half');
-    expect(copy.check?.crit).toEqual({
-      onFaces: [19, 20],
-      effect: 'maxPlusRoll',
-    });
-  });
-
   it('re-ids the effect parts through replaceExpressions', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {

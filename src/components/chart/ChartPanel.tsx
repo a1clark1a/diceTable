@@ -213,7 +213,7 @@ interface ChartPanelProps {
   onClear: () => void;
   /** How many curves a page holds, and where the page state lives. */
   pageSize: number;
-  onPage?: ((key: ChartPanelData['key'], page: number) => void) | undefined;
+  onPage: (key: ChartPanelData['key'], page: number) => void;
   unit: ChartUnit;
   /** Set by the enlarged copy, which has more room than the rail. */
   height?: string;
@@ -317,7 +317,7 @@ export function ChartPanel({
       {/* The slot under the legend never goes quiet: it says what was cut, or
           says nothing was. A card that silently drew everything would be the
           one card in the app that does not account for itself. */}
-      {panel.drawn < panel.total && onPage !== undefined ? (
+      {panel.drawn < panel.total ? (
         <ChartPager panel={panel} pageSize={pageSize} onPage={onPage} />
       ) : dense ? (
         <HelpTerm tip={tipForId('chartFieldView')}>

@@ -40,7 +40,6 @@ export interface ChartPanels {
   panels: ChartPanelData[];
   dists: Map<string, Distribution>;
   slots: Map<string, number>;
-  rowCount: number;
 }
 
 /**
@@ -144,6 +143,5 @@ export function useChartPanels(): ChartPanels {
     panels,
     dists,
     slots,
-    rowCount: expressions.length,
   };
 }

@@ -1,5 +1,4 @@
 import { Text } from '@chakra-ui/react';
-import { HelpTerm } from '../ui/help-term';
 import {
   deltaTone,
   formatPercentDelta,
@@ -40,10 +39,6 @@ export function HitDeltaValue({ delta }: { delta: number }) {
 }
 
 interface DeltaValueProps {
-  /** Omitted inside the compare trigger: a tabbable HelpTerm there would be
-   *  interactive content nested in a button, and a second tab stop in one
-   *  control. The column header carries the same tip. */
-  tip?: string;
   text: string;
   ariaLabel: string;
   tone: DeltaTone;
@@ -57,7 +52,6 @@ interface DeltaValueProps {
  * the header's.
  */
 export function DeltaValue({
-  tip,
   text,
   ariaLabel,
   tone,
@@ -77,5 +71,5 @@ export function DeltaValue({
       {text}
     </Text>
   );
-  return tip === undefined ? label : <HelpTerm tip={tip}>{label}</HelpTerm>;
+  return label;
 }

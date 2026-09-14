@@ -14,8 +14,8 @@ import { Box } from '@chakra-ui/react';
 export const RAIL_MIN = 340;
 // The table's own width is what the drag changes. The floor is about where
 // the fixed columns stop fitting; the ceiling is past any content it has.
-export const TABLE_MIN = 900;
-export const TABLE_MAX = 1800;
+const TABLE_MIN = 900;
+const TABLE_MAX = 1800;
 // Where the table stops needing width: measured as the point past which a
 // check row's chips no longer wrap beside its dice notation.
 export const TABLE_WIDTH = 1280;

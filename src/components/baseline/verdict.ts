@@ -7,7 +7,7 @@ const AVG_EPS = 0.005;
 const SIGMA_EPS = 0.05;
 const HIT_EPS_POINTS = 0.5;
 
-export const VERDICT_SEPARATOR = ' · ';
+const VERDICT_SEPARATOR = ' · ';
 
 // The middot is punctuation most screen readers skip, which runs the clauses
 // together in one breath. Speech gets commas; the printed sentence keeps its

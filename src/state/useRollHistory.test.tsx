@@ -30,35 +30,35 @@ describe('useRollHistory', () => {
 
   it('records a roll and exposes it via getHistory and lastResult', () => {
     const { result } = renderHook(() => useRollHistory(), { wrapper });
-    let returned: number | null = null;
+    let returned: number[] = [];
     act(() => {
-      returned = result.current.roll('seed-4d6kh3', singleOutcome(7));
+      returned = result.current.rollMany('seed-4d6kh3', singleOutcome(7), 1);
     });
-    expect(returned).toBe(7);
+    expect(returned).toEqual([7]);
     expect(result.current.getHistory('seed-4d6kh3')).toEqual([7]);
     expect(result.current.lastResult('seed-4d6kh3')).toBe(7);
   });
 
-  it('returns null and does not record when the distribution is empty', () => {
+  it('returns nothing and does not record when the distribution is empty', () => {
     const { result } = renderHook(() => useRollHistory(), { wrapper });
-    let returned: number | null = 0;
+    let returned: number[] = [-1];
     act(() => {
-      returned = result.current.roll('seed-4d6kh3', new Map());
+      returned = result.current.rollMany('seed-4d6kh3', new Map(), 1);
     });
-    expect(returned).toBeNull();
+    expect(returned).toEqual([]);
     expect(result.current.getHistory('seed-4d6kh3')).toEqual([]);
   });
 
   it('keeps history newest-first', () => {
     const { result } = renderHook(() => useRollHistory(), { wrapper });
     act(() => {
-      result.current.roll('seed-4d6kh3', singleOutcome(1));
+      result.current.rollMany('seed-4d6kh3', singleOutcome(1), 1);
     });
     act(() => {
-      result.current.roll('seed-4d6kh3', singleOutcome(2));
+      result.current.rollMany('seed-4d6kh3', singleOutcome(2), 1);
     });
     act(() => {
-      result.current.roll('seed-4d6kh3', singleOutcome(3));
+      result.current.rollMany('seed-4d6kh3', singleOutcome(3), 1);
     });
     expect(result.current.getHistory('seed-4d6kh3')).toEqual([3, 2, 1]);
     expect(result.current.lastResult('seed-4d6kh3')).toBe(3);
@@ -68,7 +68,7 @@ describe('useRollHistory', () => {
     const { result } = renderHook(() => useRollHistory(), { wrapper });
     act(() => {
       for (let i = 1; i <= HISTORY_LIMIT + 2; i++) {
-        result.current.roll('seed-4d6kh3', singleOutcome(i));
+        result.current.rollMany('seed-4d6kh3', singleOutcome(i), 1);
       }
     });
     const hist = result.current.getHistory('seed-4d6kh3');
@@ -90,10 +90,10 @@ describe('useRollHistory', () => {
     expect(ids).toHaveLength(2);
     const [a, b] = ids as [string, string];
     act(() => {
-      result.current.hist.roll(a, singleOutcome(11));
+      result.current.hist.rollMany(a, singleOutcome(11), 1);
     });
     act(() => {
-      result.current.hist.roll(b, singleOutcome(22));
+      result.current.hist.rollMany(b, singleOutcome(22), 1);
     });
     expect(result.current.hist.getHistory(a)).toEqual([11]);
     expect(result.current.hist.getHistory(b)).toEqual([22]);
@@ -109,7 +109,7 @@ describe('useRollHistory', () => {
     });
     const rowId = result.current.app.expressions[0]!.id;
     act(() => {
-      result.current.hist.roll(rowId, singleOutcome(7));
+      result.current.hist.rollMany(rowId, singleOutcome(7), 1);
     });
     expect(result.current.hist.getHistory(rowId)).toEqual([7]);
 

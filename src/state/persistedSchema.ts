@@ -352,12 +352,7 @@ function validateChartViews(
 
 function validateUi(v: unknown): PersistedState['ui'] {
   if (!isRecord(v)) return defaultUi();
-  const expandedId =
-    v.expandedId === null
-      ? null
-      : typeof v.expandedId === 'string'
-        ? v.expandedId
-        : null;
+  const expandedId = typeof v.expandedId === 'string' ? v.expandedId : null;
   const chartViews = validateChartViews(v);
   const target = validateTarget(v.target);
   const view = isOneOf(v.view, WORKSHOP_VIEWS) ? v.view : 'table';

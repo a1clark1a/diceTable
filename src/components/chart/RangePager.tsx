@@ -16,7 +16,7 @@ interface RangePagerProps {
   what: string;
   onPage: (page: number) => void;
   /** Explanation hung on the caption itself, where the words it explains are. */
-  tip?: React.ReactNode;
+  tip: React.ReactNode;
 }
 
 /**
@@ -43,11 +43,7 @@ export function RangePager({
   );
   return (
     <HStack gap={1} fontSize="xs" color="fg.muted" w="100%">
-      {tip === undefined ? (
-        caption
-      ) : (
-        <HelpTerm tip={tip}>{caption}</HelpTerm>
-      )}
+      <HelpTerm tip={tip}>{caption}</HelpTerm>
       <HStack gap={0} ms="auto" flexShrink={0}>
         <IconButton
           size="xs"

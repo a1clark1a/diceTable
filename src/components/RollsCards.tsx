@@ -505,7 +505,7 @@ const RollCard = memo(function RollCard({
             value={
               !stats.hasDist ? (
                 EM_DASH
-              ) : deltaMode && comparison !== null ? (
+              ) : deltaMode ? (
                 <HStack as="span" gap={3} justify="center">
                   <DeltaValue
                     text={formatDelta(meanDelta, 2)}

@@ -181,6 +181,32 @@ describe('validatePersistedState', () => {
     });
   });
 
+  it('keeps a stored expandedId that is a string', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, expandedId: 'expr-1' },
+    });
+    expect(result!.ui.expandedId).toBe('expr-1');
+  });
+
+  it('keeps an explicitly null expandedId null', () => {
+    const result = validatePersistedState({
+      ...validPayload,
+      ui: { ...validPayload.ui, expandedId: null },
+    });
+    expect(result!.ui.expandedId).toBeNull();
+  });
+
+  it('nulls an expandedId that is not a string', () => {
+    for (const bad of [42, true, {}, [], undefined]) {
+      const result = validatePersistedState({
+        ...validPayload,
+        ui: { ...validPayload.ui, expandedId: bad },
+      });
+      expect(result!.ui.expandedId).toBeNull();
+    }
+  });
+
   it('keeps a baselineId that matches a validated expression', () => {
     const result = validatePersistedState({
       ...validPayload,

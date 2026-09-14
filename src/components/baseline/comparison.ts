@@ -60,13 +60,3 @@ export function comparisonFor(
     hits,
   };
 }
-
-/** Null when no baseline is pinned or the pinned row has no usable distribution. */
-export function buildBaselineComparison(
-  expressions: Expression[],
-  baselineId: string | null,
-  target: TargetState,
-  poolTargets: number[],
-): BaselineComparison | null {
-  return comparisonFor(baselineRowOf(expressions, baselineId), target, poolTargets);
-}

@@ -11,7 +11,6 @@ export interface DistributionTableProps {
   mean?: number;
   modes?: number[];
   shadeRange?: { lo: number; hi: number };
-  filter?: (value: number, p: number) => boolean;
   showWeighted?: boolean;
   showCumulative?: boolean;
   order?: DistOrder;
@@ -36,7 +35,6 @@ export function DistributionTable({
   mean,
   modes,
   shadeRange,
-  filter,
   showWeighted = false,
   showCumulative = true,
   order = 'value-asc',
@@ -73,11 +71,9 @@ export function DistributionTable({
     };
   });
 
-  const filtered = filter ? allRows.filter((r) => filter(r.value, r.p)) : allRows;
-
-  let displayRows = filtered;
+  let displayRows = allRows;
   if (order === 'prob-desc') {
-    displayRows = [...filtered].sort((a, b) => b.p - a.p || a.value - b.value);
+    displayRows = [...allRows].sort((a, b) => b.p - a.p || a.value - b.value);
   }
   if (limit !== undefined && displayRows.length > limit) {
     displayRows = displayRows.slice(0, limit);

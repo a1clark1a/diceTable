@@ -371,36 +371,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, [setState]);
 
-  const duplicateExpression = useCallback(
-    (id: string) => {
-      setState((prev) => {
-        const source = prev.expressions.find((e) => e.id === id);
-        if (!source) return prev;
-        if (prev.expressions.length >= MAX_EXPRESSIONS) {
-          toaster.create({
-            type: 'info',
-            title: `Up to ${MAX_EXPRESSIONS} rolls`,
-            description: 'Delete a row to add another.',
-          });
-          return prev;
-        }
-        const copy: Expression = {
-          ...reIdExpression(source),
-          name: `${source.name} (copy)`,
-        };
-        const idx = prev.expressions.findIndex((e) => e.id === id);
-        const next = [...prev.expressions];
-        next.splice(idx + 1, 0, copy);
-        return {
-          ...prev,
-          expressions: next,
-          ui: { ...prev.ui, expandedId: copy.id },
-        };
-      });
-    },
-    [setState],
-  );
-
   const deleteExpression = useCallback(
     (id: string) => {
       setState((prev) => {
@@ -432,7 +402,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (id: string, patch: ExpressionPatch) => {
       updateExpressionInList(id, (e) => {
         const next: Expression = { ...e };
-        if (patch.name !== undefined) next.name = patch.name;
         if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
         // Switching modes only seeds what the new mode needs; the fields the
@@ -592,7 +561,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTarget,
       setPoolTargets,
       addExpression,
-      duplicateExpression,
       deleteExpression,
       renameExpression,
       updateExpression,
@@ -616,7 +584,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTarget,
       setPoolTargets,
       addExpression,
-      duplicateExpression,
       deleteExpression,
       renameExpression,
       updateExpression,

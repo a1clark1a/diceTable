@@ -458,7 +458,7 @@ export default function OverlayChartImpl({
               name nothing, and at this weight and opacity they only fray the
               mass the field exists to show. The lit curve has no one to be told
               apart from. */}
-          {field && pen !== null
+          {field
             ? plotted.map((s) => (
                 <Line
                   key={s.id}
@@ -531,7 +531,7 @@ export default function OverlayChartImpl({
               being last in this array would not put a stroke on top of them;
               a different zIndex is a different portal, which does. It stays
               mounted with nothing to draw so that layer is registered once. */}
-          {field && pen !== null && (
+          {field && (
             <Line
               key="dt-lit-overlay"
               className={LIT_CLASS}

@@ -20,7 +20,6 @@ import type {
 } from '../types';
 
 export type ExpressionPatch = {
-  name?: string;
   flatModifier?: number;
   rollMode?: RollMode;
   mode?: ExpressionMode;
@@ -65,7 +64,6 @@ export interface AppContextValue {
   setTargetSort: (sort: GridSort | null) => void;
   setRollOffSort: (sort: RollOffSort) => void;
   addExpression: () => void;
-  duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
