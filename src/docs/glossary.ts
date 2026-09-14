@@ -234,9 +234,9 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Mode',
     group: 'statistics',
     plain:
-      'The result(s) you’ll see most often. When many results are equally likely, only a few are shown. Click to see all of them.',
+      'The result(s) you’ll see most often. A roll can have more than one when several results tie for the top spot.',
     details:
-      'A flat distribution (like a single d20) has no single mode: every face is equally likely. Sums of multiple dice peak in the middle, so the mode is usually close to the mean. When a few results tie for the top spot, the cell shows the first couple and lets you click through to see the rest.',
+      'A flat distribution (like a single d20) has no single mode: every face is equally likely. Sums of multiple dice peak in the middle, so the mode is usually close to the mean. To see which results those are, tap a roll’s notation to open its distribution: the most likely ones are highlighted in the list.',
   },
   {
     id: 'range',
