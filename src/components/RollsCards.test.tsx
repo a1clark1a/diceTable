@@ -6,6 +6,11 @@ import { openParams } from '../test/params';
 import { RollHistoryProvider } from '../state/RollHistoryContext';
 import { RollsCards } from './RollsCards';
 import { TargetToolbar } from './TargetToolbar';
+// The inspect dialog renders its body behind React.lazy. Loading that module
+// here puts it in the registry before any test runs, so the dynamic import
+// resolves from cache instead of racing a cold recharts transform against the
+// query timeout while the rest of the suite saturates the machine.
+import './inspect/InspectChartBody';
 
 function seedState(opts: {
   targetValues: number[];
