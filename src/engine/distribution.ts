@@ -95,14 +95,6 @@ export function convolveMany(dists: Distribution[]): Distribution {
   return acc;
 }
 
-export function pruneSmall(dist: Distribution, epsilon: number = EPSILON): Distribution {
-  const result = new Map<number, number>();
-  for (const [k, p] of dist) {
-    if (p > epsilon) result.set(k, p);
-  }
-  return result;
-}
-
 export function sortedKeys(dist: Distribution): number[] {
   return [...dist.keys()].sort((a, b) => a - b);
 }

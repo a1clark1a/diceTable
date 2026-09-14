@@ -22,6 +22,12 @@ export function useShareLinkAutoload(): void {
       if (location.pathname !== '/') {
         navigate('/', { replace: true });
       }
+    } else if (result.error === 'version-too-new') {
+      toaster.create({
+        type: 'error',
+        title: 'This link needs a newer version',
+        description: 'Reload the page and open it again.',
+      });
     } else {
       toaster.create({
         type: 'error',

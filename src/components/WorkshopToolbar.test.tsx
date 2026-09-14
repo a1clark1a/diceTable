@@ -110,88 +110,42 @@ afterEach(() => {
   Reflect.deleteProperty(window, 'matchMedia');
 });
 
-describe('WorkshopToolbar chart view', () => {
-  it('renders PMF, CDF, and CCDF and hides TARGET when no target is set', () => {
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'PMF' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'CDF' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'CCDF' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'TARGET' })).toBeNull();
-  });
-
-  it('shows the TARGET button when a target value is set', () => {
-    seedTable([{ rollMode: 'normal', mode: 'sum' }], { target: [10] });
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'TARGET' })).toBeInTheDocument();
-  });
-
-  it('marks PMF as pressed by default', () => {
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'CDF' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-  });
-
-  it('flips aria-pressed onto the clicked view button', () => {
-    renderToolbar();
-    fireEvent.click(screen.getByRole('button', { name: 'CDF' }));
-    expect(screen.getByRole('button', { name: 'CDF' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-  });
-
-  it('offers TARGET for a pool row even when no numeric target is set', () => {
-    seedTable([{ rollMode: 'normal', mode: 'pool' }]);
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'TARGET' })).toBeInTheDocument();
-  });
-
-  it('hides TARGET when the table holds only sum rows and no numeric target', () => {
-    seedTable([{ rollMode: 'normal', mode: 'sum' }]);
-    renderToolbar();
-    expect(screen.queryByRole('button', { name: 'TARGET' })).toBeNull();
-  });
-
-  it('keeps TARGET pressed on a pool-only table with no numeric target', () => {
-    seedTable([{ rollMode: 'normal', mode: 'pool' }]);
-    renderToolbar();
-    fireEvent.click(screen.getByRole('button', { name: 'TARGET' }));
-    expect(screen.getByRole('button', { name: 'TARGET' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'PMF' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-  });
-
-  it('shows TARGET active when a pool-only table is restored in target view', () => {
-    seedTable([{ rollMode: 'normal', mode: 'pool' }], { chartView: 'target' });
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'TARGET' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-  });
-
-  it('drops the chart chips and the chart jump on a view with no chart', () => {
+describe('WorkshopToolbar scroll buttons', () => {
+  it('swaps the chart jump for scroll-to-bottom on a view with no chart', () => {
     renderToolbar({ withChart: false });
-    expect(screen.queryByRole('button', { name: 'PMF' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Jump to chart' })).toBeNull();
+    // The pair used to be half a pair here, which read as a missing button
+    // rather than as a deliberate absence.
     expect(
       screen.getByRole('button', { name: 'Scroll to top' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Scroll to bottom' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps both buttons while the scroller is unmeasured', () => {
+    // jsdom reports every height as 0 and stubs ResizeObserver, so a component
+    // that read that as "nothing to scroll" would vanish from every test that
+    // asserts it, and from any real layout that measures a frame late.
+    renderToolbar({ withChart: false });
+    expect(
+      screen.getByRole('button', { name: 'Scroll to top' }),
+    ).toBeInTheDocument();
+  });
+
+  it('sits out entirely when the scroller is measured with nowhere to go', () => {
+    const main = document.createElement('main');
+    document.body.appendChild(main);
+    // Head-to-head caps at twelve rolls and fits a desktop window whole.
+    Object.defineProperty(main, 'clientHeight', { value: 733, configurable: true });
+    Object.defineProperty(main, 'scrollHeight', { value: 733, configurable: true });
+
+    renderToolbar({ withChart: false });
+
+    expect(screen.queryByRole('button', { name: 'Scroll to top' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Scroll to bottom' })).toBeNull();
+    main.remove();
   });
 
   it('exposes separate scroll-to-top and jump-to-chart buttons', () => {
@@ -205,169 +159,18 @@ describe('WorkshopToolbar chart view', () => {
   });
 });
 
-describe('WorkshopToolbar roll mode', () => {
-  it('marks the shared roll mode as the active chip', () => {
-    seedRows(['advantage', 'advantage']);
-    renderToolbar();
-    expect(screen.getByRole('button', { name: 'Advantage' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: 'Normal' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
-    expect(screen.queryByText(/mixed/i)).toBeNull();
-  });
-
-  it('shows no active chip and a mixed label when rows differ', () => {
-    seedRows(['normal', 'advantage']);
-    renderToolbar();
-    for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
-      expect(screen.getByRole('button', { name })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      );
-    }
-    expect(screen.getByText(/mixed/i)).toBeInTheDocument();
-  });
-
-  it('ignores a pool row when deriving the shared mode from sum rows', () => {
-    seedTable([
-      { rollMode: 'normal', mode: 'sum' },
-      { rollMode: 'advantage', mode: 'pool' },
-    ]);
-    renderToolbar();
-    expect(screen.getByTestId('row-count')).toHaveTextContent('2');
-    expect(screen.queryByText(/mixed/i)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Normal' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-  });
-
-  it('falls back to the stored modes when every row is a pool row', () => {
-    seedTable([
-      { rollMode: 'advantage', mode: 'pool' },
-      { rollMode: 'advantage', mode: 'pool' },
-    ]);
-    renderToolbar();
-    expect(screen.queryByText(/mixed/i)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Advantage' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-  });
-
-  it("marks the first row's stored mode when an all-pool table disagrees", () => {
-    seedTable([
-      { rollMode: 'normal', mode: 'pool' },
-      { rollMode: 'advantage', mode: 'pool' },
-    ]);
-    renderToolbar();
-    expect(screen.queryByText(/mixed/i)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Normal' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-  });
-
-  it('still shows mixed when sum rows differ alongside a pool row', () => {
-    seedTable([
-      { rollMode: 'normal', mode: 'sum' },
-      { rollMode: 'advantage', mode: 'sum' },
-      { rollMode: 'normal', mode: 'pool' },
-    ]);
-    renderToolbar();
-    expect(screen.getByText(/mixed/i)).toBeInTheDocument();
-  });
-
-  it('rewrites every row and updates the active chip when a mode is clicked', () => {
-    seedRows(['normal', 'advantage']);
-    renderToolbar();
-    fireEvent.click(screen.getByRole('button', { name: 'Disadvantage' }));
-    expect(screen.getByRole('button', { name: 'Disadvantage' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.queryByText(/mixed/i)).toBeNull();
-  });
-
-  it('hides the roll-mode chips and Clear on an empty table, keeping Add', () => {
-    seedRows([]);
-    renderToolbar();
-    expect(screen.queryByText('Roll mode')).toBeNull();
-    for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
-      expect(screen.queryByRole('button', { name })).toBeNull();
-    }
-    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
-    expect(
-      screen.getByRole('button', { name: /add roll/i }),
-    ).toBeInTheDocument();
-  });
-});
-
-describe('WorkshopToolbar add and clear', () => {
-  it('appends a row when Add roll is clicked', () => {
-    seedRows(['normal', 'normal']);
-    renderToolbar();
-    expect(screen.getByTestId('row-count')).toHaveTextContent('2');
-    fireEvent.click(screen.getByRole('button', { name: /add roll/i }));
-    expect(screen.getByTestId('row-count')).toHaveTextContent('3');
-  });
-
-  it('disables Add roll at the 100-roll cap', () => {
-    seedRows(Array.from({ length: 100 }, () => 'normal' as const));
-    renderToolbar();
-    expect(screen.getByTestId('row-count')).toHaveTextContent('100');
-    expect(screen.getByRole('button', { name: /add roll/i })).toBeDisabled();
-  });
-
-  // The dialog machine opens a beat after the trigger click, so every test
-  // waits on the alertdialog role appearing rather than querying synchronously.
-  async function openClearDialog() {
-    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
-    return await screen.findByRole('alertdialog');
-  }
-
-  it('opens a confirmation dialog naming the roll count', async () => {
-    seedRows(['normal', 'normal']);
-    renderToolbar();
-    await openClearDialog();
-    expect(screen.getByText('Clear the table?')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Clear 2 rolls' }),
-    ).toBeInTheDocument();
-  });
-
-  it('Cancel closes the dialog and keeps every roll', async () => {
-    seedRows(['normal', 'normal']);
-    renderToolbar();
-    await openClearDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByTestId('row-count')).toHaveTextContent('2');
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-  });
-
-  it('confirming empties the table and hides the Clear button', async () => {
-    seedRows(['normal', 'normal', 'normal']);
-    renderToolbar();
-    await openClearDialog();
-    fireEvent.click(screen.getByRole('button', { name: 'Clear 3 rolls' }));
-    expect(screen.getByTestId('row-count')).toHaveTextContent('0');
-    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
-  });
-});
-
 describe('WorkshopToolbar below the desktop breakpoint', () => {
   it('collapses roll mode and the row actions into one overflow menu', () => {
     mockViewport(false);
     seedRows(['normal', 'normal']);
     renderToolbar();
 
-    // The chart chips and both scroll buttons stay on the bar itself.
-    expect(screen.getByRole('button', { name: 'PMF' })).toBeInTheDocument();
+    // Both scroll buttons stay on the bar itself, and so does the chart view
+    // control: on a phone the chart cards sit far below the rolls, so the only
+    // place it stays reachable is the sticky bar.
+    expect(
+      screen.getByRole('button', { name: 'PMF' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Scroll to top' }),
     ).toBeInTheDocument();

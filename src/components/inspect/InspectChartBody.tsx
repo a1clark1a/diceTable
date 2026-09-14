@@ -135,9 +135,9 @@ export default function InspectChartBody({
   color,
   target,
 }: InspectChartBodyProps) {
-  const { chartView } = useApp();
+  const { chartViews } = useApp();
   const effectiveView = effectiveChartView(
-    chartView,
+    chartViews.shape,
     target.values.length > 0,
   );
 
@@ -195,8 +195,10 @@ export default function InspectChartBody({
             data={data}
             margin={{ top: 16, right: 16, bottom: 8, left: 0 }}
           >
+            {/* Solid hairline, not dashed: dash patterns are spent on series
+                identity here (seriesDash), so a dashed grid competes with the
+                one cue that survives colour blindness. */}
             <CartesianGrid
-              strokeDasharray="3 3"
               stroke="var(--chakra-colors-border-subtle)"
               vertical={false}
             />

@@ -11,11 +11,17 @@ export function AppShell() {
       <Navbar />
       <Box as="main" flex="1" minH={0} overflowY="auto">
         <Box
-          maxW="1200px"
-          mx="auto"
           w="100%"
-          px={{ base: 3, md: 6 }}
-          py={{ base: 3, md: 6 }}
+          minH="100%"
+          // A definite height only where a view divides it and scrolls inside
+          // itself, which is the two-column table layout at 2xl. Below that
+          // nothing scrolls internally, so a fixed height would clip the page
+          // and leave its sections painting over each other.
+          h={{ base: 'auto', '2xl': '100%' }}
+          display="flex"
+          flexDirection="column"
+          px={3}
+          py={{ base: 3, md: 4 }}
         >
           <Outlet />
         </Box>

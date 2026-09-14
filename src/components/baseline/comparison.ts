@@ -19,29 +19,28 @@ export interface BaselineComparison {
    * shared pool target. Null when no targets are set.
    */
   hits: number[] | null;
-  /**
-   * Largest absolute delta among same-scale rows, shared so bar lengths in a
-   * column are comparable between rows.
-   */
-  maxMeanDelta: number;
-  maxSigmaDelta: number;
-  /**
-   * Largest absolute Hit % delta across every comparing row (hit chances stay
-   * comparable across scales, so cross-scale rows count too). Zero when the
-   * baseline has no hit chance to compare against.
-   */
-  maxHitDelta: number;
 }
 
-/** Null when no baseline is pinned or the pinned row has no usable distribution. */
-export function buildBaselineComparison(
+/** The pinned row itself, which is the only row the comparison reads. */
+export function baselineRowOf(
   expressions: Expression[],
   baselineId: string | null,
+): Expression | undefined {
+  if (baselineId === null) return undefined;
+  return expressions.find((e) => e.id === baselineId);
+}
+
+/**
+ * Split from the lookup so a caller can depend on the pinned row rather than on
+ * the whole list. The comparison reads exactly one row, so keying it on the
+ * array rebuilds it whenever any other row is edited, which hands every row a
+ * fresh object and defeats the memo on all of them.
+ */
+export function comparisonFor(
+  baseline: Expression | undefined,
   target: TargetState,
   poolTargets: number[],
 ): BaselineComparison | null {
-  if (baselineId === null) return null;
-  const baseline = expressions.find((e) => e.id === baselineId);
   if (baseline === undefined) return null;
   const { stats, tooComplex } = getRowData(baseline);
   if (!stats.hasDist || tooComplex) return null;
@@ -53,51 +52,11 @@ export function buildBaselineComparison(
       ? null
       : target.values.map((v) => hitProbability(stats.dist, v, target.ruling));
 
-  let maxMeanDelta = 0;
-  let maxSigmaDelta = 0;
-  let maxHitDelta = 0;
-  for (const expr of expressions) {
-    if (expr.id === baselineId) continue;
-    const row = getRowData(expr);
-    if (!row.stats.hasDist || row.tooComplex) continue;
-
-    const rowIsPool = expr.mode === 'pool';
-    if (rowIsPool === isPool) {
-      maxMeanDelta = Math.max(
-        maxMeanDelta,
-        Math.abs(row.stats.mean - stats.mean),
-      );
-      maxSigmaDelta = Math.max(
-        maxSigmaDelta,
-        Math.abs(row.stats.stddev - stats.stddev),
-      );
-    }
-
-    if (hits !== null) {
-      // Mirror what the Hit % cells display: a row sharing the baseline's scale
-      // compares target for target down the list; across scales the two lists
-      // measure different things, so both fall back to their first entry.
-      const rowHits = rowIsPool
-        ? poolTargets.map((n) => hitProbability(row.stats.dist, n, 'gte'))
-        : target.values.map((v) =>
-            hitProbability(row.stats.dist, v, target.ruling),
-          );
-      for (const [i, rowHit] of rowHits.entries()) {
-        const baseHit = rowIsPool === isPool ? hits[i] : hits[0];
-        if (baseHit === undefined) continue;
-        maxHitDelta = Math.max(maxHitDelta, Math.abs(rowHit - baseHit));
-      }
-    }
-  }
-
   return {
     id: baseline.id,
     name: baseline.name,
     isPool,
     stats,
     hits,
-    maxMeanDelta,
-    maxSigmaDelta,
-    maxHitDelta,
   };
 }

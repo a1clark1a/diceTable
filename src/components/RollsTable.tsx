@@ -1,11 +1,9 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, type ReactNode } from 'react';
 import {
-  Badge,
   Box,
   Button,
   HStack,
   IconButton,
-  Input,
   Stack,
   Table,
   Text,
@@ -26,9 +24,7 @@ import {
 import { Tooltip } from './ui/tooltip';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import {
-  CheckBadge,
   CheckSucceedsChip,
-  PoolBadge,
   ExpressionModeToggle,
   PoolThresholdEditor,
 } from './editor/PoolControls';
@@ -45,19 +41,105 @@ import {
 } from './chart/format';
 import {
   STAT_DELTA_EPS,
-  buildBaselineComparison,
+  baselineRowOf,
+  comparisonFor,
   type BaselineComparison,
 } from './baseline/comparison';
-import { buildVerdict } from './baseline/verdict';
-import { DeltaLine } from './baseline/DeltaLine';
+import { buildRowCompare } from './baseline/rowCompare';
+import { ComparePopover } from './baseline/ComparePopover';
+import { BASELINE_BAND_COLOR, BASELINE_BAND_WIDTH } from './baseline/band';
+import { DELTA_SLOT, DeltaValue, STAT_COLUMN } from './baseline/DeltaLine';
 import { HitLine } from './HitLine';
 import { avgDeltaAria, spreadDeltaAria } from './baseline/deltaText';
 import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
+import { FlushedInput } from './FlushedInput';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
+
+// The notation's own column inside the Dice cell. Fixed, because a mode chip
+// that starts wherever the expression happens to end reads as a different
+// control on every row.
+const EXPRESSION_COLUMN = '165px';
+
+// Range and the shape sparkline are the two columns the chart underneath
+// already shows, so they are the two the table can spare when it is the width
+// that is scarce. Dropping them keeps the row actions on screen between the
+// point the table appears and xl, where the full set fits on its own.
+const WIDE_ONLY = { base: 'none', xl: 'table-cell' } as const;
+
+// The chips' slot beside it. Fixed for the same reason, and wide enough that a
+// pool or check row never wraps its extra chip onto a second line and grows
+// the row. A table of nothing but sum rows has no extra chip to fit, so it
+// gets the narrow slot instead of reserving room nothing will use.
+const STYLE_COLUMN = '260px';
+const STYLE_COLUMN_SUM_ONLY = '160px';
+
+// A row is one line of content plus 6px either side. Stacking anything inside a
+// cell is what used to make rows 74px.
+const CELL_RHYTHM = {
+  '& td, & th': { paddingTop: '1.5', paddingBottom: '1.5', paddingInline: '2' },
+} as const;
+
+// Every declaration here has to target the cells rather than the row. Chakra's
+// own th rule sets color and font-weight, and a value inherited from the row
+// loses to it, which is how the labels ended up fg at weight 500.
+// The background belongs on the cells for a second reason: a sticky th paints
+// over the rows arriving beneath it, and a transparent one lets them through.
+const COLUMN_HEADER_TYPE = {
+  '& th': {
+    fontFamily: 'mono',
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    color: 'fg.muted',
+    position: 'sticky',
+    top: 0,
+    // Above the pinned row-actions cells, which are sticky at 1: at 2xl the rows
+    // scroll under this header, and a tie hands the paint to the tbody for
+    // coming later in the document. This rule is a descendant selector, so it
+    // also outranks any zIndex set on a header cell itself.
+    zIndex: 2,
+    bg: 'bg.subtle',
+  },
+} as const;
+
+// The row actions are pinned to the right edge rather than left to fit. The
+// table's width grows with the number of targets, so no breakpoint can promise
+// this column stays on screen, and it is the one holding delete. Pinning it is
+// the only answer that holds at every width and every target count.
+const STICKY_ACTIONS = {
+  position: 'sticky',
+  right: 0,
+  borderLeftWidth: '1px',
+  borderLeftColor: 'border.subtle',
+} as const;
+
+// Uppercasing is a CSS transform, so anything that is already a distinct
+// glyph or a name the user typed has to opt out of it.
+const KEEP_CASE = { textTransform: 'none' } as const;
+
+function DeltaSubLabel({ tip, children }: { tip: string; children: ReactNode }) {
+  return (
+    <HelpTerm tip={tip}>
+      <Text
+        as="span"
+        fontSize="9px"
+        fontWeight="500"
+        letterSpacing="0.09em"
+        color="fg.subtle"
+        display="inline-block"
+        minW={DELTA_SLOT}
+        textAlign="end"
+      >
+        {children}
+      </Text>
+    </HelpTerm>
+  );
+}
 
 function parseMod(raw: string): number {
   const trimmed = raw.trim();
@@ -83,7 +165,7 @@ export function RollsTable() {
   const {
     expressions,
     expandedId,
-    chartView,
+    chartViews,
     target,
     poolTargets,
     baselineId,
@@ -99,51 +181,100 @@ export function RollsTable() {
   // even with the numeric target list empty.
   const showHit =
     target.values.length > 0 || expressions.some((e) => e.mode === 'pool');
+  const styleColumn = expressions.some((e) => e.mode !== 'sum')
+    ? STYLE_COLUMN
+    : STYLE_COLUMN_SUM_ONLY;
   const atCap = expressions.length >= MAX_EXPRESSIONS;
+  // Keyed on the pinned row, not on the list. AppContext returns untouched rows
+  // by reference, so editing any other row leaves this identical and every row's
+  // memo survives; keying it on the array rebuilt it on every keystroke.
+  const baselineRow = baselineRowOf(expressions, baselineId);
   const comparison = useMemo(
-    () => buildBaselineComparison(expressions, baselineId, target, poolTargets),
-    [expressions, baselineId, target, poolTargets],
+    () => comparisonFor(baselineRow, target, poolTargets),
+    [baselineRow, target, poolTargets],
   );
 
   return (
-    <Stack gap={3}>
+    <Stack gap={3} minH={0} flex="1">
       <Box
         bg="bg.panel"
-        borderWidth="1px"
+        borderBottomWidth="1px"
         borderColor="border.subtle"
-        borderRadius="md"
+        flex={{ base: 1, '2xl': '0 1 auto' }}
+        // Shrinking below its rows is what moves the scroll inside the box,
+        // so the toolbar and the row actions above it stay put instead of
+        // riding the page up out of reach.
+        minH={{ '2xl': 0 }}
         overflow="hidden"
       >
         {/* Tables cannot shrink below min-content; without a scroll fallback
             the overflow:hidden panel would clip the rightmost columns
             unreachably at narrow desktop widths. */}
-        <Table.ScrollArea>
-          <Table.Root size="sm" variant="line" striped={false}>
-          <Table.Header>
+        <Table.ScrollArea h={{ base: 'auto', '2xl': '100%' }}>
+          <Table.Root size="sm" variant="line" striped={false} css={CELL_RHYTHM}>
+          <Table.Header css={COLUMN_HEADER_TYPE}>
             <Table.Row bg="bg.subtle">
+              {/* The one elastic column. Every other column sizes to its
+                  content, so a table wider than it needs puts the surplus
+                  into the roll names rather than between two columns. */}
               <Table.ColumnHeader
-                borderLeftWidth="3px"
+                borderLeftWidth={BASELINE_BAND_WIDTH}
                 borderLeftColor="transparent"
+                w="100%"
+                minW="190px"
               >
                 Name
               </Table.ColumnHeader>
-              <Table.ColumnHeader>Dice</Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
+              <Table.ColumnHeader>
+                {/* Two labels over one column: the chips sit in a fixed slot
+                    beside the notation, so without a second label they read as
+                    an unnamed column of their own. */}
+                <HStack as="span" gap={3}>
+                  <Box as="span" w={EXPRESSION_COLUMN} flexShrink={0}>
+                    Dice
+                  </Box>
+                  <Box as="span" w={styleColumn} flexShrink={0}>
+                    <HelpTerm tip={tipForId('rollStyle')}>Style</HelpTerm>
+                  </Box>
+                </HStack>
+              </Table.ColumnHeader>
+              <Table.ColumnHeader textAlign="end" w="58px">
                 <HelpTerm tip={tipForId('mod')}>Mod</HelpTerm>
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
+              {/* Fixed width and one line in both states. Content-sizing this
+                  column is what let pinning a baseline reflow the table, and
+                  naming the baseline here made the width follow its name. The
+                  caption above the table already says which roll it is. */}
+              <Table.ColumnHeader
+                textAlign="end"
+                w={STAT_COLUMN}
+                // w alone is only a suggestion under table-layout auto: the
+                // column still shrank to its content when no baseline was
+                // pinned, so pinning grew it 39px and the table 9px once the
+                // elastic name column hit its floor. minW is what binds.
+                minW={STAT_COLUMN}
+                whiteSpace="nowrap"
+              >
                 {comparison !== null ? (
-                  <HelpTerm tip={tipForId('baseline')}>
-                    vs {comparison.name}
-                  </HelpTerm>
+                  <HStack as="span" gap={4} justify="flex-end">
+                    <DeltaSubLabel tip={tipForId('deltaAvg')}>Avg</DeltaSubLabel>
+                    <DeltaSubLabel tip={tipForId('deltaSpread')}>
+                      Spread
+                    </DeltaSubLabel>
+                  </HStack>
                 ) : (
-                  <HelpTerm tip={tipForId('meanSigma')}>Mean ± σ</HelpTerm>
+                  <HelpTerm tip={tipForId('meanSigma')}>
+                    Mean ±{' '}
+                    <Text as="span" css={KEEP_CASE}>
+                      σ
+                    </Text>
+                  </HelpTerm>
                 )}
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="end">
+              <Table.ColumnHeader textAlign="end" w="54px" display={WIDE_ONLY}>
                 <HelpTerm tip={tipForId('range')}>Range</HelpTerm>
               </Table.ColumnHeader>
-              <Table.ColumnHeader textAlign="center" w="100px">
+              <Table.ColumnHeader textAlign="center" w="88px" display={WIDE_ONLY}>
                 <ShapeHeaderLabel />
               </Table.ColumnHeader>
               {showHit && (
@@ -162,7 +293,11 @@ export function RollsTable() {
                   </HStack>
                 </Table.ColumnHeader>
               )}
-              <Table.ColumnHeader textAlign="end" w="160px">
+              <Table.ColumnHeader
+                textAlign="end"
+                w="140px"
+                {...STICKY_ACTIONS}
+              >
                 {' '}
               </Table.ColumnHeader>
             </Table.Row>
@@ -175,11 +310,12 @@ export function RollsTable() {
                 idx={idx}
                 expanded={expandedId === expr.id}
                 showHit={showHit}
-                chartView={chartView}
+                chartView={chartViews.shape}
                 target={target}
                 poolTargets={poolTargets}
                 baselineId={baselineId}
                 comparison={comparison}
+                styleColumn={styleColumn}
                 setExpandedId={setExpandedId}
                 setBaselineId={setBaselineId}
                 deleteExpression={deleteExpression}
@@ -191,7 +327,7 @@ export function RollsTable() {
               <Table.Cell
                 colSpan={showHit ? 8 : 7}
                 py={3}
-                borderLeftWidth="3px"
+                borderLeftWidth={BASELINE_BAND_WIDTH}
                 borderLeftColor="transparent"
               >
                 <Tooltip
@@ -230,6 +366,7 @@ interface RollTableRowProps {
   poolTargets: number[];
   baselineId: string | null;
   comparison: BaselineComparison | null;
+  styleColumn: string;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
   deleteExpression: (id: string) => void;
@@ -247,6 +384,7 @@ const RollTableRow = memo(function RollTableRow({
   poolTargets,
   baselineId,
   comparison,
+  styleColumn,
   setExpandedId,
   setBaselineId,
   deleteExpression,
@@ -289,6 +427,10 @@ const RollTableRow = memo(function RollTableRow({
   const deltasActive = comparison !== null && !isBaseline && rowOk;
   const sameScale = comparison === null || isPool === comparison.isPool;
   const baselineAccent = isBaseline && comparison !== null;
+  // The pinned actions cell cannot inherit the row's background, so both
+  // states are named once and used in both places.
+  const rowBg = baselineAccent ? 'bg.muted' : 'bg';
+  const rowHoverBg = baselineAccent ? 'bg.muted' : 'bg.subtle';
   const meanDelta =
     comparison !== null ? stats.mean - comparison.stats.mean : 0;
   const sigmaDelta =
@@ -299,17 +441,16 @@ const RollTableRow = memo(function RollTableRow({
     if (comparison === null || comparison.hits === null) return undefined;
     return isPool === comparison.isPool ? comparison.hits[i] : comparison.hits[0];
   };
-  const hitMax = comparison?.maxHitDelta ?? 0;
-  const verdict = deltasActive
-    ? buildVerdict({
-        mean: stats.mean,
-        stddev: stats.stddev,
+  const compare = deltasActive
+    ? buildRowCompare({
+        stats,
         isPool,
+        sameScale,
+        hasHitValue,
         firstHit: isPool ? (poolHits?.[0]?.p ?? null) : (hits?.[0] ?? null),
-        baseMean: comparison.stats.mean,
-        baseStddev: comparison.stats.stddev,
-        baseIsPool: comparison.isPool,
-        baseFirstHit: comparison.hits?.[0] ?? null,
+        comparison,
+        target,
+        poolTargets,
       })
     : null;
   const onToggleExpand = useCallback(
@@ -356,68 +497,52 @@ const RollTableRow = memo(function RollTableRow({
   return (
     <>
       <Table.Row
-        bg={baselineAccent ? 'bg.subtle' : undefined}
-        _hover={{ bg: 'bg.subtle' }}
+        bg={baselineAccent ? 'bg.muted' : undefined}
+        // Hover must not wash the pinned tint back out, and bg.subtle is a
+        // step below it, so the pinned row keeps its own colour on hover. The
+        // pinned actions cell paints itself, so it has to be repainted here or
+        // it keeps the resting colour while the rest of the row lifts.
+        _hover={{
+          bg: rowHoverBg,
+          '& [data-actions]': { bg: rowHoverBg },
+        }}
       >
-        {/* Transparent border on sum rows keeps every row's left edge aligned;
-            pool and check rows tint it as their identity band. A mode band wins
-            over the baseline band so a pinned row never hides its scale cue. */}
         <Table.Cell
-          borderLeftWidth="3px"
-          borderLeftColor={
-            isPool
-              ? 'purple.solid'
-              : isCheck
-                ? 'orange.solid'
-                : baselineAccent
-                  ? 'blue.solid'
-                  : 'transparent'
-          }
+          borderLeftWidth={BASELINE_BAND_WIDTH}
+          borderLeftColor={baselineAccent ? BASELINE_BAND_COLOR : 'transparent'}
         >
-          <Stack gap={1} align="flex-start">
-            <HStack gap={2} minW="200px">
-              <Box
-                w="10px"
-                h="10px"
-                borderRadius="2px"
-                bg={color}
-                flexShrink={0}
-              />
-              <Input
-                size="sm"
-                variant="subtle"
-                value={nameBuf.value}
-                onChange={(e) => nameBuf.setValue(e.target.value)}
-                onBlur={nameBuf.onBlur}
-                onKeyDown={nameBuf.onKeyDown}
-                maxW="220px"
-                aria-label="Roll name"
-              />
-              {isBaseline && (
-                <Tooltip content={tipForId('baseline')}>
-                  <Badge colorPalette="blue" variant="surface" flexShrink={0}>
-                    Baseline
-                  </Badge>
-                </Tooltip>
-              )}
-              {isPool && <PoolBadge />}
-              {isCheck && <CheckBadge />}
-            </HStack>
-            {verdict !== null && (
-              <Text
-                fontSize="xs"
-                color="fg.muted"
-                maxW="260px"
-                css={{ textWrap: 'pretty' }}
-              >
-                {verdict}
-              </Text>
-            )}
-          </Stack>
+          <HStack gap={2} minW="150px">
+            <Box
+              w="10px"
+              h="10px"
+              borderRadius="2px"
+              bg={color}
+              flexShrink={0}
+            />
+            <FlushedInput
+              size="sm"
+              h="32px"
+              value={nameBuf.value}
+              onChange={(e) => nameBuf.setValue(e.target.value)}
+              onBlur={nameBuf.onBlur}
+              onKeyDown={nameBuf.onKeyDown}
+              flex="1"
+              minW="150px"
+              fontWeight={isBaseline ? 'semibold' : undefined}
+              aria-label="Roll name"
+            />
+          </HStack>
         </Table.Cell>
         <Table.Cell>
-          <Stack gap={1} align="flex-start">
-            <Box fontFamily="mono" fontSize="xs" color="fg">
+          <HStack gap={3} align="center" flexWrap="nowrap">
+            <Box
+              w={EXPRESSION_COLUMN}
+              flexShrink={0}
+              fontFamily="mono"
+              fontSize="xs"
+              color="fg"
+              truncate
+            >
               <InspectDistribution
                 exprName={expr.name}
                 dist={stats.dist}
@@ -433,7 +558,7 @@ const RollTableRow = memo(function RollTableRow({
                 </Text>
               )}
             </Box>
-            <HStack gap={1} flexWrap="wrap">
+            <HStack gap={1} w={styleColumn} flexShrink={0}>
               <ExpressionModeToggle mode={expr.mode} onSelect={onModeChange} />
               {isPool && expr.successThreshold && (
                 <PoolThresholdEditor
@@ -443,15 +568,16 @@ const RollTableRow = memo(function RollTableRow({
               )}
               {isCheck && <CheckSucceedsChip chances={checkChances} />}
             </HStack>
-          </Stack>
+          </HStack>
         </Table.Cell>
         <Table.Cell textAlign="end">
           <Tooltip
             content={tipForId(isPool ? 'poolAutoSuccess' : 'checkModifier')}
             disabled={!isPool && !isCheck}
           >
-            <Input
+            <FlushedInput
               size="sm"
+              h="32px"
               type="text"
               inputMode="numeric"
               value={modBuf.value}
@@ -473,34 +599,28 @@ const RollTableRow = memo(function RollTableRow({
         >
           {!stats.hasDist ? (
             EM_DASH
-          ) : deltasActive && sameScale ? (
-            <Stack gap={0.5} align="flex-end">
-              <DeltaLine
-                label="avg"
-                tip={tipForId('deltaAvg')}
-                text={formatDelta(meanDelta, 2)}
-                ariaLabel={avgDeltaAria(
-                  meanDelta,
-                  deltaTone(meanDelta, STAT_DELTA_EPS),
-                )}
-                delta={meanDelta}
-                maxDelta={comparison.maxMeanDelta}
-                tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
-              />
-              <DeltaLine
-                label="spread"
-                tip={tipForId('deltaSpread')}
-                text={formatDelta(sigmaDelta, 2)}
-                ariaLabel={spreadDeltaAria(
-                  sigmaDelta,
-                  deltaTone(sigmaDelta, STAT_DELTA_EPS),
-                )}
-                delta={sigmaDelta}
-                maxDelta={comparison.maxSigmaDelta}
-                tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
-                neutralBar
-              />
-            </Stack>
+          ) : compare !== null && sameScale ? (
+            <ComparePopover compare={compare} variant="inline">
+              <HStack as="span" gap={4} justify="flex-end">
+                <DeltaValue
+                  text={formatDelta(meanDelta, 2)}
+                  ariaLabel={avgDeltaAria(
+                    meanDelta,
+                    deltaTone(meanDelta, STAT_DELTA_EPS),
+                  )}
+                  tone={deltaTone(meanDelta, STAT_DELTA_EPS)}
+                />
+                <DeltaValue
+                  text={formatDelta(sigmaDelta, 2)}
+                  ariaLabel={spreadDeltaAria(
+                    sigmaDelta,
+                    deltaTone(sigmaDelta, STAT_DELTA_EPS),
+                  )}
+                  tone={deltaTone(sigmaDelta, STAT_DELTA_EPS)}
+                  neutral
+                />
+              </HStack>
+            </ComparePopover>
           ) : (
             <>
               <InspectMean
@@ -523,17 +643,16 @@ const RollTableRow = memo(function RollTableRow({
               >
                 {formatNumber(stats.stddev, 2)}
               </InspectSigma>
-              {deltasActive && !sameScale && (
-                <Text
-                  fontSize="xs"
-                  color="fg.muted"
-                  fontFamily="body"
-                  css={{ textWrap: 'pretty' }}
-                >
-                  {hasHitValue
-                    ? 'different scale, compare Hit % instead'
-                    : 'different scale from the baseline'}
-                </Text>
+              {compare !== null && compare.crossScale && (
+                // The mean cell has 124px of content space and the widest value
+                // already takes 92, so there is no room for words on that line
+                // and a second line would grow the row. A 12px mark fits, and
+                // the sentence it stands for lives in the panel it opens.
+                <ComparePopover
+                  compare={compare}
+                  variant="mark"
+                  triggerProps={{ ms: 1 }}
+                />
               )}
             </>
           )}
@@ -541,11 +660,12 @@ const RollTableRow = memo(function RollTableRow({
         <Table.Cell
           textAlign="end"
           fontFamily="mono"
+          display={WIDE_ONLY}
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
           {stats.hasDist ? `${stats.min}–${stats.max}` : EM_DASH}
         </Table.Cell>
-        <Table.Cell textAlign="center" verticalAlign="middle">
+        <Table.Cell textAlign="center" verticalAlign="middle" display={WIDE_ONLY}>
           {stats.hasDist && !tooComplex ? (
             <InspectChart
               exprName={expr.name}
@@ -597,7 +717,6 @@ const RollTableRow = memo(function RollTableRow({
                       }
                       p={p}
                       baseHit={deltasActive ? baseHitFor(i) : undefined}
-                      maxDelta={hitMax}
                     />
                   ))}
                 </Stack>
@@ -620,14 +739,19 @@ const RollTableRow = memo(function RollTableRow({
                       : {})}
                     p={p}
                     baseHit={deltasActive ? baseHitFor(i) : undefined}
-                    maxDelta={hitMax}
                   />
                 ))}
               </Stack>
             )}
           </Table.Cell>
         )}
-        <Table.Cell textAlign="end">
+        <Table.Cell
+          textAlign="end"
+          data-actions=""
+          {...STICKY_ACTIONS}
+          zIndex={1}
+          bg={rowBg}
+        >
           <HStack gap={1} justify="flex-end" align="center">
             {!isPool && (
               <>
@@ -684,14 +808,8 @@ const RollTableRow = memo(function RollTableRow({
             colSpan={showHit ? 8 : 7}
             p={0}
             bg="bg.subtle"
-            borderLeftWidth="3px"
-            borderLeftColor={
-              isPool
-                ? 'purple.solid'
-                : baselineAccent
-                  ? 'blue.solid'
-                  : 'transparent'
-            }
+            borderLeftWidth={BASELINE_BAND_WIDTH}
+            borderLeftColor={baselineAccent ? BASELINE_BAND_COLOR : 'transparent'}
           >
             <RollExpand expression={expr} />
           </Table.Cell>

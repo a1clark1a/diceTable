@@ -53,12 +53,12 @@ function countOf(haystack: string, needle: string): number {
 describe('renderCard shell', () => {
   it('paints the ground rect at the height it was handed', () => {
     const { svg } = card({ height: 260 });
-    expect(svg).toContain('<rect x="0" y="0" width="920" height="260" fill="#ffffff"/>');
+    expect(svg).toContain('<rect x="0" y="0" width="920" height="260" fill="#f2f1ed"/>');
   });
 
   it('paints the ground in the palette it was handed', () => {
     const { svg } = card({ palette: shareCardPalette('dark') });
-    expect(svg).toContain(`width="920" height="${HEIGHT}" fill="#0b1220"/>`);
+    expect(svg).toContain(`width="920" height="${HEIGHT}" fill="#131519"/>`);
   });
 
   it('credits the app even on a card with nothing drawn on it', () => {
@@ -307,13 +307,13 @@ describe('panelHeading', () => {
   });
 
   it('uses the card text colour when no colour is given', () => {
-    expect(panelHeading('Totals', 100, LIGHT)).toContain('fill="#0f172a"');
+    expect(panelHeading('Totals', 100, LIGHT)).toContain('fill="#22221f"');
   });
 
   it('takes the colour it is given over the card text colour', () => {
-    const heading = panelHeading('Successes', 100, LIGHT, '#641ba3');
-    expect(heading).toContain('fill="#641ba3"');
-    expect(heading).not.toContain('#0f172a');
+    const heading = panelHeading('Successes', 100, LIGHT, '#5b3f94');
+    expect(heading).toContain('fill="#5b3f94"');
+    expect(heading).not.toContain('#22221f');
   });
 
   it('escapes a heading that looks like markup', () => {

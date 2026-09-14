@@ -16,6 +16,7 @@ import type { Distribution } from '../types';
 import { useRollHistory } from '../state/useRollHistory';
 import { EM_DASH } from './chart/format';
 import { tipForId } from '../docs/glossary';
+import { tapTarget } from './tapTarget';
 
 const MAX_COUNT = 1000;
 
@@ -101,6 +102,8 @@ export function RollPopover({
         <IconButton
           size={size}
           variant="ghost"
+          h={tapTarget('32px')}
+          minW={tapTarget('32px')}
           aria-label={`Roll ${exprName}`}
           title={
             disabled

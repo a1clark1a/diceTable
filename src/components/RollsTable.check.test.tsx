@@ -148,14 +148,6 @@ function renderIn(node: ReactNode) {
   return render(<Wrapper>{node}</Wrapper>);
 }
 
-// "Check" also labels the mode toggle's third chip, so the badge is the one
-// reading that is not itself a control.
-function checkBadges(): HTMLElement[] {
-  return screen
-    .queryAllByText('Check')
-    .filter((el) => el.closest('button') === null);
-}
-
 const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 beforeEach(() => {
@@ -171,23 +163,10 @@ afterAll(() => {
 });
 
 describe('RollsTable check row', () => {
-  it('renders a Check badge on a check row', () => {
-    seed([CHECK_ROW]);
-    renderIn(<RollsTable />);
-    expect(checkBadges()).toHaveLength(1);
-  });
-
   it('renders a succeeds chip carrying the chance the check lands', () => {
     seed([CHECK_ROW]);
     renderIn(<RollsTable />);
     expect(screen.getByText('succeeds 65%')).toBeInTheDocument();
-  });
-
-  it('renders no Check badge on a sum row', () => {
-    seed([SUM_ROW]);
-    renderIn(<RollsTable />);
-    expect(screen.getByDisplayValue('Greatclub')).toBeInTheDocument();
-    expect(checkBadges()).toHaveLength(0);
   });
 
   it('renders no succeeds chip on a sum row', () => {
@@ -220,23 +199,10 @@ describe('RollsTable check row', () => {
 });
 
 describe('RollsCards check row', () => {
-  it('renders a Check badge on a check card', () => {
-    seed([CHECK_ROW]);
-    renderIn(<RollsCards />);
-    expect(checkBadges()).toHaveLength(1);
-  });
-
   it('renders a succeeds chip carrying the chance the check lands', () => {
     seed([CHECK_ROW]);
     renderIn(<RollsCards />);
     expect(screen.getByText('succeeds 65%')).toBeInTheDocument();
-  });
-
-  it('renders no Check badge on a sum card', () => {
-    seed([SUM_ROW]);
-    renderIn(<RollsCards />);
-    expect(screen.getByDisplayValue('Greatclub')).toBeInTheDocument();
-    expect(checkBadges()).toHaveLength(0);
   });
 
   it('renders no succeeds chip on a sum card', () => {
@@ -285,14 +251,6 @@ describe('roll style toggle inside a row', () => {
     );
   });
 
-  it('gives the row a Check badge once Check is clicked', () => {
-    seed([SUM_ROW]);
-    renderIn(<RollsTable />);
-    const group = screen.getByRole('group', { name: 'Roll style' });
-    fireEvent.click(within(group).getByRole('button', { name: 'Check' }));
-    expect(checkBadges()).toHaveLength(1);
-  });
-
   it('computes the succeeds chip from the seeded check after Check is clicked', () => {
     // A switched 2d6+3 row seeds a threshold of 6, which 2d6+3 misses only on
     // a double 1: 35/36 = 97%.
@@ -312,7 +270,6 @@ describe('roll style toggle inside a row', () => {
       'aria-pressed',
       'true',
     );
-    expect(checkBadges()).toHaveLength(0);
     expect(screen.queryByText(/^succeeds/)).toBeNull();
   });
 
@@ -346,7 +303,7 @@ describe('baseline deltas treat a check row as sum scale', () => {
   it('never calls a check row a different scale from a sum baseline', () => {
     seed([SUM_ROW, CHECK_ROW], { baselineId: 'sum-row' });
     renderIn(<RollsTable />);
-    expect(checkBadges()).toHaveLength(1);
+    expect(screen.getByText(/^succeeds/)).toBeInTheDocument();
     expect(screen.queryByText(/different scale/)).toBeNull();
   });
 
@@ -375,8 +332,23 @@ describe('baseline deltas treat a check row as sum scale', () => {
   it('calls a check row a different scale from a pool baseline', () => {
     seed([POOL_ROW, CHECK_ROW], { baselineId: 'pool-row' });
     renderIn(<RollsTable />);
+    // The marker opens the comparison panel; its accessible name carries the
+    // verdict the row used to compute and throw away.
     expect(
-      screen.getByText('different scale from the baseline'),
+      screen.getByRole('button', { name: /counts successes, so totals/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('carries the hit verdict on a cross-scale row rather than dropping it', () => {
+    seed([POOL_ROW, CHECK_ROW], {
+      baselineId: 'pool-row',
+      targetValues: [10],
+    });
+    renderIn(<RollsTable />);
+    expect(
+      screen.getByRole('button', {
+        name: /^Compare with Dice pool: Different scale, but hits /,
+      }),
     ).toBeInTheDocument();
   });
 });

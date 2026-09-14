@@ -69,13 +69,19 @@ describe('BaselineCaption', () => {
     ).toBeInTheDocument();
   });
 
-  it('explains the comparison and how to clear it when a baseline is pinned', () => {
+  it('names the pinned baseline and how to clear it', () => {
     seedRows('sum1');
     renderCaption();
+    // The name is its own element now, so the sentence is split across nodes.
+    expect(screen.getByText('Sum row')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Comparing to Sum row. Green means better, red worse, grey shows spread change. Tap the pin again to clear.',
-      ),
+      screen.getByText(/Tap the pin again to clear\./),
     ).toBeInTheDocument();
+  });
+
+  it('leaves the colour coding to a tooltip rather than the caption', () => {
+    seedRows('sum1');
+    renderCaption();
+    expect(screen.queryByText(/Green means better/)).toBeNull();
   });
 });

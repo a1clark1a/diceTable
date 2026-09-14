@@ -6,6 +6,7 @@ import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
 import { useBufferedValue } from '../../hooks/useBufferedValue';
 import { chipFocusRing } from './focusRings';
+import { tapTarget } from '../tapTarget';
 
 function parseThresholdValue(raw: string): number {
   const n = Number.parseInt(raw.trim(), 10);
@@ -14,43 +15,6 @@ function parseThresholdValue(raw: string): number {
 
 function formatThresholdValue(n: number): string {
   return String(n);
-}
-
-// tabIndex makes the badge's tooltip reachable by keyboard, same contract as
-// HelpTerm. On desktop the badge sits in the Name cell, far from the toggle
-// that otherwise explains pool mode.
-export function PoolBadge() {
-  return (
-    <Tooltip content={tipForId('poolMode')}>
-      <Badge
-        colorPalette="purple"
-        variant="surface"
-        flexShrink={0}
-        tabIndex={0}
-        cursor="help"
-      >
-        Pool
-      </Badge>
-    </Tooltip>
-  );
-}
-
-// tabIndex makes the badge's tooltip reachable by keyboard, same contract as
-// PoolBadge above.
-export function CheckBadge() {
-  return (
-    <Tooltip content={tipForId('checkMode')}>
-      <Badge
-        colorPalette="orange"
-        variant="surface"
-        flexShrink={0}
-        tabIndex={0}
-        cursor="help"
-      >
-        Check
-      </Badge>
-    </Tooltip>
-  );
 }
 
 // The row already shows what a check rolls; what it cannot show is how often
@@ -113,11 +77,13 @@ export function ExpressionModeToggle({ mode, onSelect }: ExpressionModeTogglePro
           <Tooltip key={chip.value} content={chip.tip}>
             <Button
               size="xs"
-              variant={active ? 'subtle' : 'ghost'}
+              variant={active ? 'subtle' : 'plain'}
               colorPalette={active ? chip.palette : 'gray'}
               aria-pressed={active}
               _focusVisible={chipFocusRing}
+              _hover={{ bg: active ? 'colorPalette.muted' : 'bg.subtle' }}
               onClick={() => onSelect(chip.value)}
+              h={tapTarget('32px')}
             >
               {chip.label}
             </Button>
@@ -157,6 +123,8 @@ export function PoolThresholdEditor({
               : 'Success direction: at or below'
           }
           _focusVisible={chipFocusRing}
+          h={tapTarget('32px')}
+          minW={tapTarget('32px')}
           onClick={() =>
             onChange({ ...threshold, direction: isGte ? 'lte' : 'gte' })
           }
@@ -174,6 +142,7 @@ export function PoolThresholdEditor({
           onBlur={buf.onBlur}
           onKeyDown={buf.onKeyDown}
           w="44px"
+          h={tapTarget('32px')}
           textAlign="center"
           fontFamily="mono"
           aria-label="Success threshold"

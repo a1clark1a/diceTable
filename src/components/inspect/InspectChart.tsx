@@ -9,6 +9,7 @@ import {
 } from '@chakra-ui/react';
 import type { Distribution, TargetState } from '../../types';
 import { ChartFallback } from '../chart/ChartFallback';
+import { tapTarget } from '../tapTarget';
 
 const InspectChartBody = lazy(() => import('./InspectChartBody'));
 
@@ -46,6 +47,7 @@ export function InspectChart({
           alignItems="center"
           justifyContent="center"
           width="100%"
+          minH={tapTarget('36px')}
           aria-label={`Inspect chart for ${exprName}`}
           borderRadius="sm"
           _focusVisible={{

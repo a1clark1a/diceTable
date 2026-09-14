@@ -4,7 +4,6 @@ import type { Distribution } from '../types';
 export const HISTORY_LIMIT = 10;
 
 export interface RollHistoryValue {
-  roll: (exprId: string, dist: Distribution) => number | null;
   rollMany: (exprId: string, dist: Distribution, count: number) => number[];
   getHistory: (exprId: string) => readonly number[];
   lastResult: (exprId: string) => number | null;

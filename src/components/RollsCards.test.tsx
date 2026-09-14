@@ -2,9 +2,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
+import { openParams } from '../test/params';
 import { RollHistoryProvider } from '../state/RollHistoryContext';
 import { RollsCards } from './RollsCards';
 import { TargetToolbar } from './TargetToolbar';
+// The inspect dialog renders its body behind React.lazy. Loading that module
+// here puts it in the registry before any test runs, so the dynamic import
+// resolves from cache instead of racing a cold recharts transform against the
+// query timeout while the rest of the suite saturates the machine.
+import './inspect/InspectChartBody';
 
 function seedState(opts: {
   targetValues: number[];
@@ -99,7 +105,7 @@ afterEach(() => {
 });
 
 describe('RollsCards pool Hit %', () => {
-  it('shows the ≥2 pool label with 25.0% on the pool card and 16.7% on the sum card', () => {
+  it('shows the ≥2 pool label with 25.0% on the pool card and 16.7% on the sum card', async () => {
     seedState({ targetValues: [10], poolTarget: 2 });
     renderCards();
 
@@ -109,7 +115,7 @@ describe('RollsCards pool Hit %', () => {
     expect(screen.getByText('16.7%')).toBeInTheDocument();
   });
 
-  it('renders the ruling glyph accessory on the sum card pill only, never on the pool card', () => {
+  it('renders the ruling glyph accessory on the sum card pill only, never on the pool card', async () => {
     seedState({ targetValues: [10], poolTarget: 2 });
     renderCards();
 
@@ -128,10 +134,11 @@ describe('RollsCards pool Hit %', () => {
     expect(glyphsIn(poolPill)).toHaveLength(0);
   });
 
-  it('adding pool target 1 with Enter stacks a second percentage on the pool card', () => {
+  it('adding pool target 1 with Enter stacks a second percentage on the pool card', async () => {
     seedState({ targetValues: [10], poolTarget: 2 });
     renderCards();
 
+    await openParams('Edit pool targets');
     const input = screen.getByLabelText('Add pool target');
     fireEvent.change(input, { target: { value: '1' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -142,11 +149,12 @@ describe('RollsCards pool Hit %', () => {
     expect(within(higherBar).getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('removing a pool target chip takes its percentage off the pool card', () => {
+  it('removing a pool target chip takes its percentage off the pool card', async () => {
     seedState({ targetValues: [10], poolTarget: 2, poolTargets: [1, 2] });
     renderCards();
-    expect(screen.getByText('≥1')).toBeInTheDocument();
+    await openParams('Edit pool targets');
 
+    expect(screen.getByText('≥1')).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Remove pool target ≥ 1' }),
     );
@@ -154,7 +162,7 @@ describe('RollsCards pool Hit %', () => {
     expect(screen.getByText('≥2')).toBeInTheDocument();
   });
 
-  it('keeps the pool Hit % pill when no numeric target is set', () => {
+  it('keeps the pool Hit % pill when no numeric target is set', async () => {
     seedState({ targetValues: [], poolTarget: 2 });
     renderCards();
 
@@ -165,7 +173,7 @@ describe('RollsCards pool Hit %', () => {
     expect(screen.queryByText('16.7%')).toBeNull();
   });
 
-  it('keeps the Hit % pill on a card list of only pool rolls with no numeric target', () => {
+  it('keeps the Hit % pill on a card list of only pool rolls with no numeric target', async () => {
     seedState({ targetValues: [], poolTarget: 2, poolOnly: true });
     renderCards();
 
@@ -175,7 +183,7 @@ describe('RollsCards pool Hit %', () => {
     expect(within(poolValueRow).getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('keeps the sum card Hit % pill empty while the pool card keeps its percentage', () => {
+  it('keeps the sum card Hit % pill empty while the pool card keeps its percentage', async () => {
     seedState({ targetValues: [], poolTarget: 2 });
     renderCards();
 
@@ -187,7 +195,7 @@ describe('RollsCards pool Hit %', () => {
     expect(within(cardFor('Pool row')).getByText('25.0%')).toBeInTheDocument();
   });
 
-  it('opens the Hit % pill when a sum card is switched to pool with no numeric target', () => {
+  it('opens the Hit % pill when a sum card is switched to pool with no numeric target', async () => {
     seedTwoSumCards([]);
     renderCards();
     expect(screen.queryByText('Hit %')).toBeNull();
@@ -198,7 +206,7 @@ describe('RollsCards pool Hit %', () => {
     expect(screen.getAllByText('Hit %')).toHaveLength(2);
   });
 
-  it('labels the pool card Shape as Target and the sum card as PMF with no numeric target', () => {
+  it('labels the pool card Shape as Target and the sum card as PMF with no numeric target', async () => {
     seedState({ targetValues: [], poolTarget: 2, chartView: 'target' });
     renderCards();
 
@@ -248,26 +256,25 @@ function seedTwoSumCards(targetValues: number[] = [10]) {
 }
 
 describe('RollsCards baseline pin round trip', () => {
-  it('pinning swaps the sibling card to a vs-baseline pill and unpinning restores it', () => {
+  it('pinning swaps the sibling card to a delta pill and unpinning restores it', async () => {
     seedTwoSumCards();
     renderCards();
 
     expect(screen.getByText('8.50')).toBeInTheDocument();
-    expect(screen.queryByText('vs baseline')).toBeNull();
+    expect(screen.queryByText('Avg')).toBeNull();
 
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
     );
 
     // Baseline card: badge plus untouched absolute stats.
-    expect(screen.getByText('Baseline')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Clear baseline' })).toHaveLength(1);
     expect(screen.getByText('7.00')).toBeInTheDocument();
     expect(screen.getByText('16.7%')).toBeInTheDocument();
 
-    // Sibling card: the Mean ± σ pill becomes a vs-baseline delta pill.
-    expect(screen.getByText('vs baseline')).toBeInTheDocument();
-    expect(screen.getByText('avg')).toBeInTheDocument();
-    expect(screen.getByText('spread')).toBeInTheDocument();
+    // Sibling card: the Mean ± σ pill becomes a delta pill.
+    expect(screen.getByText('Avg')).toBeInTheDocument();
+    expect(screen.getByText('Spread')).toBeInTheDocument();
     expect(screen.getByText('+1.50')).toBeInTheDocument();
     expect(screen.getByText('−0.71')).toBeInTheDocument();
     expect(screen.getByText('+16.7%')).toBeInTheDocument();
@@ -275,20 +282,24 @@ describe('RollsCards baseline pin round trip', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Clear baseline' }));
 
-    expect(screen.queryByText('vs baseline')).toBeNull();
-    expect(screen.queryByText('Baseline')).toBeNull();
+    expect(screen.queryByText('Avg')).toBeNull();
+    expect(screen.queryAllByRole('button', { name: 'Clear baseline' })).toHaveLength(0);
     expect(screen.getByText('8.50')).toBeInTheDocument();
   });
 
-  it('writes the verdict line on the sibling card', () => {
+  it('names the compare pill with the verdict', async () => {
     seedTwoSumCards();
     renderCards();
     fireEvent.click(
       screen.getAllByRole('button', { name: 'Pin as baseline' })[0]!,
     );
 
+    // The sentence is the trigger's accessible name rather than free-flowing
+    // prose: a line that appears on pin used to grow every sibling card.
     expect(
-      screen.getByText('Averages 1.5 higher · steadier · hits 17% more often'),
+      screen.getByRole('button', {
+        name: 'Compare with Sum row: Averages 1.5 higher, steadier, hits 17% more often',
+      }),
     ).toBeInTheDocument();
   });
 });

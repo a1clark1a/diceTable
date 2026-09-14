@@ -193,7 +193,8 @@ P_always(X = k) = 0                              for k ∈ R`,
         Reaching 13 takes a 6, then a 6, then a 1:{' '}
         <Code>1/6 · 1/6 · 1/6 = 1/216</Code>. Totals like 12 never appear at
         all, because every 6 in the chain keeps rolling. Each multiple of 6 is
-        a gap on the chart.
+        a gap on the chart, up to the depth cap, where the chain stops and the
+        last 6 is kept.
       </Text>
     ),
     snippet: `// recursive: P_explode = non-exploding tail + (exploding face) ⊛ P_explode

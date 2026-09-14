@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { buildMatrixSvg, type MatrixCardRow } from './buildMatrixSvg';
 import { expressionDistribution } from '../../engine/expression';
 import { uniformDistribution } from '../../engine/distribution';
-import { rowColor } from '../../components/chart/palette';
-import type { Distribution, Expression } from '../../types';
+import { rowColorHex } from '../../components/chart/palette';
+import {
+  MATRIX_CARD_ROW_LIMIT,
+  MATRIX_ROW_CAP,
+  type Distribution,
+  type Expression,
+} from '../../types';
 
 // Card geometry, restated here so the expected numbers below are arithmetic a
 // reader can follow rather than a copy of whatever the module happens to emit.
@@ -31,12 +36,12 @@ const BLANK = '\u2014';
 
 // The share card leaves the app, so it cannot carry theme tokens. These are the
 // literal hexes the two palettes ship instead.
-const LIGHT_GROUND = '#ffffff';
-const LIGHT_TEXT = '#0f172a';
-const LIGHT_MID = '#845209';
-const DARK_GROUND = '#0b1220';
-const DARK_TEXT = '#e2e8f0';
-const DARK_MID = '#facc15';
+const LIGHT_GROUND = '#f2f1ed';
+const LIGHT_TEXT = '#22221f';
+const LIGHT_MID = '#7f5507';
+const DARK_GROUND = '#131519';
+const DARK_TEXT = '#e4e7eb';
+const DARK_MID = '#dda857';
 
 /** One plain die as a lattice row, built through the real engine. */
 function dieRow(name: string, sides: number, index: number): MatrixCardRow {
@@ -51,17 +56,17 @@ function dieRow(name: string, sides: number, index: number): MatrixCardRow {
   return {
     id: expr.id,
     name,
-    color: rowColor(index),
+    color: rowColorHex(index, 'light'),
     dist: expressionDistribution(expr),
   };
 }
 
 function uniformRow(name: string, sides: number, index: number): MatrixCardRow {
-  return { id: name, name, color: rowColor(index), dist: uniformDistribution(sides) };
+  return { id: name, name, color: rowColorHex(index, 'light'), dist: uniformDistribution(sides) };
 }
 
 function customRow(name: string, dist: Distribution, index: number): MatrixCardRow {
-  return { id: name, name, color: rowColor(index), dist };
+  return { id: name, name, color: rowColorHex(index, 'light'), dist };
 }
 
 function countOf(haystack: string, needle: string): number {
@@ -222,29 +227,42 @@ describe('buildMatrixSvg emphasis', () => {
 });
 
 describe('buildMatrixSvg row cap', () => {
-  it('draws only the first twelve rolls', () => {
-    const image = buildMatrixSvg({ rows: manyDice(14), theme: 'light' });
-    // Twelve rolls face each other 132 ways, with twelve blanks down the middle.
-    expect(countOf(image.svg, 'fill-opacity="0.1"')).toBe(132);
-    expect(cellsReading(image.svg, BLANK)).toHaveLength(12);
-    expect(image.height).toBe(BASE_HEIGHT + CELL_HEIGHT * 12);
+  const CAP = MATRIX_CARD_ROW_LIMIT;
+  const OVER = CAP + 2;
+
+  it('draws only as many rolls as the card can hold', () => {
+    const image = buildMatrixSvg({ rows: manyDice(OVER), theme: 'light' });
+    // n rolls face each other n squared minus n ways, with n blanks down the
+    // diagonal where a roll would be facing itself.
+    expect(countOf(image.svg, 'fill-opacity="0.1"')).toBe(CAP * CAP - CAP);
+    expect(cellsReading(image.svg, BLANK)).toHaveLength(CAP);
+    expect(image.height).toBe(BASE_HEIGHT + CELL_HEIGHT * CAP);
   });
 
-  it('leaves the thirteenth roll out of the lattice entirely', () => {
-    const image = buildMatrixSvg({ rows: manyDice(14), theme: 'light' });
-    expect(gutterNames(image.svg)).toHaveLength(12);
-    expect(image.svg).not.toContain('Roll 13');
+  it('leaves the rolls past the cap out of the lattice entirely', () => {
+    const image = buildMatrixSvg({ rows: manyDice(OVER), theme: 'light' });
+    expect(gutterNames(image.svg)).toHaveLength(CAP);
+    expect(image.svg).not.toContain(`Roll ${CAP + 1}`);
   });
 
   it('says how many rolls the lattice left out', () => {
-    const image = buildMatrixSvg({ rows: manyDice(14), theme: 'light' });
-    expect(image.svg).toContain('>showing the first 12 of 14 rolls</text>');
+    const image = buildMatrixSvg({ rows: manyDice(OVER), theme: 'light' });
+    expect(image.svg).toContain(
+      `>showing the first ${CAP} of ${OVER} rolls</text>`,
+    );
   });
 
-  it('leaves the cap note out at exactly twelve rolls', () => {
-    const image = buildMatrixSvg({ rows: manyDice(12), theme: 'light' });
-    expect(cellsReading(image.svg, BLANK)).toHaveLength(12);
+  it('leaves the cap note out at exactly the cap', () => {
+    const image = buildMatrixSvg({ rows: manyDice(CAP), theme: 'light' });
+    expect(cellsReading(image.svg, BLANK)).toHaveLength(CAP);
     expect(image.svg).not.toContain('showing the first');
+  });
+
+  it('stops sooner than the screen does', () => {
+    // Two canvases, two numbers. The card is a fixed width divided by the row
+    // count, so every extra roll narrows every column; the screen scrolls
+    // sideways instead and keeps the name column pinned.
+    expect(MATRIX_CARD_ROW_LIMIT).toBeLessThan(MATRIX_ROW_CAP);
   });
 });
 
@@ -295,24 +313,26 @@ describe('buildMatrixSvg notes', () => {
   });
 
   it('joins the scale caveat onto the cap note', () => {
+    const over = MATRIX_CARD_ROW_LIMIT + 2;
     const image = buildMatrixSvg({
-      rows: manyDice(14),
+      rows: manyDice(over),
       theme: 'light',
       mixedScales: true,
     });
     expect(image.svg).toContain(
-      '>showing the first 12 of 14 rolls. Pool rows are counted in successes, not totals</text>',
+      `>showing the first ${MATRIX_CARD_ROW_LIMIT} of ${over} rolls. Pool rows are counted in successes, not totals</text>`,
     );
   });
 
   it('keeps a caller note ahead of the caveats the card adds itself', () => {
+    const over = MATRIX_CARD_ROW_LIMIT + 2;
     const image = buildMatrixSvg({
-      rows: manyDice(14),
+      rows: manyDice(over),
       theme: 'light',
       note: '2 rolls left out (too complex)',
     });
     expect(image.svg).toContain(
-      '>2 rolls left out (too complex). showing the first 12 of 14 rolls</text>',
+      `>2 rolls left out (too complex). showing the first ${MATRIX_CARD_ROW_LIMIT} of ${over} rolls</text>`,
     );
   });
 });
@@ -345,8 +365,8 @@ describe('buildMatrixSvg themes', () => {
 
   it('keeps the row color the table gave it', () => {
     const image = buildMatrixSvg({ rows: twoDice(), theme: 'dark' });
-    expect(image.svg).toContain('fill="#2563eb"');
-    expect(image.svg).toContain('fill="#ea580c"');
+    expect(image.svg).toContain('fill="#21396a"');
+    expect(image.svg).toContain('fill="#673406"');
   });
 });
 

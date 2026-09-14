@@ -89,7 +89,7 @@ function seedSumExpressionInStorage() {
     ],
     ui: {
       expandedId: null,
-      chartView: 'pmf',
+      chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTargets: [1],
@@ -125,7 +125,7 @@ function seedPoolExpressionInStorage() {
     ],
     ui: {
       expandedId: null,
-      chartView: 'pmf',
+      chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
       target: { values: [], ruling: 'gte' },
       view: 'table',
       poolTargets: [1],

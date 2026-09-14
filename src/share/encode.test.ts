@@ -10,6 +10,42 @@ import {
 import { decodeFromHashFragment, decodeFromJsonString } from './decode';
 import { EXPORT_FORMAT_TAG, EXPORT_VERSION } from './format';
 
+/**
+ * Ids do not travel any more: the wire drops them and the importer fills fresh
+ * ones in, because both import paths replace them on arrival regardless. So a
+ * round trip is equal in everything except the ids, and every arriving row and
+ * part still has to carry one.
+ */
+function omitId(v: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...(v as Record<string, unknown>) };
+  delete out.id;
+  return out;
+}
+
+function stripIds(rolls: readonly unknown[]): unknown[] {
+  return rolls.map((r) => {
+    const row = r as Record<string, unknown>;
+    const out = omitId(row);
+    if (Array.isArray(row.parts)) out.parts = row.parts.map(omitId);
+    const check = row.check as Record<string, unknown> | undefined;
+    const effect = check?.effect as Record<string, unknown> | undefined;
+    if (check && effect && Array.isArray(effect.parts)) {
+      out.check = { ...check, effect: { ...effect, parts: effect.parts.map(omitId) } };
+    }
+    return out;
+  });
+}
+
+function expectSameRolls(actual: readonly unknown[], expected: readonly unknown[]): void {
+  expect(stripIds(actual)).toEqual(stripIds(expected));
+  for (const r of actual) {
+    const row = r as Record<string, unknown>;
+    expect(typeof row.id).toBe('string');
+    expect((row.id as string).length).toBeGreaterThan(0);
+  }
+}
+
+
 const sampleRolls: Expression[] = [
   {
     id: 'expr-1',
@@ -41,7 +77,7 @@ describe('encodeRollsToHash', () => {
     const hash = encodeRollsToHash(sampleRolls);
     const result = decodeFromHashFragment(hash);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.rolls).toEqual(sampleRolls);
+    if (result.ok) expectSameRolls(result.rolls, sampleRolls);
   });
 
   it('round-trips an empty rolls array', () => {
@@ -70,7 +106,7 @@ describe('encodeRollsToHash', () => {
     const hash = encodeRollsToHash(ten);
     const result = decodeFromHashFragment(hash);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.rolls).toEqual(ten);
+    if (result.ok) expectSameRolls(result.rolls, ten);
   });
 
   it('produces a URL-safe payload (no characters needing percent-encoding)', () => {
@@ -85,7 +121,7 @@ describe('encodeRollsToJson', () => {
     const parsed = JSON.parse(json) as Record<string, unknown>;
     expect(parsed.format).toBe(EXPORT_FORMAT_TAG);
     expect(parsed.exportVersion).toBe(EXPORT_VERSION);
-    expect(parsed.rolls).toEqual(sampleRolls);
+    expect(stripIds(parsed.rolls as unknown[])).toEqual(stripIds(sampleRolls));
   });
 
   it('is pretty-printed (contains newlines)', () => {
@@ -97,7 +133,7 @@ describe('encodeRollsToJson', () => {
     const json = encodeRollsToJson(sampleRolls);
     const result = decodeFromJsonString(json);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.rolls).toEqual(sampleRolls);
+    if (result.ok) expectSameRolls(result.rolls, sampleRolls);
   });
 });
 
@@ -118,7 +154,7 @@ describe('encodeRollsToBlob', () => {
     const text = await blob.text();
     const result = decodeFromJsonString(text);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.rolls).toEqual(sampleRolls);
+    if (result.ok) expectSameRolls(result.rolls, sampleRolls);
   });
 });
 
@@ -131,5 +167,22 @@ describe('defaultExportFilename', () => {
   it('zero-pads month and day', () => {
     const d = new Date(2026, 0, 3);
     expect(defaultExportFilename(d)).toBe('dicetable-2026-01-03.json');
+  });
+});
+
+describe('link size', () => {
+  it('keeps a hundred rolls inside a chat previewer budget', () => {
+    const rolls = Array.from({ length: 100 }, (_, i) => ({
+      id: 'expr-' + i,
+      name: 'Roll number ' + i,
+      parts: [{ id: 'part-' + i, count: 2, sides: 6 }],
+      flatModifier: 3,
+      rollMode: 'normal' as const,
+      mode: 'sum' as const,
+    }));
+    // With ids on the wire this was 9,802 characters. They are the least
+    // compressible part of the payload, being random, and nothing reads them
+    // on arrival.
+    expect(encodeRollsToHash(rolls).length).toBeLessThan(3000);
   });
 });

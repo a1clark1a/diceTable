@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useApp } from '../../state/useApp';
 import { getRowData } from '../../state/useDistributions';
-import { rowColor } from '../../components/chart/palette';
+import { rowColorHex } from '../../components/chart/palette';
 import { useColorMode } from '../../components/ui/color-mode';
 import { toaster } from '../../components/share/toaster-store';
 import { canMiss, isTotalsMode } from '../../engine/expression';
@@ -11,7 +11,7 @@ import {
   toCompareRows,
 } from '../../components/compare/compareRows';
 import { toTargetRows } from '../../components/target/targetHitRows';
-import { CHART_ROW_LIMIT, type Expression } from '../../types';
+import type { Expression } from '../../types';
 import { expressionNotation } from '../notation';
 import { shareUrlFor } from '../encode';
 import { downloadBlob } from '../download';
@@ -39,7 +39,6 @@ export type ShareCardState =
   | 'ready'
   | 'noRows'
   | 'needsTwo'
-  | 'overLimit'
   | 'noTargets'
   | 'noSumRows';
 
@@ -70,7 +69,10 @@ interface ChartCardRows {
 // Pool rows count successes, so they cannot share an axis with totals; they go
 // to their own stacked panel instead of being dropped. Colours stay keyed to
 // the unfiltered row position so the image matches the table's swatches.
-function chartCardRows(expressions: Expression[]): ChartCardRows {
+function chartCardRows(
+  expressions: Expression[],
+  theme: 'light' | 'dark',
+): ChartCardRows {
   const rows: ShareImageRow[] = [];
   const poolRows: ShareImageRow[] = [];
   let tooComplex = 0;
@@ -89,7 +91,8 @@ function chartCardRows(expressions: Expression[]): ChartCardRows {
       id: expr.id,
       name: expr.name,
       notation: expressionNotation(expr),
-      color: rowColor(idx),
+      slot: idx,
+      color: rowColorHex(idx, theme),
       dist,
       canMiss: canMiss(expr),
       mean: stats.mean,
@@ -126,7 +129,7 @@ export function useShareImage(): ShareImageActions {
   const {
     expressions,
     view,
-    chartView,
+    chartViews,
     target,
     poolTargets,
     targetSubView,
@@ -162,8 +165,6 @@ export function useShareImage(): ShareImageActions {
       (expr) => getRowData(expr).dist.size > 0,
     ).length;
     if (usable === 0) return 'noRows';
-    // The chart card is the only one with no row cap of its own.
-    if (expressions.length > CHART_ROW_LIMIT) return 'overLimit';
     return 'ready';
   }, [expressions, view, target, poolTargets, targetSubView, targetFilter]);
 
@@ -184,13 +185,14 @@ export function useShareImage(): ShareImageActions {
       switch (view) {
         case 'table': {
           const { rows, poolRows, tooComplex, unmeasured } =
-            chartCardRows(expressions);
+            chartCardRows(expressions, theme);
           return rasterize(
             buildShareSvg({
               ...shell,
               rows,
               poolRows,
-              view: chartView,
+              totalsView: chartViews.totals,
+              successesView: chartViews.successes,
               // Each panel resolves the target view against its own target, the
               // way the chart does: pool rows answer to the shared pool targets,
               // so Successes can show them while the numeric list is empty and
@@ -208,7 +210,7 @@ export function useShareImage(): ShareImageActions {
           // The view's own eligibility rule, reused rather than re-derived: a
           // roll with unusable dice, or one the complexity guard refused, has
           // no chance to show and never reaches the card.
-          const rows = toTargetRows(expressions);
+          const rows = toTargetRows(expressions, theme);
           const omitted = expressions.length - rows.length;
           return rasterize(
             buildTargetHitSvg({
@@ -226,7 +228,7 @@ export function useShareImage(): ShareImageActions {
         case 'rolloff': {
           // Not the chart card's row builder: the roll-off deliberately puts
           // pool rows in the running on their success-count scale.
-          const compared = toCompareRows(expressions);
+          const compared = toCompareRows(expressions, theme);
           const chances = winChances(compared.map((r) => r.dist));
           const dropped = expressions.length - compared.length;
           return rasterize(
@@ -247,7 +249,7 @@ export function useShareImage(): ShareImageActions {
           );
         }
         case 'matrix': {
-          const compared = toCompareRows(expressions);
+          const compared = toCompareRows(expressions, theme);
           const dropped = expressions.length - compared.length;
           return rasterize(
             buildMatrixSvg({
@@ -268,7 +270,7 @@ export function useShareImage(): ShareImageActions {
     [
       expressions,
       view,
-      chartView,
+      chartViews,
       target,
       poolTargets,
       targetSubView,

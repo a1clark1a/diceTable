@@ -15,6 +15,7 @@ import {
 import {
   MAX_EXPRESSIONS,
   MAX_TARGETS,
+  type ChartSurface,
   type ChartView,
   type CheckSpec,
   type DicePart,
@@ -32,6 +33,17 @@ import {
 
 const STORAGE_KEY = 'dicetable.v2';
 
+/** Both lists are cleaned and sorted before they reach here, so order counts. */
+function sameNumbers(a: readonly number[], b: readonly number[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((v, i) => v === b[i]);
+}
+
+function sameSort(a: GridSort | null, b: GridSort | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.key === b.key && a.dir === b.dir;
+}
+
 // Frozen. useLocalStorage gates reads on an exact envelope-version match and no
 // migrate is wired, so raising this discards every saved table. Schema changes
 // ride SCHEMA_VERSION inside the envelope instead, where the validator can accept
@@ -45,7 +57,7 @@ const initialState: PersistedState = {
   expressions: [],
   ui: {
     expandedId: null,
-    chartView: 'pmf',
+    chartViews: { totals: 'pmf', successes: 'pmf', shape: 'pmf' },
     target: { values: [], ruling: 'gte' },
     view: 'table',
     poolTargets: [1],
@@ -185,58 +197,100 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  // Every setter below returns `prev` untouched when the value is already what
+  // it is being set to, so React's useState bailout stops the update at the
+  // source. Re-selecting the chip you are already on, or pressing the view you
+  // are already looking at, is a common gesture and it used to rebuild the
+  // context value and re-render every consumer to produce an identical screen.
+  // setAllRollModes already did this; these nine now agree with it.
   const setExpandedId = useCallback(
     (id: string | null) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, expandedId: id } }));
+      setState((prev) =>
+        prev.ui.expandedId === id
+          ? prev
+          : { ...prev, ui: { ...prev.ui, expandedId: id } },
+      );
     },
     [setState],
   );
 
   const setBaselineId = useCallback(
     (id: string | null) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, baselineId: id } }));
+      setState((prev) =>
+        prev.ui.baselineId === id
+          ? prev
+          : { ...prev, ui: { ...prev.ui, baselineId: id } },
+      );
     },
     [setState],
   );
 
   const setChartView = useCallback(
-    (view: ChartView) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, chartView: view } }));
+    (surface: ChartSurface, view: ChartView) => {
+      setState((prev) =>
+        prev.ui.chartViews[surface] === view
+          ? prev
+          : {
+              ...prev,
+              ui: {
+                ...prev.ui,
+                chartViews: { ...prev.ui.chartViews, [surface]: view },
+              },
+            },
+      );
     },
     [setState],
   );
 
   const setTargetSubView = useCallback(
     (subView: TargetSubView) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetSubView: subView } }));
+      setState((prev) =>
+        prev.ui.targetSubView === subView
+          ? prev
+          : { ...prev, ui: { ...prev.ui, targetSubView: subView } },
+      );
     },
     [setState],
   );
 
   const setTargetFilter = useCallback(
     (filter: TargetKindFilter) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetFilter: filter } }));
+      setState((prev) =>
+        prev.ui.targetFilter === filter
+          ? prev
+          : { ...prev, ui: { ...prev.ui, targetFilter: filter } },
+      );
     },
     [setState],
   );
 
   const setTargetSort = useCallback(
     (sort: GridSort | null) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, targetSort: sort } }));
+      setState((prev) =>
+        sameSort(prev.ui.targetSort, sort)
+          ? prev
+          : { ...prev, ui: { ...prev.ui, targetSort: sort } },
+      );
     },
     [setState],
   );
 
   const setRollOffSort = useCallback(
     (sort: RollOffSort) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, rollOffSort: sort } }));
+      setState((prev) =>
+        prev.ui.rollOffSort === sort
+          ? prev
+          : { ...prev, ui: { ...prev.ui, rollOffSort: sort } },
+      );
     },
     [setState],
   );
 
   const setView = useCallback(
     (view: WorkshopView) => {
-      setState((prev) => ({ ...prev, ui: { ...prev.ui, view } }));
+      setState((prev) =>
+        prev.ui.view === view ? prev : { ...prev, ui: { ...prev.ui, view } },
+      );
     },
     [setState],
   );
@@ -259,6 +313,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           next.values = cleaned;
         }
         if (patch.ruling !== undefined) next.ruling = patch.ruling;
+        // Compared after cleaning, not before: a patch that adds a duplicate or
+        // a non-integer cleans back to what is already stored, and typing one
+        // into the editor should not re-render the table to show no change.
+        if (
+          next.ruling === prev.ui.target.ruling &&
+          sameNumbers(next.values, prev.ui.target.values)
+        ) {
+          return prev;
+        }
         return { ...prev, ui: { ...prev.ui, target: next } };
       });
     },
@@ -282,6 +345,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // the list would leave those rows with nothing to answer.
         if (cleaned.length === 0) return prev;
         cleaned.sort((a, b) => a - b);
+        if (sameNumbers(cleaned, prev.ui.poolTargets)) return prev;
         return { ...prev, ui: { ...prev.ui, poolTargets: cleaned } };
       });
     },
@@ -306,36 +370,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
     });
   }, [setState]);
-
-  const duplicateExpression = useCallback(
-    (id: string) => {
-      setState((prev) => {
-        const source = prev.expressions.find((e) => e.id === id);
-        if (!source) return prev;
-        if (prev.expressions.length >= MAX_EXPRESSIONS) {
-          toaster.create({
-            type: 'info',
-            title: `Up to ${MAX_EXPRESSIONS} rolls`,
-            description: 'Delete a row to add another.',
-          });
-          return prev;
-        }
-        const copy: Expression = {
-          ...reIdExpression(source),
-          name: `${source.name} (copy)`,
-        };
-        const idx = prev.expressions.findIndex((e) => e.id === id);
-        const next = [...prev.expressions];
-        next.splice(idx + 1, 0, copy);
-        return {
-          ...prev,
-          expressions: next,
-          ui: { ...prev.ui, expandedId: copy.id },
-        };
-      });
-    },
-    [setState],
-  );
 
   const deleteExpression = useCallback(
     (id: string) => {
@@ -368,7 +402,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (id: string, patch: ExpressionPatch) => {
       updateExpressionInList(id, (e) => {
         const next: Expression = { ...e };
-        if (patch.name !== undefined) next.name = patch.name;
         if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
         // Switching modes only seeds what the new mode needs; the fields the
@@ -508,7 +541,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => ({
       expressions: state.expressions,
       expandedId: state.ui.expandedId,
-      chartView: state.ui.chartView,
+      chartViews: state.ui.chartViews,
       target: state.ui.target,
       view: state.ui.view,
       poolTargets: state.ui.poolTargets,
@@ -528,7 +561,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTarget,
       setPoolTargets,
       addExpression,
-      duplicateExpression,
       deleteExpression,
       renameExpression,
       updateExpression,
@@ -552,7 +584,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTarget,
       setPoolTargets,
       addExpression,
-      duplicateExpression,
       deleteExpression,
       renameExpression,
       updateExpression,

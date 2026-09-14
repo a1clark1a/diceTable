@@ -7,6 +7,15 @@ const AVG_EPS = 0.005;
 const SIGMA_EPS = 0.05;
 const HIT_EPS_POINTS = 0.5;
 
+const VERDICT_SEPARATOR = ' · ';
+
+// The middot is punctuation most screen readers skip, which runs the clauses
+// together in one breath. Speech gets commas; the printed sentence keeps its
+// dots.
+export function verdictSpeech(verdict: string): string {
+  return verdict.split(VERDICT_SEPARATOR).join(', ');
+}
+
 export interface VerdictInput {
   mean: number;
   stddev: number;
@@ -55,6 +64,6 @@ export function buildVerdict(input: VerdictInput): string {
   }
   if (hitDelta !== null) parts.push(hitPhrase(hitDelta));
 
-  const sentence = parts.join(' · ');
+  const sentence = parts.join(VERDICT_SEPARATOR);
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildShareSvg, type ShareImageRow } from './buildShareSvg';
 import { uniformDistribution } from '../../engine/distribution';
-import { rowColor } from '../../components/chart/palette';
+import { rowColorHex } from '../../components/chart/palette';
 
 // The card's text budgets, in code points and including the ellipsis: 28 for a
 // row name, 70 for the title, 120 for the footer note, 72 for a notation.
@@ -22,7 +22,8 @@ function namedRow(name: string, notation = '1d6'): ShareImageRow {
     id: 'stress-row',
     name,
     notation,
-    color: rowColor(0),
+    slot: 0,
+    color: rowColorHex(0, 'light'),
     dist: uniformDistribution(6),
     canMiss: false,
     mean: 3.5,
@@ -33,7 +34,7 @@ function namedRow(name: string, notation = '1d6'): ShareImageRow {
 }
 
 function svgFor(name: string): string {
-  return buildShareSvg({ rows: [namedRow(name)], view: 'pmf', theme: 'light' }).svg;
+  return buildShareSvg({ rows: [namedRow(name)], totalsView: 'pmf', successesView: 'pmf', theme: 'light' }).svg;
 }
 
 /** True when the string holds a surrogate half without its partner. */
@@ -168,7 +169,7 @@ describe('buildShareSvg hostile titles and notes', () => {
       const title = `${'a'.repeat(pos)}😀${'a'.repeat(73 - pos)}`;
       const { svg } = buildShareSvg({
         rows: [namedRow('Row')],
-        view: 'pmf',
+        totalsView: 'pmf', successesView: 'pmf',
         theme: 'light',
         title,
       });
@@ -185,7 +186,7 @@ describe('buildShareSvg hostile titles and notes', () => {
       const note = `${'a'.repeat(pos)}😀${'a'.repeat(123 - pos)}`;
       const { svg } = buildShareSvg({
         rows: [namedRow('Row')],
-        view: 'pmf',
+        totalsView: 'pmf', successesView: 'pmf',
         theme: 'light',
         note,
       });
@@ -200,7 +201,7 @@ describe('buildShareSvg hostile titles and notes', () => {
     const notation = '🎯'.repeat(80);
     const { svg } = buildShareSvg({
       rows: [namedRow('Row', notation)],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
     });
     expect(hasLoneSurrogate(svg)).toBe(false);
@@ -213,7 +214,7 @@ describe('buildShareSvg hostile mega mix', () => {
   const mix = HOSTILE_MIX.repeat(12);
   const image = buildShareSvg({
     rows: [namedRow(mix, mix)],
-    view: 'pmf',
+    totalsView: 'pmf', successesView: 'pmf',
     theme: 'dark',
     title: mix,
     note: mix,
@@ -265,7 +266,7 @@ describe('buildShareSvg truncation semantics', () => {
     const title = `${'a'.repeat(TITLE_BUDGET - 1)}😀`;
     const { svg } = buildShareSvg({
       rows: [namedRow('Row')],
-      view: 'pmf',
+      totalsView: 'pmf', successesView: 'pmf',
       theme: 'light',
       title,
     });

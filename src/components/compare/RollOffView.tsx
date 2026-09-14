@@ -72,6 +72,11 @@ export function RollOffView() {
       borderColor="border.subtle"
       borderRadius="md"
       p={{ base: 3, md: 4 }}
+      // This panel is as wide as its content, which on a wide screen leaves it
+      // stranded against the left edge. Auto margins beat the column's
+      // flex-start, so it centres when there is room and fills when there is not.
+      mx="auto"
+      maxW="100%"
     >
       <Flex align="center" justify="space-between" gap={3} wrap="wrap">
         <HelpTerm tip={tipForId('roll-off')}>

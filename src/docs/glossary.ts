@@ -58,7 +58,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     alt: '+M / −M',
     group: 'notation',
     plain:
-      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead.',
+      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead. On a check, it is added to the check roll before it meets the bar, and the effect carries its own modifier.',
   },
   {
     id: 'keep',
@@ -187,13 +187,15 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     group: 'roll-modes',
     plain: 'Roll the whole expression twice and take the higher result.',
     details:
-      'On a check roll, advantage applies to the check itself and never to the effect, so it raises how often the roll clears the bar (and how often it crits) without changing what lands.',
+      'Taking the higher of two rolls shifts the whole curve upward, so low results thin out and high ones crowd together. The best possible result does not change, you just reach it far more often: on 1d20 the chance of a 20 goes from 5% to 9.75%. On a check roll, advantage applies to the check itself and never to the effect, so it raises how often the roll clears the bar (and how often it crits) without changing what lands.',
   },
   {
     id: 'disadvantage',
     term: 'Disadvantage',
     group: 'roll-modes',
     plain: 'Roll the whole expression twice and take the lower result.',
+    details:
+      'Taking the lower of two rolls shifts the whole curve downward, so high results thin out and low ones crowd together. The worst possible result does not change, you just land on it far more often: on 1d20 the chance of a 1 goes from 5% to 9.75%. On a check roll, disadvantage applies to the check itself and never to the effect, so it lowers how often the roll clears the bar (and how often it crits) without changing what lands.',
   },
 
   {
@@ -232,9 +234,9 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Mode',
     group: 'statistics',
     plain:
-      'The result(s) you’ll see most often. When many results are equally likely, only a few are shown. Click to see all of them.',
+      'The result(s) you’ll see most often. A roll can have more than one when several results tie for the top spot.',
     details:
-      'A flat distribution (like a single d20) has no single mode: every face is equally likely. Sums of multiple dice peak in the middle, so the mode is usually close to the mean. When a few results tie for the top spot, the cell shows the first couple and lets you click through to see the rest.',
+      'A flat distribution (like a single d20) has no single mode: every face is equally likely. Sums of multiple dice peak in the middle, so the mode is usually close to the mean. To see which results those are, tap a roll’s notation to open its distribution: the most likely ones are highlighted in the list.',
   },
   {
     id: 'range',
@@ -261,7 +263,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'The full picture of "what can happen and how likely each outcome is." Every chart in DiceTable is a view of one.',
     details:
-      'Wherever you see P in DiceTable, it stands for "probability," a number between 0 and 1 (shown as a percent) that says how likely something is. P(X = k) reads as "the chance that the result X equals the number k." The shorthand "cum" you’ll spot in some labels is short for "cumulative," a running total of those chances as you sweep across the results from low to high. Across the whole distribution, those chances always add up to exactly 1 (100%). The three chart modes are just different ways of looking at the same numbers: PMF shows each chance on its own, CDF shows the running total from the left, and CCDF shows the running total from the right.',
+      'Wherever you see P in DiceTable, it stands for "probability," a number between 0 and 1 (shown as a percent) that says how likely something is. P(X = k) reads as "the chance that the result X equals the number k." The shorthand "cum" you’ll spot in some labels is short for "cumulative," a running total of those chances as you sweep across the results from low to high. Across the whole distribution, those chances always add up to exactly 1 (100%). The four chart modes are just different ways of looking at the same numbers: PMF shows each chance on its own, CDF shows the running total from the left, CCDF shows the running total from the right, and TARGET shows how likely each roll is to hit the target you set.',
   },
   {
     id: 'pmf',
@@ -307,9 +309,9 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     term: 'Row / Roll',
     group: 'app',
     plain:
-      'One named line in the table. Each row is independent and gets its own chart series.',
+      'One named line in the table. Each row is independent, and gets its own chart series while the chart has room to draw it.',
     details:
-      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, so dragging a row also moves its chart series.',
+      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, and it decides which rolls the chart draws first when there are more than it can show at once.',
   },
   {
     id: 'baseline',
@@ -325,7 +327,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'Reference numbers like ACs or save DCs, up to 5. Press Enter to add each; the Hit % column shows how often each row meets each one.',
     details:
-      'Targets live in the toolbar above the table and apply to every row at once. Add up to five. That limit keeps the Hit % column readable on mobile. The comparison used (≥, >, ≤, <, =) is set once for all targets in the dropdown to the left of the chips.',
+      'Targets live in the Target control above the table and apply to every row at once. Add up to five. That limit keeps the Hit % column readable on mobile. The comparison used (≥, >, ≤, <, =) is set once for all targets, in the dropdown at the top of the panel the control opens.',
   },
   {
     id: 'target-ruling',
@@ -344,7 +346,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'Click any stat to open an Inspect panel that shows where that number comes from. Useful for double-checking results.',
     details:
-      'Each stat has its own Inspect view: the mean panel breaks the average down by what each die contributes, the σ panel highlights the band around the mean where most rolls actually land, and the distribution panel lays out the chance of every result in a table. Inspect is read-only. Close it to get back to editing.',
+      'Each stat has its own Inspect view: the mean panel breaks the average down by what each result contributes, the σ panel highlights the band around the mean where most rolls actually land, and the distribution panel lays out the chance of every result in a table. Inspect is read-only. Close it to get back to editing.',
   },
   {
     id: 'roller',
@@ -371,7 +373,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'One-on-one odds: how often the roll on the left beats each roll across the top, ignoring everyone else.',
     details:
-      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance.',
+      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance. A big table draws only its first rolls here and says how many, because the lattice grows with the square of the row count; Roll-off ranks every roll at once.',
   },
   {
     id: 'tie',
@@ -408,6 +410,8 @@ const uiTips: Record<string, string> = {
   inspectMode: 'The results most likely to come up, ordered by chance.',
   inspectSigma:
     'The shaded band is one σ either side of the mean. Most rolls land here.',
+  rollStyle:
+    'What the roll does with its dice: add them up, count successes, or roll a check. Click Sum, Pool or Check to switch.',
   sumMode:
     'Add the faces together into one total. The classic damage-roll style.',
   poolMode:
@@ -464,6 +468,8 @@ const uiTips: Record<string, string> = {
     'Click to sort rolls by this target. Another click flips the order, one more clears it.',
   targetCurves:
     'Each line shows a roll’s chance to hit for every possible target at once. Dashed lines mark your current targets.',
+  chartPageTwenty:
+    'Draw twenty rolls at a time instead of all of them, then page through the rest. Handy once there are too many lines to tell apart.',
   targetBars:
     'How often each roll meets this target. Longer, greener bars mean more reliable.',
   deltaAvg:
@@ -471,7 +477,15 @@ const uiTips: Record<string, string> = {
   deltaSpread:
     'How much more or less spread out this roll is than the baseline. Neither direction is automatically better.',
   deltaHit:
-    'How much more or less often this roll meets the target than the baseline, in percentage points.',
+    'How much more or less often this roll meets the target than the baseline, in percentage points. Green means more often than the baseline, red less.',
+  rowCompare:
+    'How this roll compares to the baseline you pinned. Open it for the summary and the numbers behind it.',
+  differentScale:
+    'This roll and the baseline are on different scales, so their averages are not comparable.',
+  differentScaleHit:
+    'This roll counts successes and the baseline totals dice, so their averages are not comparable. Compare Hit % instead.',
+  baselineCompare:
+    'Every other row now shows how it differs from this one, green better and red worse. The Hit % colour is separate: that one rates each roll on its own.',
   baselinePin: 'Pin as baseline to compare the other rolls against it.',
   baselinePinActive: 'This is the baseline. Tap again to clear it.',
   clearAll:
@@ -486,8 +500,10 @@ const uiTips: Record<string, string> = {
     'No valid rolls to picture yet. Give a roll some dice first.',
   shareImageNeedsTwo:
     'This picture needs two rolls to compare. Add another one with valid dice.',
-  shareImageOverLimit:
-    'Too many rolls to fit in one picture. Remove a few rows and it comes back.',
+  chartFieldView:
+    'Every roll is drawn at once, faintly. Pick a name from the legend to light that roll up against the rest.',
+  chartRowCap:
+    'A page of rolls at a time, so the lines stay readable. Use the arrows to reach the rest. Every roll still shows its own numbers in the table.',
   shareImageNoTargets:
     'Nothing to measure against yet. Add a target and the picture has something to show.',
   shareImageNoSumRows:

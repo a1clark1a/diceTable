@@ -33,7 +33,7 @@ function Harness({ onState }: { onState: (state: PersistedState) => void }) {
       expressions: app.expressions,
       ui: {
         expandedId: app.expandedId,
-        chartView: app.chartView,
+        chartViews: app.chartViews,
         target: app.target,
         view: app.view,
         poolTargets: app.poolTargets,
@@ -156,7 +156,7 @@ describe('NumberStepper garbage battery', () => {
     );
   });
 
-  it('the dice count commits at or above 1 for every garbage string and the state always re-validates', () => {
+  it('the dice count commits inside its bounds for every garbage string and the state always re-validates', () => {
     const snap = seedAndRender([
       {
         id: 'e0',
@@ -167,9 +167,12 @@ describe('NumberStepper garbage battery', () => {
         mode: 'sum',
       },
     ]);
+    // 999999 clamps to the field ceiling now. Count was the one number in the
+    // editor with no max, so NumberStepper skipped every clamp and a pasted
+    // value committed verbatim.
     runBattery(
       'Count',
-      [1, 1, 1, 1, 999999, 2, 3],
+      [1, 1, 1, 1, 999, 2, 3],
       snap,
       (s) => s.expressions[0]?.parts[0]?.count,
     );

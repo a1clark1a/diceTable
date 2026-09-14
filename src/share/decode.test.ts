@@ -8,6 +8,48 @@ import {
 import { encodeRollsToHash, encodeRollsToJson } from './encode';
 import { EXPORT_FORMAT_TAG, EXPORT_VERSION } from './format';
 
+/**
+ * Ids do not travel any more: the wire drops them and the importer fills fresh
+ * ones in, because both import paths replace them on arrival regardless. So a
+ * round trip is equal in everything except the ids, and every arriving row and
+ * part still has to carry one.
+ */
+function omitId(v: unknown): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...(v as Record<string, unknown>) };
+  delete out.id;
+  return out;
+}
+
+function stripIds(rolls: readonly unknown[]): unknown[] {
+  return rolls.map((r) => {
+    const row = r as Record<string, unknown>;
+    const out = omitId(row);
+    if (Array.isArray(row.parts)) out.parts = row.parts.map(omitId);
+    const check = row.check as Record<string, unknown> | undefined;
+    const effect = check?.effect as Record<string, unknown> | undefined;
+    if (check && effect && Array.isArray(effect.parts)) {
+      out.check = { ...check, effect: { ...effect, parts: effect.parts.map(omitId) } };
+    }
+    return out;
+  });
+}
+
+function expectDecoded(result: { ok: boolean; rolls?: unknown[] } | unknown, expected: readonly unknown[]): void {
+  const r = result as { ok: boolean; rolls?: unknown[] };
+  expect(r.ok).toBe(true);
+  expectSameRolls(r.rolls ?? [], expected);
+}
+
+function expectSameRolls(actual: readonly unknown[], expected: readonly unknown[]): void {
+  expect(stripIds(actual)).toEqual(stripIds(expected));
+  for (const r of actual) {
+    const row = r as Record<string, unknown>;
+    expect(typeof row.id).toBe('string');
+    expect((row.id as string).length).toBeGreaterThan(0);
+  }
+}
+
+
 const sampleRolls: Expression[] = [
   {
     id: 'expr-1',
@@ -23,13 +65,13 @@ describe('decodeFromHashFragment', () => {
   it('decodes a freshly-encoded hash', () => {
     const hash = encodeRollsToHash(sampleRolls);
     const result = decodeFromHashFragment(hash);
-    expect(result).toEqual({ ok: true, rolls: sampleRolls });
+    expectDecoded(result, sampleRolls);
   });
 
   it('decodes a hash without the leading #', () => {
     const hash = encodeRollsToHash(sampleRolls).slice(1);
     const result = decodeFromHashFragment(hash);
-    expect(result).toEqual({ ok: true, rolls: sampleRolls });
+    expectDecoded(result, sampleRolls);
   });
 
   it('returns empty when hash is blank', () => {
@@ -67,7 +109,7 @@ describe('decodeFromHashFragment', () => {
 describe('decodeFromJsonString', () => {
   it('decodes a freshly-encoded JSON string', () => {
     const json = encodeRollsToJson(sampleRolls);
-    expect(decodeFromJsonString(json)).toEqual({ ok: true, rolls: sampleRolls });
+    expectDecoded(decodeFromJsonString(json), sampleRolls);
   });
 
   it('returns empty for blank input', () => {
@@ -113,18 +155,18 @@ describe('decodeFromJsonString', () => {
 describe('detectAndDecode', () => {
   it('decodes a bare share-link hash fragment', () => {
     const hash = encodeRollsToHash(sampleRolls);
-    expect(detectAndDecode(hash)).toEqual({ ok: true, rolls: sampleRolls });
+    expectDecoded(detectAndDecode(hash), sampleRolls);
   });
 
   it('decodes a full URL containing a share-link hash', () => {
     const hash = encodeRollsToHash(sampleRolls);
     const url = `https://example.com/app${hash}`;
-    expect(detectAndDecode(url)).toEqual({ ok: true, rolls: sampleRolls });
+    expectDecoded(detectAndDecode(url), sampleRolls);
   });
 
   it('decodes raw JSON when no #data= is present', () => {
     const json = encodeRollsToJson(sampleRolls);
-    expect(detectAndDecode(json)).toEqual({ ok: true, rolls: sampleRolls });
+    expectDecoded(detectAndDecode(json), sampleRolls);
   });
 
   it('returns empty for blank input', () => {
@@ -136,5 +178,30 @@ describe('detectAndDecode', () => {
       ok: false,
       error: 'malformed-json',
     });
+  });
+});
+
+describe('a payload from a newer build', () => {
+  const future = {
+    format: EXPORT_FORMAT_TAG,
+    exportVersion: EXPORT_VERSION + 1,
+    rolls: [],
+  };
+
+  it('is named as a version problem, not as corruption', () => {
+    // "Corrupted, try re-exporting" is advice that produces another one of the
+    // same file. Reloading onto the newer build is what actually fixes it.
+    expect(decodeFromJsonString(JSON.stringify(future))).toEqual({
+      ok: false,
+      error: 'version-too-new',
+    });
+  });
+
+  it('is still told apart from a payload that is simply malformed', () => {
+    expect(
+      decodeFromJsonString(
+        JSON.stringify({ ...future, exportVersion: EXPORT_VERSION, rolls: [{ nope: 1 }] }),
+      ),
+    ).toEqual({ ok: false, error: 'invalid-shape' });
   });
 });

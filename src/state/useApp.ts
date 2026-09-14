@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type {
+  ChartSurface,
   ChartView,
   CheckSpec,
   Expression,
@@ -19,7 +20,6 @@ import type {
 } from '../types';
 
 export type ExpressionPatch = {
-  name?: string;
   flatModifier?: number;
   rollMode?: RollMode;
   mode?: ExpressionMode;
@@ -44,7 +44,7 @@ export type TargetPatch = {
 export interface AppContextValue {
   expressions: Expression[];
   expandedId: string | null;
-  chartView: ChartView;
+  chartViews: Record<ChartSurface, ChartView>;
   target: TargetState;
   view: WorkshopView;
   poolTargets: number[];
@@ -55,7 +55,7 @@ export interface AppContextValue {
   rollOffSort: RollOffSort;
   setExpandedId: (id: string | null) => void;
   setBaselineId: (id: string | null) => void;
-  setChartView: (view: ChartView) => void;
+  setChartView: (surface: ChartSurface, view: ChartView) => void;
   setView: (view: WorkshopView) => void;
   setTarget: (patch: TargetPatch) => void;
   setPoolTargets: (values: number[]) => void;
@@ -64,7 +64,6 @@ export interface AppContextValue {
   setTargetSort: (sort: GridSort | null) => void;
   setRollOffSort: (sort: RollOffSort) => void;
   addExpression: () => void;
-  duplicateExpression: (id: string) => void;
   deleteExpression: (id: string) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;

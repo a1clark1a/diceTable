@@ -195,6 +195,9 @@ describe('TargetHitView empty states', () => {
   });
 });
 
+const EM_DASH = '—';
+const OFF_SCALE = /^—$/;
+
 describe('TargetHitView grid', () => {
   it('shows one cell per roll and target with exact percents', () => {
     seedState({ expressions: [ALPHA, BETA], targetValues: [7, 10] });
@@ -239,7 +242,7 @@ describe('TargetHitView grid', () => {
     expect(gridRowNames()).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 
-  it('gives each scale its own columns, leaving the other kind blank', () => {
+  it('gives each scale its own columns, dashing the other kind', () => {
     seedState({
       expressions: [ALPHA, POOL],
       targetValues: [7, 10],
@@ -254,14 +257,14 @@ describe('TargetHitView grid', () => {
     expect(headers[3]).toContain('≥2 successes');
 
     const poolCells = cellsFor('Pool row');
-    expect(poolCells[1]).toHaveTextContent(/^$/);
-    expect(poolCells[2]).toHaveTextContent(/^$/);
+    expect(poolCells[1]).toHaveTextContent(OFF_SCALE);
+    expect(poolCells[2]).toHaveTextContent(OFF_SCALE);
     expect(poolCells[3]).toHaveTextContent(/^25\.0%$/);
 
     const sumCells = cellsFor('Alpha');
     expect(sumCells[1]).toHaveTextContent(/^58\.3%$/);
     expect(sumCells[2]).toHaveTextContent(/^16\.7%$/);
-    expect(sumCells[3]).toHaveTextContent(/^$/);
+    expect(sumCells[3]).toHaveTextContent(OFF_SCALE);
 
     expect(screen.queryByText(/pool rows use the pool target/)).toBeNull();
   });
@@ -361,7 +364,9 @@ describe('TargetHitView curves wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Curves' }));
 
     expect(screen.getByText('Hit chance by target')).toBeInTheDocument();
-    expect(container.querySelectorAll('path')).toHaveLength(1);
+    expect(
+      container.querySelectorAll('svg:not([class*="lucide"]) path'),
+    ).toHaveLength(1);
     expect(screen.queryByText('Pool row')).toBeNull();
     expect(screen.getByText('Alpha')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
@@ -413,7 +418,7 @@ describe('TargetHitView pool-only columns', () => {
     expect(cellsFor('Pool row')[1]).toHaveTextContent(/^75\.0%$/);
   });
 
-  it('leaves every sum row blank under a pool column', () => {
+  it('dashes every sum row under a pool column', () => {
     seedState({
       expressions: [ALPHA, BETA, POOL],
       targetValues: [],
@@ -426,7 +431,7 @@ describe('TargetHitView pool-only columns', () => {
       .getAllByRole('row')
       .slice(1)
       .map((row) => within(row).getAllByRole('cell')[1]?.textContent ?? '');
-    expect(hits).toEqual(['', '', '25.0%']);
+    expect(hits).toEqual([EM_DASH, EM_DASH, '25.0%']);
   });
 
   it('drops the pool star and its footnote when the only column is the pool target', () => {
