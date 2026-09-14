@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-14
+
 ### Added
 
 - Enlarging one chart on a wide screen now draws every roll at once, however many there are. Past about thirty the curves stop being drawn in their own colour and dash and become a field: all of them at once and faint, with the one you point at lit up on top. That is a different question from the paged view and a more useful one at a hundred rolls, because eight colours and eight dashes only ever make eight tellable-apart pens, so past that no cap and no amount of extra canvas helps. Seeing where your roll sits in the spread of the whole table does not need you to tell a hundred lines apart. Pick a name from the legend to light one, pick it again to put it back, and the tooltip pins the lit roll at the top so its number is never the one the list drops. A screen reader hears where the roll ranks instead, since a picture is nothing without sight.
@@ -67,6 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The Quickstart, the glossary and The Math described a table that had moved on. Step 2 said to tap any token to edit it inline, which stopped being true when the notation became the way to open the distribution behind a roll and the dice moved into the opened row. The Head-to-head glossary entry said a big table draws its first twelve rolls while the view above it printed “Showing the first 24”, so the tooltip and the screen gave different numbers for the same cut. The P entry counted three chart views when there are four, leaving TARGET unnamed. The Modifier entry covered totals and successes but not checks. The Inspect entry described the mean panel as a breakdown per die when the column is per result. The Quickstart intro put the chart at the bottom, contradicting its own step 3. The roll button was described as a Sum-only affordance when every roll that is not a pool carries it. And The Math said every multiple of the exploding face is a gap, which holds everywhere except the top, where the depth cap stops the chain and the last face is kept.
 - A share link is about a quarter of the size. Every roll carried a hidden identifier that the app threw away the moment the link was opened, and they were the largest part of the link: a hundred rolls went from about 9,800 characters to 2,700. Older links and saved files still open.
 - Opening a link made by a newer version says so and tells you to reload, instead of claiming the link is corrupted and suggesting you export it again, which produced another one of the same.
 - The shape sparkline stays quick on a roll with a huge range. It drew one invisible hover strip per possible result, so a roll spanning two thousand results drew two thousand of them per row, each about a twentieth of a pixel wide. It now groups them into bands you can actually hit, and the tooltip names the band.
@@ -242,7 +245,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
 [2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0
 [1.9.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.9.0
 [1.8.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.8.0
