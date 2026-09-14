@@ -120,6 +120,10 @@ export function explodeFrom(
   return result;
 }
 
+export function canKeep(rule: KeepRule, count: number): boolean {
+  return Number.isInteger(rule.n) && rule.n >= 1 && rule.n <= count;
+}
+
 function applyKeep(singleDie: Distribution, count: number, rule: KeepRule): Distribution {
   const n = rule.n;
   if (!Number.isInteger(n) || n < 1 || n > count) return emptyDistribution();
@@ -230,6 +234,13 @@ export function partDistribution(part: DicePart): Distribution {
 
   const single = singleDieDistribution(part);
   if (single.size === 0) return emptyDistribution();
+
+  // A rule that keeps more dice than the part rolls has no answer, and the
+  // editor says so in red. Stated here rather than left to whatever runs the
+  // keep, because "keep them all" is a legitimate reading of n >= count that
+  // returns the plain sum, and a row the editor calls invalid must not quietly
+  // show stats for a different roll.
+  if (part.keep && !canKeep(part.keep, part.count)) return emptyDistribution();
 
   if (part.keep) {
     return applyKeep(single, part.count, part.keep);
