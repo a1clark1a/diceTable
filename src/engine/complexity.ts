@@ -95,11 +95,16 @@ export function keepWork(parts: readonly DicePart[], rule: KeepRule): number {
     totalDice += part.count;
     stateCount *= part.count + 1;
     maxFace = Math.max(maxFace, partMaxFace(part));
-    if (stateCount > MAX_KEEP_WORK) return COMPLEXITY_OVERFLOW;
   }
   // Keeping every die is a plain sum that the walk short-circuits before it
   // builds any state, so a big keep-all roll is not charged for work it skips.
+  //
+  // This has to be settled before the state count is judged, not during it.
+  // However many states there would have been, none of them is built, and
+  // refusing on a count of states nobody counts turns away a roll that
+  // convolves in a tenth of a second.
   if (rule.n >= totalDice) return 0;
+  if (stateCount > MAX_KEEP_WORK) return COMPLEXITY_OVERFLOW;
 
   const work = maxFace * stateCount * (rule.n * maxFace + totalDice) * parts.length;
   return Number.isFinite(work) ? work : COMPLEXITY_OVERFLOW;

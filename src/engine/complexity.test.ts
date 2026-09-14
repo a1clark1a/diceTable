@@ -14,6 +14,7 @@ import {
 } from './complexity';
 import { partDistribution } from './parts';
 import { expressionDistribution } from './expression';
+import { totalMass } from './distribution';
 
 const part = (overrides: Partial<DicePart>): DicePart => ({
   id: 'p',
@@ -99,7 +100,32 @@ describe('keepWork — what a keep rule costs', () => {
     // A d6 exploding ten deep tops out at 66, so the walk is 66 levels, not 6.
     expect(keepWork([exploding], exploding.keep!)).toBe(keepWorkOf(count, 6, n, 66));
     expect(partTooComplex(exploding)).toBe(false);
-    expect(partDistribution(exploding).size).toBeGreaterThan(0);
+
+    // Timed, not just asserted non-empty. These are the rows that used to take
+    // between a tenth of a second and half an hour, and the enumeration they no
+    // longer run is synchronous, so a regression would hang the suite rather
+    // than fail it. Measured at 2 to 3ms; the bound is loose enough for CI.
+    const t0 = performance.now();
+    const d = partDistribution(exploding);
+    expect(performance.now() - t0).toBeLessThan(250);
+    expect(d.size).toBeGreaterThan(0);
+  });
+
+  it('computes roll-and-keep at the size real systems use', () => {
+    // 12d10 exploding on 10, keep the highest 6: the published case AnyDice
+    // times out on against its five-second budget. 2.1.0 refused it too.
+    const l5r = part({
+      count: 12,
+      sides: 10,
+      keep: { type: 'highest', n: 6 },
+      explode: { onFaces: [10], depthCap: 10 },
+    });
+    expect(partTooComplex(l5r)).toBe(false);
+    const t0 = performance.now();
+    const d = partDistribution(l5r);
+    expect(performance.now() - t0).toBeLessThan(500);
+    expect(d.size).toBe(655);
+    expect(totalMass(d)).toBeCloseTo(1, 10);
   });
 
   it('still refuses a keep whose walk is genuinely too big', () => {

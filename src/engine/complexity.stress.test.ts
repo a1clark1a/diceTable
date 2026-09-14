@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DicePart, Distribution, Expression, KeepRule } from '../types';
-import { expressionTooComplex, keepWork, MAX_KEEP_WORK } from './complexity';
+import { expressionTooComplex, keepWork, MAX_KEEP_WORK, MAX_SUPPORT_WORK, supportWidth } from './complexity';
 import { totalMass, uniformDistribution } from './distribution';
 import { expressionDistribution } from './expression';
 import { keepAcrossDistribution } from './keepAcross';
@@ -14,6 +14,15 @@ const mk = (count: number, sides: number, extra: Partial<DicePart> = {}): DicePa
   count,
   sides,
   ...extra,
+});
+
+const sumRow = (parts: DicePart[]): Expression => ({
+  id: 'e',
+  name: 'r',
+  parts,
+  flatModifier: 0,
+  rollMode: 'normal',
+  mode: 'sum',
 });
 
 const keepExpr = (parts: DicePart[], keepAcross: KeepRule): Expression => ({
@@ -137,6 +146,26 @@ describe('keeping every die', () => {
   });
 
   it('the keep-all short-circuit wins over the state-count overflow check', () => {
+    // 201^3 = 8,120,601 states, past the cap on its own, and not one of them is
+    // ever built: keeping all 600 dice is a plain convolution. Deciding the
+    // state count first would refuse a roll that computes in about a tenth of a
+    // second, which is what makes the order here load-bearing rather than
+    // stylistic. The shape below is reachable: count maxes at 999, nothing caps
+    // the number of parts, and the keep-across stepper goes to the dice total.
+    const parts = [mk(200, 6), mk(200, 6), mk(200, 6)];
+    expect((200 + 1) ** 3).toBeGreaterThan(MAX_KEEP_WORK);
+    expect(keepWork(parts, { type: 'highest', n: 600 })).toBe(0);
+    expect(keepWork(parts, { type: 'lowest', n: 600 })).toBe(0);
+
+    const e = keepExpr(parts, { type: 'highest', n: 600 });
+    expect(expressionTooComplex(e)).toBe(false);
+    // 600 dice of five steps each, so 600 through 3600.
+    const d = expressionDistribution(e);
+    expect(d.size).toBe(3001);
+    expect(totalMass(d)).toBeCloseTo(1, 10);
+  });
+
+  it('charges a near-keep-all rule, which does build the states', () => {
     const parts = shapes[5]!.parts;
     expect(keepWork(parts, { type: 'highest', n: 79 })).toBeGreaterThan(MAX_KEEP_WORK);
     expect(keepWork(parts, { type: 'highest', n: 80 })).toBe(0);
@@ -197,5 +226,64 @@ describe('level walk cross-check against an independent enumeration', () => {
         }
       }
     }
+  });
+});
+
+// The whole justification for MAX_KEEP_WORK is a compatibility claim: every
+// per-part keep row the previous release computed must keep computing. One
+// pinned sample cannot hold that, so this sweeps the set. The oracle is 2.1.0's
+// own scoring, reimplemented here rather than imported, because importing the
+// thing under test would make this agree with whatever it does.
+const OLD_MAX_COMPLEXITY = 1e5;
+
+function oldLeaves(count: number, sides: number): number {
+  const n = count + sides - 1;
+  const k = Math.min(sides - 1, count);
+  let r = 1;
+  for (let i = 0; i < k; i++) {
+    r = (r * (n - i)) / (i + 1);
+    if (!Number.isFinite(r) || r > OLD_MAX_COMPLEXITY * 10) return Infinity;
+  }
+  return r;
+}
+
+describe('every per-part keep row the previous release computed still computes', () => {
+  it('holds across the whole admitted set, and names its ceiling', () => {
+    let checked = 0;
+    let heaviest = { label: '', work: 0 };
+
+    // keepWork varies in n only through its `n * maxFace` term, so it rises
+    // strictly with n. The binding row for a given die is therefore the largest
+    // n that still clears the width gate, and checking that one covers every
+    // smaller n underneath it. Sweeping all of them instead costs 600,000
+    // iterations and twenty seconds, which is a flaky test rather than a
+    // thorough one.
+    for (let count = 2; count <= 999; count++) {
+      for (let sides = 2; sides <= 1000; sides++) {
+        if (oldLeaves(count, sides) > OLD_MAX_COMPLEXITY) continue;
+
+        // width(n) = n * (sides - 1) + 1, also rising in n, and it is refused
+        // once width squared passes MAX_SUPPORT_WORK.
+        const widthCeiling = Math.floor(Math.sqrt(MAX_SUPPORT_WORK));
+        const nMax = Math.min(count - 1, Math.floor((widthCeiling - 1) / (sides - 1)));
+        if (nMax < 2) continue;
+
+        const p = mk(count, sides, { keep: { type: 'highest', n: nMax } });
+        const width = supportWidth(sumRow([p]));
+        expect(width * width, `${count}d${sides}kh${nMax} width`).toBeLessThanOrEqual(
+          MAX_SUPPORT_WORK,
+        );
+
+        checked++;
+        const work = keepWork([p], p.keep!);
+        expect(work, `${count}d${sides}kh${nMax}`).toBeLessThanOrEqual(MAX_KEEP_WORK);
+        if (work > heaviest.work) heaviest = { label: `${count}d${sides}kh${nMax}`, work };
+      }
+    }
+
+    // The sweep has to actually sweep, but an exact count is a change detector
+    // rather than behaviour, so it is a floor.
+    expect(checked).toBeGreaterThan(1500);
+    expect(heaviest).toEqual({ label: '999d2kh998', work: 5990000 });
   });
 });
