@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DicePart, Distribution, Expression, KeepRule } from '../types';
-import { COMPLEXITY_OVERFLOW, expressionTooComplex, keepAcrossComplexity } from './complexity';
+import { expressionTooComplex, keepWork, MAX_KEEP_WORK } from './complexity';
 import { totalMass, uniformDistribution } from './distribution';
 import { expressionDistribution } from './expression';
 import { keepAcrossDistribution } from './keepAcross';
@@ -128,7 +128,7 @@ describe('keeping every die', () => {
       for (const n of [shape.totalDice, shape.totalDice + 3]) {
         for (const type of KEEP_TYPES) {
           expect(
-            keepAcrossComplexity(shape.parts, { type, n }),
+            keepWork(shape.parts, { type, n }),
             `${shape.label} keep ${type} ${n}`,
           ).toBe(0);
         }
@@ -138,12 +138,10 @@ describe('keeping every die', () => {
 
   it('the keep-all short-circuit wins over the state-count overflow check', () => {
     const parts = shapes[5]!.parts;
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 79 })).toBe(
-      COMPLEXITY_OVERFLOW,
-    );
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 80 })).toBe(0);
-    expect(keepAcrossComplexity(parts, { type: 'lowest', n: 80 })).toBe(0);
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 1 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 79 })).toBeGreaterThan(MAX_KEEP_WORK);
+    expect(keepWork(parts, { type: 'highest', n: 80 })).toBe(0);
+    expect(keepWork(parts, { type: 'lowest', n: 80 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 1 })).toBe(0);
   });
 });
 

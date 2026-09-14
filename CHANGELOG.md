@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Keeping some of a roll's dice while those dice can explode no longer freezes the page. Keep and Explode on the same group was reaching the maths through a route that grew with the number of faces a die could show, and an exploding d6 can show 56 of them rather than 6. Six dice keeping five took 25 seconds of a locked-up tab, eight dice keeping seven would have taken about half an hour, and the check meant to catch that was reading the die as though it had never exploded. Both are now under a hundredth of a second, and the check reads the roll the app is actually going to make.
+- Rolls that kept dice are no longer turned away for work the app does not do. Keeping the best few of twenty d20s, of thirty d6s, or of a hundred d100s all said "(too complex)" and now simply answer, as does roll-and-keep at the size those systems actually use: twelve exploding d10s keeping six is nine milliseconds.
+- A roll that explodes on a low face is no longer refused for being wide. Exploding a d100 on a 1 was measured as though every extra die could land on 100, which made a roll reaching 150 look like one reaching 5,100.
+- A critical that rolls more dice than an ordinary hit is now measured on the dice it really rolls. A check whose critical doubles its damage was sized by the smaller roll, so a critical twice too big to draw could still be accepted.
+- A roll that keeps more dice than it has stays blank instead of quietly answering. The editor already called it a mistake in red, and the number beside it now agrees.
+
 ## [2.1.0] - 2026-09-14
 
 ### Added

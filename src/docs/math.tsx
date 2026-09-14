@@ -79,14 +79,17 @@ P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
   },
   {
     id: 'keep',
-    title: '4 · Keep highest / lowest: looking at every possible roll',
+    title: '4 · Keep highest / lowest',
     subtitle: 'e.g. 4d6kh3, the classic ability-score roll',
     plain: (
       <Text>
         For every way the dice could come up, sort the faces, drop the ones
-        you aren’t keeping, and add up the rest. There’s no shortcut formula
-        for this one, so DiceTable just goes through every possible roll and
-        weights it by how often it would actually happen.
+        you aren’t keeping, and add up the rest. Listing those rolls one at a
+        time is the obvious way to do it and the slow one: four dice is already
+        1,296 of them, and a die that can explode has far more faces to combine.
+        DiceTable counts levels instead, which reaches the same answer without
+        ever writing a roll down. Section 10 has the identity it uses. It is the
+        same walk whether the dice match or not.
       </Text>
     ),
     example: (
@@ -97,13 +100,14 @@ P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
         <Code>10.5</Code> for plain 3d6.
       </Text>
     ),
-    snippet: `// keep the K highest of N dice
+    snippet: `// what "keep the K highest of N dice" means
 for each ordered outcome (r₁, r₂, …, r_N):
     sorted   = sort_desc(r₁, …, r_N)
     kept_sum = sorted[0] + sorted[1] + … + sorted[K−1]
-    P(total = kept_sum) += (1/S)^N
 
-// where S = die size`,
+// what gets run instead: count dice at each level, never an outcome
+sum of top K  =  Σ  min(K, C_t)        C_t = dice showing at least t
+                t≥1                    (see §10)`,
   },
   {
     id: 'advantage',
@@ -296,10 +300,10 @@ tie_i = Σ  P_i(v) · Π  P_j(X ≤ v)  −  win_i
     subtitle: 'e.g. 1d8 + 1d6 · keep highest 1, the trait-and-wild-die roll',
     plain: (
       <Text>
-        Keeping inside one part only ever compares identical dice, so it can be
-        counted face by face. Across parts the dice have different faces, and
-        the trick is to stop thinking about which die won and count levels
-        instead. For any threshold t, count how many dice show at least t. The
+        Keeping the best few dice is the same question whether they match or
+        not, so this is the walk section 4 runs too. The trick is to stop
+        thinking about which die won and count levels instead. For any
+        threshold t, count how many dice show at least t. The
         sum of the top n dice is the same as adding up, for every t, the smaller
         of n and that count. So DiceTable walks t downward from the highest face,
         tracking how many dice of each part have reached the current level.

@@ -7,21 +7,6 @@ export const MAX_COMPLEXITY = 1e5;
 
 export const COMPLEXITY_OVERFLOW = Number.POSITIVE_INFINITY;
 
-function binomial(n: number, k: number): number {
-  if (!Number.isInteger(n) || !Number.isInteger(k)) return 0;
-  if (k < 0 || k > n) return 0;
-  if (k === 0 || k === n) return 1;
-  const kk = Math.min(k, n - k);
-  let result = 1;
-  for (let i = 0; i < kk; i++) {
-    result = (result * (n - i)) / (i + 1);
-    if (!Number.isFinite(result) || result > MAX_COMPLEXITY * 10) {
-      return COMPLEXITY_OVERFLOW;
-    }
-  }
-  return result;
-}
-
 export function partComplexity(part: DicePart): number {
   if (!Number.isInteger(part.count) || part.count < 1) return 0;
   if (!Number.isInteger(part.sides) || part.sides < 2) return 0;
@@ -30,20 +15,6 @@ export function partComplexity(part: DicePart): number {
 
   if (part.explode) {
     cost += part.sides * explodeCap(part.explode);
-  }
-
-  // applyKeep enumerates weak compositions of `count` over the die's DISTINCT
-  // VALUES, and those come from singleDieDistribution, which has already applied
-  // reroll and explode. Charging `sides` prices a die that no longer exists: an
-  // exploding d6 at the default cap shows 56 distinct faces, not 6, so 6d6
-  // keeping 5 scored 522 against a 1e5 gate and then ran for 25 seconds on the
-  // main thread. partMaxFace bounds the post-explode face set from above, which
-  // is the honest thing to charge and stays a pure function of the part.
-  if (part.keep) {
-    const faces = partMaxFace(part);
-    const leaves = binomial(part.count + faces - 1, faces - 1);
-    if (leaves === COMPLEXITY_OVERFLOW) return COMPLEXITY_OVERFLOW;
-    cost += leaves;
   }
 
   return cost;
@@ -94,44 +65,87 @@ function partMaxFace(part: DicePart): number {
   return part.sides + explodeCap(part.explode) * top;
 }
 
-// The keep-across walk holds one accumulator per (per-part counted vector,
-// running sum), and every level can move any state to any other, so the work
-// scales with the square of the state count times the sum domain. Keeping n = 1
-// and "keep them all" at zero leaves the cheap closed-form paths unguarded.
-export function keepAcrossComplexity(
-  parts: readonly DicePart[],
-  rule: KeepRule,
-): number {
+/**
+ * What the keep walk costs, in its own units.
+ *
+ * The walk takes one level per face value, carries one accumulator per (per-part
+ * counted vector, running sum), and per level touches each occupied state once
+ * and sweeps the running-sum axis. So the work is levels times states times the
+ * width of that axis, and the axis is as wide as the kept sum can reach.
+ *
+ * Reading it as stateCount squared prices a level that can move any state to any
+ * other. The transition rows are sharply peaked and the walk returns on a zero
+ * weight, so it does not: squaring over-charges a many-dice row by three orders
+ * of magnitude, enough to refuse 50d4 keeping 25, which takes half a
+ * millisecond.
+ *
+ * Every per-part keep runs this same walk, so this scores both.
+ */
+export function keepWork(parts: readonly DicePart[], rule: KeepRule): number {
   if (!Number.isInteger(rule.n) || rule.n < 1) return 0;
+  // One die has a closed form, and supportWidth already bounds what it costs.
   if (rule.n === 1) return 0;
 
   let totalDice = 0;
+  let stateCount = 1;
+  let maxFace = 0;
   for (const part of parts) {
     if (!Number.isInteger(part.count) || part.count < 1) return 0;
     if (!Number.isInteger(part.sides) || part.sides < 2) return 0;
     totalDice += part.count;
-  }
-  // Keeping every die is a plain sum that keepAcrossDistribution short-circuits
-  // before the walk, so the state space is never built. Deciding that first
-  // keeps a big keep-all roll from being flagged for work it never does.
-  if (rule.n >= totalDice) return 0;
-
-  let stateCount = 1;
-  let maxFace = 0;
-  for (const part of parts) {
     stateCount *= part.count + 1;
     maxFace = Math.max(maxFace, partMaxFace(part));
-    if (stateCount > MAX_COMPLEXITY) return COMPLEXITY_OVERFLOW;
+    if (stateCount > MAX_KEEP_WORK) return COMPLEXITY_OVERFLOW;
   }
+  // Keeping every die is a plain sum that the walk short-circuits before it
+  // builds any state, so a big keep-all roll is not charged for work it skips.
+  if (rule.n >= totalDice) return 0;
 
-  const cost = stateCount * stateCount * rule.n * maxFace;
-  return Number.isFinite(cost) ? cost : COMPLEXITY_OVERFLOW;
+  const work = maxFace * stateCount * (rule.n * maxFace + totalDice) * parts.length;
+  return Number.isFinite(work) ? work : COMPLEXITY_OVERFLOW;
 }
 
-function partsComplexity(
-  parts: readonly DicePart[],
-  keepAcross: KeepRule | undefined,
-): number {
+/**
+ * Calibrated on compatibility rather than on a time budget, because the two
+ * disagree and compatibility is the tighter of them. Every plain keep row the
+ * previous release computed has to keep computing: sweeping all 2,190 of them
+ * puts the ceiling at 999d2 keeping 998, which costs 5.99e6 units and 34ms, so
+ * the cap cannot go below 6e6. This is that with room to spare, and it admits
+ * nothing slower than about a third of a second.
+ */
+export const MAX_KEEP_WORK = 7.5e6;
+
+/**
+ * Every keep walk a row pays for. A check row rolls its effect and, if it can
+ * crit, a bigger version of it, and each of those can carry its own rules.
+ */
+function expressionKeepWork(expr: Expression): number {
+  const partsKeep = (parts: readonly DicePart[], across: KeepRule | undefined): number => {
+    let total = 0;
+    for (const part of parts) {
+      if (part.keep) total += keepWork([part], part.keep);
+    }
+    if (across) total += keepWork(parts, across);
+    return total;
+  };
+
+  // A pool row counts successes one die at a time and never keeps anything.
+  if (expr.mode === 'pool') return 0;
+
+  let total = partsKeep(expr.parts, expr.keepAcross);
+  // Only a check row rolls its effect. A sum row that still carries a spec from
+  // before the mode changed does not, so it must not be charged for one.
+  const spec = expr.mode === 'check' ? expr.check : undefined;
+  if (spec !== undefined) {
+    total += partsKeep(spec.effect.parts, spec.effect.keepAcross);
+    if (spec.onSuccess !== 'none' && critApplies(spec, expr.parts)) {
+      total += partsKeep(critEffectParts(spec), spec.effect.keepAcross);
+    }
+  }
+  return total;
+}
+
+function partsComplexity(parts: readonly DicePart[]): number {
   let total = 0;
   for (const part of parts) {
     const c = partComplexity(part);
@@ -139,13 +153,6 @@ function partsComplexity(
     total += c;
     if (total > MAX_COMPLEXITY) return total;
   }
-
-  if (keepAcross) {
-    const across = keepAcrossComplexity(parts, keepAcross);
-    if (across === COMPLEXITY_OVERFLOW) return COMPLEXITY_OVERFLOW;
-    total += across;
-  }
-
   return total;
 }
 
@@ -154,17 +161,17 @@ function partsComplexity(
 // unbounded effect through the guard.
 export function checkComplexity(expr: Expression): number {
   const spec = expr.check;
-  const trigger = partsComplexity(expr.parts, undefined);
+  const trigger = partsComplexity(expr.parts);
   if (spec === undefined || trigger === COMPLEXITY_OVERFLOW) return trigger;
 
-  const effect = partsComplexity(spec.effect.parts, spec.effect.keepAcross);
+  const effect = partsComplexity(spec.effect.parts);
   if (effect === COMPLEXITY_OVERFLOW) return COMPLEXITY_OVERFLOW;
   let total = trigger + effect;
   if (total > MAX_COMPLEXITY) return total;
 
   // A 'none' success scale means the crit roll is skipped, so it costs nothing.
   if (spec.onSuccess !== 'none' && critApplies(spec, expr.parts)) {
-    const onCrit = partsComplexity(critEffectParts(spec), spec.effect.keepAcross);
+    const onCrit = partsComplexity(critEffectParts(spec));
     if (onCrit === COMPLEXITY_OVERFLOW) return COMPLEXITY_OVERFLOW;
     total += onCrit;
   }
@@ -177,11 +184,12 @@ export function expressionComplexity(expr: Expression): number {
   if (expr.mode === 'pool') return poolComplexity(expr);
   if (expr.mode === 'check') return checkComplexity(expr);
 
-  return partsComplexity(expr.parts, expr.keepAcross);
+  return partsComplexity(expr.parts);
 }
 
 export function partTooComplex(part: DicePart): boolean {
-  return partComplexity(part) > MAX_COMPLEXITY;
+  if (partComplexity(part) > MAX_COMPLEXITY) return true;
+  return part.keep !== undefined && keepWork([part], part.keep) > MAX_KEEP_WORK;
 }
 
 /**
@@ -222,11 +230,16 @@ export function supportWidth(expr: Expression): number {
 
   let width = widthOf(expr.parts, expr.keepAcross);
   // A check row lands on its effect's totals, so that is the support drawn.
-  if (expr.check !== undefined) {
-    width = Math.max(
-      width,
-      widthOf(expr.check.effect.parts, expr.check.effect.keepAcross),
-    );
+  const spec = expr.check;
+  if (spec !== undefined) {
+    width = Math.max(width, widthOf(spec.effect.parts, spec.effect.keepAcross));
+    // A critical rolls a bigger effect than an ordinary success, and the row is
+    // as wide as the widest thing it can land on. Doubling the dice doubles the
+    // width, and scoring only the ordinary effect halves the estimate of the
+    // heaviest roll in the row.
+    if (spec.onSuccess !== 'none' && critApplies(spec, expr.parts)) {
+      width = Math.max(width, widthOf(critEffectParts(spec), spec.effect.keepAcross));
+    }
   }
   return width + 1;
 }
@@ -242,5 +255,6 @@ export const MAX_SUPPORT_WORK = 5e7;
 export function expressionTooComplex(expr: Expression): boolean {
   const width = supportWidth(expr);
   if (width * width > MAX_SUPPORT_WORK) return true;
+  if (expressionKeepWork(expr) > MAX_KEEP_WORK) return true;
   return expressionComplexity(expr) > MAX_COMPLEXITY;
 }

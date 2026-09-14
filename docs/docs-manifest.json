@@ -20,7 +20,12 @@
     {
       "id": "math.keep",
       "label": "The Math · §4 Keep highest / lowest",
-      "deps": ["src/engine/parts.ts", "src/docs/math.tsx"]
+      "deps": [
+        "src/engine/parts.ts",
+        "src/engine/keepAcross.ts",
+        "src/engine/complexity.ts",
+        "src/docs/math.tsx"
+      ]
     },
     {
       "id": "math.advantage",
