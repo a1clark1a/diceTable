@@ -466,6 +466,8 @@ const uiTips: Record<string, string> = {
     'Click to sort rolls by this target. Another click flips the order, one more clears it.',
   targetCurves:
     'Each line shows a roll’s chance to hit for every possible target at once. Dashed lines mark your current targets.',
+  targetCurvePage:
+    'Draw twenty rolls at a time instead of all of them, then page through the rest. Handy once there are too many lines to tell apart.',
   targetBars:
     'How often each roll meets this target. Longer, greener bars mean more reliable.',
   deltaAvg:
@@ -497,7 +499,7 @@ const uiTips: Record<string, string> = {
   shareImageNeedsTwo:
     'This picture needs two rolls to compare. Add another one with valid dice.',
   chartRowCap:
-    'Only the first rolls are drawn here, so the lines stay readable. Every roll still shows its own numbers in the table.',
+    'A page of rolls at a time, so the lines stay readable. Use the arrows to reach the rest. Every roll still shows its own numbers in the table.',
   shareImageNoTargets:
     'Nothing to measure against yet. Add a target and the picture has something to show.',
   shareImageNoSumRows:

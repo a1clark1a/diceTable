@@ -19,6 +19,7 @@ export function chartRowCap(surface: ChartSurface, wideCanvas: boolean): number 
 /** Zero-based page per panel key. Absent means the first page. */
 export type ChartPages = Partial<Record<ChartPanelData['key'], number>>;
 
+/** How many pages of `size` it takes to cover `total`; never fewer than one. */
 export function pageCount(total: number, size: number): number {
   return Math.max(1, Math.ceil(total / size));
 }

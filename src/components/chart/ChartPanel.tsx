@@ -3,14 +3,12 @@ import {
   Box,
   Button,
   HStack,
-  IconButton,
   Stack,
   Text,
   Wrap,
   WrapItem,
 } from '@chakra-ui/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { tapTarget } from '../tapTarget';
+import { RangePager } from './RangePager';
 import { pageCount } from './rowCap';
 import type { Distribution } from '../../types';
 import { ChartFallback } from './ChartFallback';
@@ -21,8 +19,6 @@ import type { ChartPanelData } from './useChartPanels';
 import { ChartViewChips } from './ChartViewChips';
 
 const OverlayChartImpl = lazy(() => import('./OverlayChartImpl'));
-
-const TABULAR = { fontVariantNumeric: 'tabular-nums' } as const;
 
 interface PanelLegendProps {
   entries: ChartPanelData['entries'];
@@ -143,45 +139,22 @@ interface ChartPagerProps {
  * one.
  */
 function ChartPager({ panel, pageSize, onPage }: ChartPagerProps) {
-  const pages = pageCount(panel.total, pageSize);
-  const first = panel.from + 1;
-  const last = panel.from + panel.drawn;
-
   return (
-    <HStack gap={1} fontSize="xs" color="fg.muted">
+    <RangePager
+      from={panel.from}
+      shown={panel.drawn}
+      total={panel.total}
+      page={panel.page}
+      pages={pageCount(panel.total, pageSize)}
+      what={`${panel.title} chart`}
+      onPage={(page) => onPage(panel.key, page)}
+    >
       <HelpTerm tip={tipForId('chartRowCap')}>
-        <Text as="span">
-          Showing {first} to {last} of {panel.total} rolls
+        <Text as="span" srOnly>
+          Rolls drawn
         </Text>
       </HelpTerm>
-      <HStack gap={0} ms="auto" flexShrink={0}>
-        <IconButton
-          size="xs"
-          variant="ghost"
-          h={tapTarget('24px')}
-          minW={tapTarget('24px')}
-          aria-label={`Previous rolls on the ${panel.title} chart`}
-          disabled={panel.page === 0}
-          onClick={() => onPage(panel.key, panel.page - 1)}
-        >
-          <ChevronLeft size={14} />
-        </IconButton>
-        <Text as="span" px={1} fontFamily="mono" style={TABULAR}>
-          {panel.page + 1}/{pages}
-        </Text>
-        <IconButton
-          size="xs"
-          variant="ghost"
-          h={tapTarget('24px')}
-          minW={tapTarget('24px')}
-          aria-label={`More rolls on the ${panel.title} chart`}
-          disabled={panel.page >= pages - 1}
-          onClick={() => onPage(panel.key, panel.page + 1)}
-        >
-          <ChevronRight size={14} />
-        </IconButton>
-      </HStack>
-    </HStack>
+    </RangePager>
   );
 }
 

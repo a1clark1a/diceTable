@@ -1,7 +1,10 @@
-import { useMemo } from 'react';
-import { Box, HStack, Text } from '@chakra-ui/react';
+import { useMemo, useState } from 'react';
+import { Box, Button, HStack, Text } from '@chakra-ui/react';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
+import { tapTarget } from '../tapTarget';
+import { RangePager } from '../chart/RangePager';
+import { pageCount } from '../chart/rowCap';
 import type { TargetState } from '../../types';
 import { hitSeries } from '../../engine/stats';
 import type { TargetRow } from './targetHitRows';
@@ -9,6 +12,8 @@ import type { TargetRow } from './targetHitRows';
 const W = 640;
 const H = 210;
 const LEGEND_CAP = 12;
+/** One page of curves, matching the comparison chart's page. */
+export const CURVE_PAGE = 20;
 
 interface TargetCurvesProps {
   /** Sum rows only; curves always plot totals, whatever the kind filter says. */
@@ -23,8 +28,16 @@ interface CurveGeometry {
   xMax: number;
 }
 
+/**
+ * `rows` sets the axis, `drawn` sets the lines.
+ *
+ * They differ while a page is showing, and keeping the axis on the whole table
+ * is the point: an axis rebuilt per page would slide under the curves, and two
+ * pages read one after the other would be measuring against different rulers.
+ */
 function buildGeometry(
   rows: TargetRow[],
+  drawn: TargetRow[],
   target: TargetState,
 ): CurveGeometry | null {
   let lo = Infinity;
@@ -47,7 +60,7 @@ function buildGeometry(
     target.ruling === 'gte' || target.ruling === 'gt' ? 1 : 0;
   const rightVal =
     target.ruling === 'lte' || target.ruling === 'lt' ? 1 : 0;
-  const paths = rows.map((row) => {
+  const paths = drawn.map((row) => {
     const pts: string[] = [];
     const push = (v: number, p: number) =>
       pts.push(`${x(v).toFixed(1)},${y(p).toFixed(1)}`);
@@ -71,7 +84,30 @@ function buildGeometry(
 }
 
 export function TargetCurves({ rows, target }: TargetCurvesProps) {
-  const geometry = useMemo(() => buildGeometry(rows, target), [rows, target]);
+  // Off by default: this view draws the whole table at once, and paging is an
+  // answer to a crowded canvas rather than something to impose on every one.
+  // Transient like the comparison chart's page, so a reload starts whole and a
+  // share image pictures the table rather than a slice the picture cannot page.
+  const [paged, setPaged] = useState(false);
+  const [page, setPage] = useState(0);
+
+  const total = rows.length;
+  const offered = total > CURVE_PAGE;
+  const isPaged = paged && offered;
+  const pages = pageCount(total, CURVE_PAGE);
+  // Deleting rows can strand the page past the end; the last page is a better
+  // answer there than an empty canvas.
+  const safePage = Math.min(Math.max(page, 0), pages - 1);
+  const from = safePage * CURVE_PAGE;
+
+  const drawn = useMemo(
+    () => (isPaged ? rows.slice(from, from + CURVE_PAGE) : rows),
+    [isPaged, rows, from],
+  );
+  const geometry = useMemo(
+    () => buildGeometry(rows, drawn, target),
+    [rows, drawn, target],
+  );
 
   if (geometry === null) {
     return (
@@ -82,21 +118,25 @@ export function TargetCurves({ rows, target }: TargetCurvesProps) {
     );
   }
 
+  // A page is short enough to name every line it draws, so the trim is for
+  // the whole table only. Naming them is most of why a page is worth asking
+  // for, and a page that cut its own legend would undo that.
+  const legendCap = isPaged ? CURVE_PAGE : LEGEND_CAP;
   const legend =
-    rows.length > LEGEND_CAP
+    drawn.length > legendCap
       ? [
-          ...rows.slice(0, LEGEND_CAP).map((r) => ({
+          ...drawn.slice(0, legendCap).map((r) => ({
             key: r.id,
             name: r.name,
             color: r.color,
           })),
           {
             key: 'overflow',
-            name: `+${rows.length - LEGEND_CAP} more`,
+            name: `+${drawn.length - legendCap} more`,
             color: 'bg.muted',
           },
         ]
-      : rows.map((r) => ({ key: r.id, name: r.name, color: r.color }));
+      : drawn.map((r) => ({ key: r.id, name: r.name, color: r.color }));
 
   return (
     <Box
@@ -106,18 +146,50 @@ export function TargetCurves({ rows, target }: TargetCurvesProps) {
       borderRadius="md"
       p={4}
     >
-      <HelpTerm tip={tipForId('targetCurves')}>
-        <Text
-          as="span"
-          fontSize="2xs"
-          fontWeight="semibold"
-          color="fg.muted"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          Hit chance by target
-        </Text>
-      </HelpTerm>
+      <HStack justify="space-between" align="center" gap={2} flexWrap="wrap">
+        <HelpTerm tip={tipForId('targetCurves')}>
+          <Text
+            as="span"
+            fontSize="2xs"
+            fontWeight="semibold"
+            color="fg.muted"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            Hit chance by target
+          </Text>
+        </HelpTerm>
+        {offered && (
+          <HelpTerm tip={tipForId('targetCurvePage')}>
+            <Button
+              size="xs"
+              variant={isPaged ? 'solid' : 'ghost'}
+              colorPalette={isPaged ? 'blue' : 'gray'}
+              aria-pressed={isPaged}
+              h={tapTarget('24px')}
+              onClick={() => {
+                setPaged(!isPaged);
+                setPage(0);
+              }}
+            >
+              {CURVE_PAGE} at a time
+            </Button>
+          </HelpTerm>
+        )}
+      </HStack>
+      {isPaged && (
+        <Box mt={1}>
+          <RangePager
+            from={from}
+            shown={drawn.length}
+            total={total}
+            page={safePage}
+            pages={pages}
+            what="target curves"
+            onPage={setPage}
+          />
+        </Box>
+      )}
       {/* pt reserves room above the plot for the marker chips. The inner box
           matches the svg exactly so percent-positioned overlays line up, and
           the axis labels live in HTML so they keep a fixed, readable size
