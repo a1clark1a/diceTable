@@ -98,9 +98,15 @@ export default function TablePage() {
             // Capping the table rather than letting it fill a 1fr track is what
             // hands the surplus to the chart. Past its own content width the
             // table only pads its columns, so the width is worth more here.
+            // The dragged width rides a custom property rather than being
+            // interpolated into the template. Interpolating makes emotion mint
+            // and inject a new rule for every pixel of a drag, so the
+            // stylesheet grows for the length of the gesture; the property is
+            // data, and the rule stays one rule.
+            style={{ ['--dt-table-w' as string]: `${tableWidth}px` }}
             templateColumns={{
               base: '1fr',
-              '2xl': `minmax(0, ${tableWidth}px) auto minmax(${RAIL_MIN}px, 1fr)`,
+              '2xl': `minmax(0, var(--dt-table-w)) auto minmax(${RAIL_MIN}px, 1fr)`,
             }}
             // Stacked, the two implicit rows would share the page's leftover
             // height equally and strand half of it under the chart card, where

@@ -127,7 +127,18 @@ export function useChartPanels(): ChartPanels {
       });
     }
     return out;
-  }, [expressions, dists, chartViews, target, poolTargetState]);
+    // The two view values this reads, not the object holding them. The third
+    // one, chartViews.shape, drives the table's sparkline column and nothing
+    // here, so depending on the object rebuilt every panel and handed the chart
+    // fresh arrays every time those chips were pressed.
+  }, [
+    expressions,
+    dists,
+    chartViews.totals,
+    chartViews.successes,
+    target,
+    poolTargetState,
+  ]);
 
   return {
     panels,

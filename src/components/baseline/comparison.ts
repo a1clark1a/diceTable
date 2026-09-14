@@ -21,15 +21,26 @@ export interface BaselineComparison {
   hits: number[] | null;
 }
 
-/** Null when no baseline is pinned or the pinned row has no usable distribution. */
-export function buildBaselineComparison(
+/** The pinned row itself, which is the only row the comparison reads. */
+export function baselineRowOf(
   expressions: Expression[],
   baselineId: string | null,
+): Expression | undefined {
+  if (baselineId === null) return undefined;
+  return expressions.find((e) => e.id === baselineId);
+}
+
+/**
+ * Split from the lookup so a caller can depend on the pinned row rather than on
+ * the whole list. The comparison reads exactly one row, so keying it on the
+ * array rebuilds it whenever any other row is edited, which hands every row a
+ * fresh object and defeats the memo on all of them.
+ */
+export function comparisonFor(
+  baseline: Expression | undefined,
   target: TargetState,
   poolTargets: number[],
 ): BaselineComparison | null {
-  if (baselineId === null) return null;
-  const baseline = expressions.find((e) => e.id === baselineId);
   if (baseline === undefined) return null;
   const { stats, tooComplex } = getRowData(baseline);
   if (!stats.hasDist || tooComplex) return null;
@@ -48,4 +59,14 @@ export function buildBaselineComparison(
     stats,
     hits,
   };
+}
+
+/** Null when no baseline is pinned or the pinned row has no usable distribution. */
+export function buildBaselineComparison(
+  expressions: Expression[],
+  baselineId: string | null,
+  target: TargetState,
+  poolTargets: number[],
+): BaselineComparison | null {
+  return comparisonFor(baselineRowOf(expressions, baselineId), target, poolTargets);
 }

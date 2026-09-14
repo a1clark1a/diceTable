@@ -41,7 +41,8 @@ import {
 } from './chart/format';
 import {
   STAT_DELTA_EPS,
-  buildBaselineComparison,
+  baselineRowOf,
+  comparisonFor,
   type BaselineComparison,
 } from './baseline/comparison';
 import { buildRowCompare } from './baseline/rowCompare';
@@ -184,9 +185,13 @@ export function RollsTable() {
     ? STYLE_COLUMN
     : STYLE_COLUMN_SUM_ONLY;
   const atCap = expressions.length >= MAX_EXPRESSIONS;
+  // Keyed on the pinned row, not on the list. AppContext returns untouched rows
+  // by reference, so editing any other row leaves this identical and every row's
+  // memo survives; keying it on the array rebuilt it on every keystroke.
+  const baselineRow = baselineRowOf(expressions, baselineId);
   const comparison = useMemo(
-    () => buildBaselineComparison(expressions, baselineId, target, poolTargets),
-    [expressions, baselineId, target, poolTargets],
+    () => comparisonFor(baselineRow, target, poolTargets),
+    [baselineRow, target, poolTargets],
   );
 
   return (
