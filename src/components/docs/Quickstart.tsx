@@ -47,8 +47,9 @@ export function Quickstart() {
     <Stack gap={8}>
       <Text fontSize="md" color="fg.muted">
         DiceTable is one table of named rolls. Each row is a dice expression
-        like <Code>4d6kh3+2</Code>. The chart at the bottom overlays every row
-        so you can compare them at a glance.
+        like <Code>4d6kh3+2</Code>. The comparison chart overlays every row,
+        beside the table when the screen is wide enough and below it when it is
+        not, so you can compare them at a glance.
       </Text>
       <Stack gap={8}>
         {quickstartSteps.map((step, idx) => (

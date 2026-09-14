@@ -58,7 +58,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     alt: '+M / −M',
     group: 'notation',
     plain:
-      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead.',
+      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead. On a check, it is added to the check roll before it meets the bar, and the effect carries its own modifier.',
   },
   {
     id: 'keep',
@@ -263,7 +263,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'The full picture of "what can happen and how likely each outcome is." Every chart in DiceTable is a view of one.',
     details:
-      'Wherever you see P in DiceTable, it stands for "probability," a number between 0 and 1 (shown as a percent) that says how likely something is. P(X = k) reads as "the chance that the result X equals the number k." The shorthand "cum" you’ll spot in some labels is short for "cumulative," a running total of those chances as you sweep across the results from low to high. Across the whole distribution, those chances always add up to exactly 1 (100%). The three chart modes are just different ways of looking at the same numbers: PMF shows each chance on its own, CDF shows the running total from the left, and CCDF shows the running total from the right.',
+      'Wherever you see P in DiceTable, it stands for "probability," a number between 0 and 1 (shown as a percent) that says how likely something is. P(X = k) reads as "the chance that the result X equals the number k." The shorthand "cum" you’ll spot in some labels is short for "cumulative," a running total of those chances as you sweep across the results from low to high. Across the whole distribution, those chances always add up to exactly 1 (100%). The four chart modes are just different ways of looking at the same numbers: PMF shows each chance on its own, CDF shows the running total from the left, CCDF shows the running total from the right, and TARGET shows how likely each roll is to hit the target you set.',
   },
   {
     id: 'pmf',
@@ -346,7 +346,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'Click any stat to open an Inspect panel that shows where that number comes from. Useful for double-checking results.',
     details:
-      'Each stat has its own Inspect view: the mean panel breaks the average down by what each die contributes, the σ panel highlights the band around the mean where most rolls actually land, and the distribution panel lays out the chance of every result in a table. Inspect is read-only. Close it to get back to editing.',
+      'Each stat has its own Inspect view: the mean panel breaks the average down by what each result contributes, the σ panel highlights the band around the mean where most rolls actually land, and the distribution panel lays out the chance of every result in a table. Inspect is read-only. Close it to get back to editing.',
   },
   {
     id: 'roller',
@@ -373,7 +373,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'One-on-one odds: how often the roll on the left beats each roll across the top, ignoring everyone else.',
     details:
-      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance. A big table draws its first twelve rolls here, because the lattice grows with the square of the row count; Roll-off ranks every roll at once.',
+      'Each cell in the matrix reads left-to-top: the chance the row roll strictly beats the column roll, with everyone else out of the picture. A cell and its mirror don’t add up to 100% because the two rolls can also tie; hover or tap a cell for the full sentence including the tie chance. A big table draws only its first rolls here and says how many, because the lattice grows with the square of the row count; Roll-off ranks every roll at once.',
   },
   {
     id: 'tie',

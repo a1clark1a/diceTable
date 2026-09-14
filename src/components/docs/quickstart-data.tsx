@@ -38,13 +38,13 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 2,
     title: 'Read dice notation',
     plain:
-      'DiceTable uses standard tabletop shorthand. Tap any token to edit it inline. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the Sum / Pool / Check toggle under the dice to Pool and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher". Check is the third setting, for rolls that decide whether something happens: 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4".',
+      'DiceTable uses standard tabletop shorthand. Tap the notation to see the full distribution behind it, or open the row to change the dice. For example, 4d6kh3+2 means roll four six-sided dice, keep the highest 3, then add 2. A roll can also count successes instead of adding: switch the roll’s Sum / Pool / Check toggle to Pool and the notation reads like 7d10 · count ≥8, meaning "out of seven d10s, how many show 8 or higher". Check is the third setting, for rolls that decide whether something happens: 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4".',
     body: (
       <Stack gap={2}>
         <Text>
-          DiceTable uses the standard tabletop shorthand. Tap any token in the
-          table to edit it inline. For example, <Code>4d6kh3+2</Code> reads
-          as:
+          DiceTable uses the standard tabletop shorthand. Tap the notation to see
+          the full distribution behind it, or open the row to change the dice.
+          For example, <Code>4d6kh3+2</Code> reads as:
         </Text>
         <List.Root pl={5}>
           <List.Item>
@@ -59,8 +59,8 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         </List.Root>
         <Text>
           A roll can also <strong>count successes</strong> instead of adding.
-          Switch the <strong>Sum / Pool / Check</strong> toggle under the dice
-          to <strong>Pool</strong> and the notation reads like{' '}
+          Switch the <strong>Sum / Pool / Check</strong> toggle beside the dice,
+          or under them on a phone, to <strong>Pool</strong> and the notation reads like{' '}
           <Code>7d10 · count ≥8</Code>: out of seven d10s, how many show 8 or
           higher?
         </Text>
@@ -321,11 +321,11 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 10,
     title: 'Roll the dice',
     plain:
-      'Click the dice icon on any Sum roll to roll it. The result appears next to the row, and the popover can roll a batch of 1 to 1000 to show the average, the range, and recent history. The roller uses the same odds the chart shows.',
+      'Click the dice icon on any roll that is not a pool to roll it. The result appears next to the row, and the popover can roll a batch of 1 to 1000 to show the average, the range, and recent history. The roller uses the same odds the chart shows.',
     body: (
       <Text>
-        Click the <strong>dice icon</strong> on any Sum roll to actually roll
-        it.
+        Click the <strong>dice icon</strong> on any roll that is not a pool to
+        actually roll it.
         The result appears next to the row, and the popover lets you roll a
         batch of 1 to 1000 to see the average, the range, and recent history.
         The roller uses the same odds the chart shows, so it’s a sanity
