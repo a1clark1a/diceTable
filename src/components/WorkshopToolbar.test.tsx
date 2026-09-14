@@ -111,12 +111,41 @@ afterEach(() => {
 });
 
 describe('WorkshopToolbar scroll buttons', () => {
-  it('drops the chart jump on a view with no chart', () => {
+  it('swaps the chart jump for scroll-to-bottom on a view with no chart', () => {
     renderToolbar({ withChart: false });
     expect(screen.queryByRole('button', { name: 'Jump to chart' })).toBeNull();
+    // The pair used to be half a pair here, which read as a missing button
+    // rather than as a deliberate absence.
     expect(
       screen.getByRole('button', { name: 'Scroll to top' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Scroll to bottom' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps both buttons while the scroller is unmeasured', () => {
+    // jsdom reports every height as 0 and stubs ResizeObserver, so a component
+    // that read that as "nothing to scroll" would vanish from every test that
+    // asserts it, and from any real layout that measures a frame late.
+    renderToolbar({ withChart: false });
+    expect(
+      screen.getByRole('button', { name: 'Scroll to top' }),
+    ).toBeInTheDocument();
+  });
+
+  it('sits out entirely when the scroller is measured with nowhere to go', () => {
+    const main = document.createElement('main');
+    document.body.appendChild(main);
+    // Head-to-head caps at twelve rolls and fits a desktop window whole.
+    Object.defineProperty(main, 'clientHeight', { value: 733, configurable: true });
+    Object.defineProperty(main, 'scrollHeight', { value: 733, configurable: true });
+
+    renderToolbar({ withChart: false });
+
+    expect(screen.queryByRole('button', { name: 'Scroll to top' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Scroll to bottom' })).toBeNull();
+    main.remove();
   });
 
   it('exposes separate scroll-to-top and jump-to-chart buttons', () => {

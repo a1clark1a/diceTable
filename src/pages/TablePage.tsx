@@ -37,7 +37,23 @@ interface WorkshopViewEntry extends WorkshopViewChip {
  */
 function CompareActions() {
   return (
-    <Flex gap={4} align="center" wrap="wrap" w="100%">
+    <Flex
+      gap={4}
+      rowGap={2}
+      align="center"
+      wrap="wrap"
+      w="100%"
+      minH="48px"
+      // These two views have no inner scroller at any width, so main is the
+      // only thing that moves and this row has to be pinned to survive a long
+      // one. No 2xl step for that reason: unlike the table's caption row,
+      // nothing here ever stops travelling. Static below md, where the mobile
+      // toolbar already holds top:0 and this row's controls are hidden anyway.
+      position={{ base: 'static', md: 'sticky' }}
+      top={0}
+      zIndex={2}
+      bg="bg"
+    >
       <RowActions />
       {/* Below md the sticky toolbar's overflow menu already holds it, so a
           second copy here would spend a line of a phone screen on a duplicate. */}
@@ -167,7 +183,17 @@ export default function TablePage() {
         <>
           <WorkshopToolbar />
           <Stack gap={3}>
-            <Flex gap={3} align="center" wrap="wrap">
+            <Flex
+              gap={3}
+              rowGap={2}
+              align="center"
+              wrap="wrap"
+              minH="48px"
+              position={{ base: 'static', md: 'sticky' }}
+              top={0}
+              zIndex={2}
+              bg="bg"
+            >
               <TargetToolbar />
               <Box flex="1" minW={0} />
               <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
