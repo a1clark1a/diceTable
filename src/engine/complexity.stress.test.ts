@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { DicePart, Distribution, Expression, KeepRule } from '../types';
 import { COMPLEXITY_OVERFLOW, expressionTooComplex, keepAcrossComplexity } from './complexity';
-import { totalMass } from './distribution';
+import { totalMass, uniformDistribution } from './distribution';
 import { expressionDistribution } from './expression';
 import { keepAcrossDistribution } from './keepAcross';
-import { partDistribution } from './parts';
+import { partDistribution, singleDieDistribution } from './parts';
 import { sumPartsDistribution } from './roll';
+import { referenceKeep } from '../test/referenceKeep';
 
 let nextId = 0;
 const mk = (count: number, sides: number, extra: Partial<DicePart> = {}): DicePart => ({
@@ -146,18 +147,57 @@ describe('keeping every die', () => {
   });
 });
 
-describe('level walk cross-check against the per-part keep rule', () => {
-  // The per-part keep rule enumerates multinomial leaves; the keep-across walk
-  // runs a threshold-level DP. On a single part they must agree exactly.
-  it('keep highest 19 of 20d6 matches the per-part keep rule', () => {
+describe('level walk cross-check against an independent enumeration', () => {
+  // The walk is a threshold-level DP; the reference enumerates multinomial
+  // leaves. The per-part keep rule now runs the walk too, so it cannot be the
+  // oracle here: it would be the same function on both sides.
+  //
+  // 20d6 is the size that makes the point. The enumeration pays C(25, 5) =
+  // 53,130 leaves for it, which is affordable once in a test and is the cost
+  // that made it the wrong thing to run on every keystroke.
+  it('keep highest 19 of 20d6 matches the enumeration', () => {
     const walk = keepAcrossDistribution([mk(20, 6)], { type: 'highest', n: 19 });
-    const perPart = partDistribution(mk(20, 6, { keep: { type: 'highest', n: 19 } }));
-    expectSameDistribution(walk, perPart, '20d6 keep highest 19');
+    const reference = referenceKeep(uniformDistribution(6), 20, {
+      type: 'highest',
+      n: 19,
+    });
+    expectSameDistribution(walk, reference, '20d6 keep highest 19');
   });
 
-  it('keep lowest 19 of 20d6 matches the per-part keep rule', () => {
+  it('keep lowest 19 of 20d6 matches the enumeration', () => {
     const walk = keepAcrossDistribution([mk(20, 6)], { type: 'lowest', n: 19 });
-    const perPart = partDistribution(mk(20, 6, { keep: { type: 'lowest', n: 19 } }));
-    expectSameDistribution(walk, perPart, '20d6 keep lowest 19');
+    const reference = referenceKeep(uniformDistribution(6), 20, {
+      type: 'lowest',
+      n: 19,
+    });
+    expectSameDistribution(walk, reference, '20d6 keep lowest 19');
+  });
+
+  // Every branch of the walk against the enumeration, over dice whose faces are
+  // gapped by a chain and shifted by a reroll, which is where the two disagree
+  // if they are going to. The engine answers a per-part keep through the walk,
+  // so this is the guard on that swap.
+  it.each([
+    ['plain', {}],
+    ['exploding', { explode: { onFaces: [6], depthCap: 2 } }],
+    ['rerolled', { reroll: { values: [1, 2], mode: 'always' as const } }],
+    ['both', {
+      reroll: { values: [3], mode: 'once' as const },
+      explode: { onFaces: [6], depthCap: 1 },
+    }],
+  ])('agrees with the enumeration on %s dice, every keep', (_label, extra) => {
+    for (let count = 1; count <= 5; count++) {
+      const die = mk(count, 6, extra);
+      const single = singleDieDistribution(die);
+      for (const type of ['highest', 'lowest'] as const) {
+        for (let n = 1; n <= count; n++) {
+          expectSameDistribution(
+            partDistribution({ ...die, keep: { type, n } }),
+            referenceKeep(single, count, { type, n }),
+            `${count}d6 ${_label} keep ${type} ${n}`,
+          );
+        }
+      }
+    }
   });
 });
