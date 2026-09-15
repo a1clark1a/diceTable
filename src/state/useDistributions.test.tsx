@@ -5,6 +5,7 @@ import { AppProvider } from './AppContext';
 import { useApp } from './useApp';
 import { getRowData, useDistributions } from './useDistributions';
 import type { CheckSpec, DicePart, Expression } from '../types';
+import { WIDTH_REFUSED_PART } from '../test/tooComplex';
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AppProvider>{children}</AppProvider>
@@ -266,14 +267,12 @@ describe('useDistributions', () => {
   // The 1d20 vs 10 odds alone would be a cheap 0.55 / 0.45, but showing them
   // beside a "(too complex)" distribution would be a mixed signal.
   it('flags a check row with a too-complex effect and withholds its odds', () => {
-    // Keep highest 1 of 100d100 costs C(199, 99) states, far past the guard.
+    // 100d100 lands on 9,901 different totals, whose square is past the guard.
     seedRows([
       checkRow([{ id: 'p0', count: 1, sides: 20 }], {
         threshold: { direction: 'gte', value: 10 },
         effect: {
-          parts: [
-            { id: 'fx', count: 100, sides: 100, keep: { type: 'highest', n: 1 } },
-          ],
+          parts: [{ ...WIDTH_REFUSED_PART, id: 'fx' }],
           flatModifier: 0,
         },
       }),

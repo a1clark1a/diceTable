@@ -9,6 +9,7 @@ import { RollsCards } from './RollsCards';
 import { TargetHitView } from './target/TargetHitView';
 import { RollOffView } from './compare/RollOffView';
 import { HeadToHeadView } from './compare/HeadToHeadView';
+import { WIDTH_REFUSED_PART } from '../test/tooComplex';
 
 // Hand-computed fixtures.
 //
@@ -57,14 +58,7 @@ const HEAVY_CHECK_ROW = {
   check: {
     threshold: { direction: 'gte', value: 10 },
     effect: {
-      parts: [
-        {
-          id: 'heavy-effect-part',
-          count: 100,
-          sides: 100,
-          keep: { type: 'highest', n: 1 },
-        },
-      ],
+      parts: [{ ...WIDTH_REFUSED_PART, id: 'heavy-effect-part' }],
       flatModifier: 0,
     },
     onSuccess: 'full',

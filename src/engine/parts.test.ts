@@ -56,6 +56,30 @@ describe('partDistribution — keep highest/lowest', () => {
     }));
     expect(d.size).toBe(0);
   });
+
+  // The editor's keep stepper has no ceiling tied to the count and its "Keep <=
+  // count" error only renders, so 4d6 keeping 5 is reachable by lowering the
+  // count under an existing rule, and survives a share link. "Keep them all" is
+  // a legitimate reading of it that returns the plain sum of every die, which
+  // would put real stats beside the editor's own red error.
+  it.each([
+    ['more than the part rolls', 5],
+    ['none of them', 0],
+    ['a negative number', -1],
+    ['a fraction', 1.5],
+    ['nothing at all', Number.NaN],
+  ])('refuses a rule that keeps %s', (_label, n) => {
+    const d = partDistribution(part({ count: 4, sides: 6, keep: { type: 'highest', n } }));
+    expect(d.size).toBe(0);
+  });
+
+  it('keeps every die when the rule names exactly the count', () => {
+    // The boundary the refusal sits next to: n === count is the plain sum.
+    const kept = partDistribution(part({ count: 3, sides: 6, keep: { type: 'highest', n: 3 } }));
+    const plain = partDistribution(part({ count: 3, sides: 6 }));
+    expect(kept.size).toBe(plain.size);
+    expect(mean(kept)).toBeCloseTo(mean(plain), 12);
+  });
 });
 
 describe('partDistribution — reroll', () => {

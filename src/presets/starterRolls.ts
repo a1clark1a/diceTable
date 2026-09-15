@@ -12,7 +12,8 @@ export interface StarterPreset {
 // The ids are placeholders: addExpressions re-ids every roll on insert, so the
 // same preset can be added twice without colliding. Stats are computed once at
 // module scope with the real engine so the cards promise exactly what the
-// table will show (max complexity here is 4d6kh3 at 126, far below any guard).
+// table will show (the heaviest here is 4d6kh3, a 660-unit keep walk against a
+// 7.5 million cap, so nothing on this path is near a guard).
 function preset(expr: Expression, dice: string, why: string): StarterPreset {
   return { expr, dice, why, stats: computeRowStats(expressionDistribution(expr)) };
 }

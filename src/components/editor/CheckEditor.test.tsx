@@ -822,11 +822,10 @@ describe('CheckEditor critical on a d100 check die', () => {
 describe('CheckEditor when the effect is too complex', () => {
   function makeTooComplex() {
     startCheckRow();
-    // 30d6 keep highest 1: binomial(30 + 6 - 1, 5) = 324632 leaves, past the
-    // 100000 guard. The check die carries its own Keep chip, so the effect's is
-    // the second.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Keep' })[1]!);
-    commit(effectDieControl('Count'), 30);
+    // A hundred d100s land on 9,901 totals, whose square is past the guard. The
+    // check die carries its own controls, so the effect's are the second.
+    fireEvent.click(screen.getAllByRole('button', { name: 'd100' })[1]!);
+    commit(effectDieControl('Count'), 100);
   }
 
   it('says the odds are too complex instead of claiming a percentage', () => {

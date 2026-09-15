@@ -195,6 +195,21 @@ describe('DicePartRow ExplodeRuleEditor', () => {
     expect(buttons.length).toBe(6);
     expect(buttons[5]!.getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('says so when every face the die can still show would explode', () => {
+    // Rerolling 1 to 3 away leaves 4, 5 and 6, and all three explode, so the
+    // chain has no ending and the engine answers with a blank row. Counting the
+    // picked faces against the die's size passed this, because three is fewer
+    // than six, and the user got the blank row with no reason for it.
+    renderWith({
+      id: 'p1',
+      count: 4,
+      sides: 6,
+      reroll: { values: [1, 2, 3], mode: 'always' },
+      explode: { onFaces: [4, 5, 6], depthCap: 3 },
+    });
+    expect(screen.getByText('Cannot explode on all faces')).toBeInTheDocument();
+  });
 });
 
 describe('DicePartRow pool-mode chip disabling', () => {

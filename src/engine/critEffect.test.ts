@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CheckSpec, DicePart, Expression } from '../types';
 import { critApplies, critEffectParts } from './critEffect';
-import { checkComplexity } from './complexity';
+import { checkComplexity, supportWidth } from './complexity';
 import { checkOutcomeChances } from './check';
 import { expressionDistribution } from './expression';
 
@@ -269,12 +269,16 @@ describe('checkComplexity agrees with the math about criticals', () => {
   });
 
   it('does charge a single-die check for the critical it can roll', () => {
+    // A doubling crit rolls twice the dice, so the row reaches twice as far.
+    // That lands on the width rather than on the per-part cost, which does not
+    // read a dice count at all.
+    const effect = { parts: [{ id: 'p', count: 40, sides: 100 }], flatModifier: 0 };
     const single: Expression = {
       ...multiDieCheck,
       parts: [{ id: 'c', count: 1, sides: 20 }],
-      check: { ...multiDieCheck.check!, crit: { onFaces: [20], effect: 'doubleDice' } },
+      check: { ...multiDieCheck.check!, effect, crit: { onFaces: [20], effect: 'doubleDice' } },
     };
-    const bare = checkComplexity({ ...single, check: withoutCrit(single.check!) });
-    expect(checkComplexity(single)).toBeGreaterThan(bare);
+    const bare: Expression = { ...single, check: withoutCrit(single.check!) };
+    expect(supportWidth(single)).toBe(2 * supportWidth(bare) - 1);
   });
 });
