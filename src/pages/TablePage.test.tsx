@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import indexHtml from '../../index.html?raw';
+import bootJs from '../../public/boot.js?raw';
 
 // The overlay chart lazy-loads recharts, which needs browser APIs jsdom does
 // not provide; the page-level seam under test is which sections render, not
@@ -145,10 +146,21 @@ describe('TablePage heading', () => {
 
   it('hides the preboot copy before mount when the table already has rows', () => {
     // Without this the returning visitor watches the heading paint and vanish,
-    // because the store hydrates synchronously on the first render.
-    expect(indexHtml).toContain("localStorage.getItem('dicetable.v2')");
-    expect(indexHtml).toContain("classList.add('has-rolls')");
+    // because the store hydrates synchronously on the first render. The script
+    // half lives in public/boot.js rather than inline, because the deployed CSP
+    // is script-src 'self' and blocks an inline block outright; the rule it
+    // depends on is still in index.html's pre-mount style block.
+    expect(bootJs).toContain("localStorage.getItem('dicetable.v2')");
+    expect(bootJs).toContain("classList.add('has-rolls')");
     expect(indexHtml).toMatch(/html\.has-rolls \.preboot h1/);
+  });
+
+  it('loads the pre-paint script as a file the CSP allows', () => {
+    // It was inline, and script-src 'self' blocked it every time, silently.
+    // Inlining it back is the easy regression, so the shape is pinned here.
+    expect(indexHtml).toContain('<script src="/boot.js"></script>');
+    expect(indexHtml).not.toMatch(/<script>\s*\(function/);
+    expect(bootJs).toContain("classList.add('dark')");
   });
 });
 

@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -90,6 +90,13 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     pool: 'forks',
+    // .claude holds agent worktrees, which are whole copies of this repo, test
+    // files and all. It is gitignored, so a copy left behind by a crashed run
+    // is invisible to git status while vitest happily collects it: the suite
+    // reports double the files, and a stale copy fails a test that passes on
+    // its own. Vitest's exclude REPLACES its defaults rather than extending
+    // them, so spread them or node_modules comes back into the glob.
+    exclude: [...configDefaults.exclude, '.claude/**'],
     // Vitest defaults to 5s, which suits a pure unit test and is too tight for
     // the component tests here: each one mounts the whole provider tree in
     // jsdom, and the chart tests pull recharts through the transform pipeline.

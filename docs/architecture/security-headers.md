@@ -10,7 +10,7 @@ This is the reference for the HTTP security headers DiceTable ships in productio
 ## TL;DR
 
 - **Enforcing CSP, not Report-Only.** [vercel.json](../../vercel.json) ships a single `Content-Security-Policy` header. There is no `Content-Security-Policy-Report-Only` shadow policy today.
-- **`script-src` is locked.** `'self'` only. No `'unsafe-inline'`, no `'unsafe-eval'`, no external script CDNs.
+- **`script-src` is locked.** `'self'` only. No `'unsafe-inline'`, no `'unsafe-eval'`, no external script CDNs. This is why the pre-paint theme script is [public/boot.js](../../public/boot.js) and not an inline block in `index.html`: it was inline, it was blocked in production for as long as this header has shipped, and the only sign was a console message nobody reads. Keep it a file. Inlining it back is a one-line change that silently reinstates the flash it exists to prevent.
 - **`style-src` has `'unsafe-inline'`.** This is the one permissive grant, and it exists because Chakra v3 uses Emotion, which injects runtime `<style>` tags. Without `'unsafe-inline'`, the app renders unstyled.
 - **No CSP reporting endpoint.** No `report-uri` and no `report-to`. Violations are visible only in the user's local browser console. Adding reporting is a documented future option, not a current capability.
 - **Five hardening headers ride alongside.** `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, and `frame-ancestors 'none'` (via the CSP) cover the easy wins.
