@@ -1,11 +1,23 @@
 import type { DicePart, Distribution, KeepRule } from '../types';
 import { convolveMany, emptyDistribution, sortedKeys } from './distribution';
-import { singleDieDistribution } from './parts';
+import { singleDieDistribution } from './die';
 
 interface DieGroup {
   faces: number[];
   probs: number[];
   count: number;
+}
+
+/**
+ * The level walk indexes dense arrays by face value and rests on the identity
+ * "sum of the top n = Σ min(n, dice at or above t)", which holds for faces of
+ * at least 1 and silently returns the wrong probabilities below that rather
+ * than erring. Nothing reachable produces such a face today: a die starts at
+ * 1..sides, reroll only removes faces and explode only adds. This refuses the
+ * roll rather than answer it wrongly if that ever stops being true.
+ */
+function facesAreWalkable(faces: readonly number[]): boolean {
+  return faces.length > 0 && (faces[0] ?? 0) >= 1;
 }
 
 function buildGroups(parts: readonly DicePart[]): DieGroup[] | null {
@@ -17,6 +29,7 @@ function buildGroups(parts: readonly DicePart[]): DieGroup[] | null {
     const single = singleDieDistribution(part);
     if (single.size === 0) return null;
     const faces = sortedKeys(single);
+    if (!facesAreWalkable(faces)) return null;
     groups.push({
       faces,
       probs: faces.map((f) => single.get(f) ?? 0),
@@ -261,6 +274,43 @@ export function keepAcrossDistribution(
   const groups = buildGroups(parts);
   if (groups === null) return emptyDistribution();
 
+  return keepFromGroups(groups, rule);
+}
+
+/**
+ * The same walk over one group of identical dice, given the face distribution
+ * already built.
+ *
+ * A per-part keep rule is the one-group case of keeping across parts, so it runs
+ * the same dynamic program rather than enumerating every way the dice could have
+ * landed. The enumeration it replaces costs a weak composition of `count` over
+ * the die's distinct faces, which is fine for a plain d6 and is not fine once a
+ * chain puts 56 faces on it.
+ *
+ * It takes the distribution rather than the part because partDistribution has
+ * already built it, and buildGroups would build it again on every keystroke.
+ */
+export function keepFromSingleDie(
+  single: Distribution,
+  count: number,
+  rule: KeepRule,
+): Distribution {
+  if (!Number.isInteger(rule.n) || rule.n < 1) return emptyDistribution();
+  if (!Number.isInteger(count) || count < 1) return emptyDistribution();
+  if (single.size === 0) return emptyDistribution();
+
+  const faces = sortedKeys(single);
+  if (!facesAreWalkable(faces)) return emptyDistribution();
+
+  const group: DieGroup = {
+    faces,
+    probs: faces.map((f) => single.get(f) ?? 0),
+    count,
+  };
+  return keepFromGroups([group], rule);
+}
+
+function keepFromGroups(groups: readonly DieGroup[], rule: KeepRule): Distribution {
   const maxFace = maxFaceOf(groups);
   if (maxFace < 1) return emptyDistribution();
 

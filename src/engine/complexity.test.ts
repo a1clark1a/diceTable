@@ -6,13 +6,15 @@ import {
   expressionComplexity,
   supportWidth,
   expressionTooComplex,
-  keepAcrossComplexity,
+  keepWork,
   MAX_COMPLEXITY,
+  MAX_KEEP_WORK,
   partComplexity,
   partTooComplex,
 } from './complexity';
 import { partDistribution } from './parts';
 import { expressionDistribution } from './expression';
+import { totalMass } from './distribution';
 
 const part = (overrides: Partial<DicePart>): DicePart => ({
   id: 'p',
@@ -31,38 +33,131 @@ const expr = (overrides: Partial<Expression>): Expression => ({
   ...overrides,
 });
 
-describe('partComplexity — keep multinomial leaves', () => {
-  it('plain dice (no keep, no explode) cost is zero', () => {
-    expect(partComplexity(part({ count: 4, sides: 6 }))).toBe(0);
+// keepWork is its own unit against its own cap, the way supportWidth is, so
+// partComplexity no longer charges for a keep at all.
+const keepWorkOf = (count: number, sides: number, n: number, maxFace = sides): number =>
+  maxFace * (count + 1) * (n * maxFace + count);
+
+describe('keepWork — what a keep rule costs', () => {
+  it('partComplexity does not charge for a keep, in either unit', () => {
+    expect(partComplexity(part({ count: 4, sides: 6, keep: { type: 'highest', n: 3 } }))).toBe(0);
     expect(partComplexity(part({ count: 100, sides: 100 }))).toBe(0);
   });
 
-  it('4d6kh3 is well under the cap (126 leaves)', () => {
-    const c = partComplexity(
-      part({ count: 4, sides: 6, keep: { type: 'highest', n: 3 } }),
+  it('prices a keep by levels, states and the width of the kept sum', () => {
+    // One level per face value, one state per (dice counted, running sum).
+    expect(keepWork([part({ count: 4, sides: 6 })], { type: 'highest', n: 3 })).toBe(
+      keepWorkOf(4, 6, 3),
     );
-    expect(c).toBe(126);
-    expect(partTooComplex(part({ count: 4, sides: 6, keep: { type: 'highest', n: 3 } }))).toBe(false);
-  });
-
-  it('8d6kh4 is under the cap (1287 leaves)', () => {
-    const c = partComplexity(
-      part({ count: 8, sides: 6, keep: { type: 'highest', n: 4 } }),
+    expect(keepWork([part({ count: 8, sides: 6 })], { type: 'highest', n: 4 })).toBe(
+      keepWorkOf(8, 6, 4),
     );
-    expect(c).toBe(1287);
-    expect(partTooComplex(part({ count: 8, sides: 6, keep: { type: 'highest', n: 4 } }))).toBe(false);
   });
 
-  it('20d20kh3 exceeds the cap', () => {
-    expect(
-      partTooComplex(part({ count: 20, sides: 20, keep: { type: 'highest', n: 3 } })),
-    ).toBe(true);
+  it('charges nothing for the two cases with no walk to run', () => {
+    // One die is a closed form; keeping them all is the plain sum.
+    expect(keepWork([part({ count: 8, sides: 6 })], { type: 'highest', n: 1 })).toBe(0);
+    expect(keepWork([part({ count: 8, sides: 6 })], { type: 'lowest', n: 1 })).toBe(0);
+    expect(keepWork([part({ count: 8, sides: 6 })], { type: 'highest', n: 8 })).toBe(0);
+    expect(keepWork([part({ count: 8, sides: 6 })], { type: 'highest', n: 99 })).toBe(0);
   });
 
-  it('100d100kh50 exceeds the cap', () => {
-    expect(
-      partTooComplex(part({ count: 100, sides: 100, keep: { type: 'highest', n: 50 } })),
-    ).toBe(true);
+  it('admits the heaviest keep row the previous release computed', () => {
+    // The cap is set by compatibility, and this row is what sets it: sweeping
+    // every plain keep row 2.1.0 allowed, this is the most expensive of them.
+    const binding = part({ count: 999, sides: 2, keep: { type: 'highest', n: 998 } });
+    expect(keepWork([binding], binding.keep!)).toBe(keepWorkOf(999, 2, 998));
+    expect(keepWork([binding], binding.keep!)).toBeLessThan(MAX_KEEP_WORK);
+    expect(partTooComplex(binding)).toBe(false);
+  });
+
+  // Pricing the walk rather than the enumeration it replaced takes back rows
+  // that were refused for work the engine no longer does.
+  it.each([
+    ['20d20kh3', part({ count: 20, sides: 20, keep: { type: 'highest', n: 3 } })],
+    ['30d6kh1', part({ count: 30, sides: 6, keep: { type: 'highest', n: 1 } })],
+    ['100d100kh1', part({ count: 100, sides: 100, keep: { type: 'highest', n: 1 } })],
+  ])('computes %s, which the multinomial score refused', (_label, p) => {
+    expect(partTooComplex(p)).toBe(false);
+    expect(partDistribution(p).size).toBeGreaterThan(0);
+  });
+
+  // The rows the old score admitted and could not finish. They are cheap on the
+  // walk, so they are admitted here too, which is the point of pricing the work
+  // rather than bounding the face count.
+  it.each([
+    ['4d6kh3', 4, 3],
+    ['5d6kh3', 5, 3],
+    ['6d6kh5', 6, 5],
+    ['8d6kh7', 8, 7],
+  ])('computes %s with a chain on it', (_label, count, n) => {
+    const exploding = part({
+      count,
+      sides: 6,
+      keep: { type: 'highest', n },
+      explode: { onFaces: [6], depthCap: 10 },
+    });
+    // A d6 exploding ten deep tops out at 66, so the walk is 66 levels, not 6.
+    expect(keepWork([exploding], exploding.keep!)).toBe(keepWorkOf(count, 6, n, 66));
+    expect(partTooComplex(exploding)).toBe(false);
+
+    // Timed, not just asserted non-empty. These are the rows that used to take
+    // between a tenth of a second and half an hour, and the enumeration they no
+    // longer run is synchronous, so a regression would hang the suite rather
+    // than fail it. Measured at 2 to 3ms; the bound is loose enough for CI.
+    const t0 = performance.now();
+    const d = partDistribution(exploding);
+    expect(performance.now() - t0).toBeLessThan(250);
+    expect(d.size).toBeGreaterThan(0);
+  });
+
+  it('computes roll-and-keep at the size real systems use', () => {
+    // 12d10 exploding on 10, keep the highest 6: the published case AnyDice
+    // times out on against its five-second budget. 2.1.0 refused it too.
+    const l5r = part({
+      count: 12,
+      sides: 10,
+      keep: { type: 'highest', n: 6 },
+      explode: { onFaces: [10], depthCap: 10 },
+    });
+    expect(partTooComplex(l5r)).toBe(false);
+    const t0 = performance.now();
+    const d = partDistribution(l5r);
+    expect(performance.now() - t0).toBeLessThan(500);
+    expect(d.size).toBe(655);
+    expect(totalMass(d)).toBeCloseTo(1, 10);
+  });
+
+  it('still refuses a keep whose walk is genuinely too big', () => {
+    const huge = part({ count: 999, sides: 6, keep: { type: 'highest', n: 500 } });
+    expect(keepWork([huge], huge.keep!)).toBeGreaterThan(MAX_KEEP_WORK);
+    expect(partTooComplex(huge)).toBe(true);
+    expect(partDistribution(huge).size).toBe(0);
+  });
+
+  it('charges a chain by the face that explodes, not by the top of the die', () => {
+    // A d100 exploding on 1 reaches 150, not 5,100: only the faces that keep the
+    // chain going are chained, and the last roll is the only unrestricted one.
+    const lowTrigger = expr({
+      parts: [part({ count: 3, sides: 100, explode: { onFaces: [1], depthCap: 50 } })],
+    });
+    expect(supportWidth(lowTrigger)).toBe(448);
+    expect(expressionTooComplex(lowTrigger)).toBe(false);
+    expect(expressionDistribution(lowTrigger).size).toBe(445);
+
+    // Exploding on the top face really is that wide, and stays refused.
+    const topTrigger = expr({
+      parts: [part({ count: 3, sides: 100, explode: { onFaces: [100], depthCap: 50 } })],
+    });
+    expect(expressionTooComplex(topTrigger)).toBe(true);
+  });
+
+  it('ignores a trigger face the die cannot show', () => {
+    // onFaces is not range-checked at the type level, and a face above the die
+    // never comes up, so it never explodes and must not be charged for.
+    const unreachable = part({ count: 3, sides: 6, explode: { onFaces: [99], depthCap: 50 } });
+    expect(supportWidth(expr({ parts: [unreachable] }))).toBe(16);
+    expect(partTooComplex(unreachable)).toBe(false);
   });
 
   it('a cost of exactly the cap is allowed, one over is not', () => {
@@ -133,20 +228,30 @@ describe('expressionComplexity', () => {
   it('sums part complexities', () => {
     const e = expr({
       parts: [
-        part({ id: 'a', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }),
-        part({ id: 'b', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }),
+        part({ id: 'a', count: 4, sides: 6, explode: { onFaces: [6], depthCap: 10 } }),
+        part({ id: 'b', count: 4, sides: 6, explode: { onFaces: [6], depthCap: 10 } }),
       ],
     });
-    expect(expressionComplexity(e)).toBe(252);
+    expect(expressionComplexity(e)).toBe(120);
   });
 
   it('one runaway part dooms the expression', () => {
     const e = expr({
       parts: [
         part({ id: 'a', count: 1, sides: 6 }),
-        part({ id: 'b', count: 20, sides: 20, keep: { type: 'highest', n: 3 } }),
+        part({ id: 'b', count: 1, sides: 20000, explode: { onFaces: [20000], depthCap: 10 } }),
       ],
     });
+    expect(expressionTooComplex(e)).toBe(true);
+  });
+
+  it('a keep too big to walk dooms it through its own cap', () => {
+    // Keep has its own unit, so it reaches expressionTooComplex on its own
+    // clause rather than through expressionComplexity's total.
+    const e = expr({
+      parts: [part({ id: 'a', count: 999, sides: 6, keep: { type: 'highest', n: 500 } })],
+    });
+    expect(expressionComplexity(e)).toBe(0);
     expect(expressionTooComplex(e)).toBe(true);
   });
 
@@ -182,10 +287,19 @@ describe('expressionComplexity — pool mode', () => {
   });
 
   it('ignores keep and explode, which a pool never applies', () => {
-    const keepy = pool([part({ count: 4, sides: 6, keep: { type: 'highest', n: 3 } })]);
+    const chained = pool([
+      part({ count: 4, sides: 6, explode: { onFaces: [6], depthCap: 10 } }),
+    ]);
 
-    expect(expressionComplexity(keepy)).toBe(16);
-    expect(expressionComplexity({ ...keepy, mode: 'sum' })).toBe(126);
+    expect(expressionComplexity(chained)).toBe(16);
+    expect(expressionComplexity({ ...chained, mode: 'sum' })).toBe(60);
+  });
+
+  it('never charges a pool for a keep walk it does not run', () => {
+    const keepy = pool([part({ count: 999, sides: 6, keep: { type: 'highest', n: 500 } })]);
+    // The same part in a sum row is refused on the keep clause.
+    expect(expressionTooComplex({ ...keepy, mode: 'sum' })).toBe(true);
+    expect(expressionComplexity(keepy)).toBe(998001);
   });
 
   it('skips invalid dice instead of counting them', () => {
@@ -217,8 +331,8 @@ describe('expressionComplexity — pool mode', () => {
 });
 
 describe('engine guard — early return on too-complex inputs', () => {
-  it('partDistribution(20d20kh3) returns empty within 50 ms', () => {
-    const p = part({ count: 20, sides: 20, keep: { type: 'highest', n: 3 } });
+  it('partDistribution of a keep too big to walk returns empty within 50 ms', () => {
+    const p = part({ count: 999, sides: 6, keep: { type: 'highest', n: 500 } });
     const t0 = performance.now();
     const d = partDistribution(p);
     const elapsed = performance.now() - t0;
@@ -230,7 +344,7 @@ describe('engine guard — early return on too-complex inputs', () => {
     const e = expr({
       parts: [
         part({ id: 'a', count: 1, sides: 6 }),
-        part({ id: 'b', count: 20, sides: 20, keep: { type: 'highest', n: 3 } }),
+        part({ id: 'b', count: 999, sides: 6, keep: { type: 'highest', n: 500 } }),
       ],
     });
     const t0 = performance.now();
@@ -249,17 +363,17 @@ describe('engine guard — early return on too-complex inputs', () => {
   });
 });
 
-describe('keepAcrossComplexity — keep-across-parts state space', () => {
+describe('keepWork — keep-across-parts state space', () => {
   it('the closed-form single-die path is free', () => {
     const parts = [part({ id: 'a', count: 20, sides: 6 }), part({ id: 'b', count: 20, sides: 8 })];
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 1 })).toBe(0);
-    expect(keepAcrossComplexity(parts, { type: 'lowest', n: 1 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 1 })).toBe(0);
+    expect(keepWork(parts, { type: 'lowest', n: 1 })).toBe(0);
   });
 
   it('keeping every die is free, because it is a plain sum', () => {
     const parts = [part({ id: 'a', count: 2, sides: 6 }), part({ id: 'b', count: 1, sides: 8 })];
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 3 })).toBe(0);
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 9 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 3 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 9 })).toBe(0);
   });
 
   it('keeping every one of many dice is free even when the state space would overflow', () => {
@@ -269,10 +383,10 @@ describe('keepAcrossComplexity — keep-across-parts state space', () => {
       part({ id: 'c', count: 20, sides: 6 }),
       part({ id: 'd', count: 20, sides: 6 }),
     ];
-    // 21^4 states would overflow, but keeping all 80 dice never builds them:
-    // the walk short-circuits into a plain sum.
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 80 })).toBe(0);
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 3 })).toBe(COMPLEXITY_OVERFLOW);
+    // 21^4 states is more than the cap can afford, but keeping all 80 dice
+    // never builds them: the walk short-circuits into a plain sum.
+    expect(keepWork(parts, { type: 'highest', n: 80 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 3 })).toBeGreaterThan(MAX_KEEP_WORK);
 
     const e = expr({ parts, keepAcross: { type: 'highest', n: 80 } });
     expect(expressionTooComplex(e)).toBe(false);
@@ -285,10 +399,11 @@ describe('keepAcrossComplexity — keep-across-parts state space', () => {
       part({ id: 'b', count: 1, sides: 6, explode: { onFaces: [6], depthCap: 10 } }),
       part({ id: 'c', count: 1, sides: 6 }),
     ];
-    // 2*2*2 states, squared, times n=2, times the d8's exploded ceiling of 88.
-    const c = keepAcrossComplexity(parts, { type: 'highest', n: 2 });
-    expect(c).toBe(11264);
-    expect(c).toBeLessThan(MAX_COMPLEXITY);
+    // 8 states over 88 levels, the d8's exploded ceiling, with a kept sum that
+    // reaches 2 * 88, across 3 parts.
+    const c = keepWork(parts, { type: 'highest', n: 2 });
+    expect(c).toBe(88 * 8 * (2 * 88 + 3) * 3);
+    expect(c).toBeLessThan(MAX_KEEP_WORK);
   });
 
   it('an explode rule with no faces does not inflate the face count', () => {
@@ -296,9 +411,9 @@ describe('keepAcrossComplexity — keep-across-parts state space', () => {
     const withoutFaces = part({ id: 'a', count: 2, sides: 6, explode: { onFaces: [], depthCap: 10 } });
     const other = part({ id: 'b', count: 1, sides: 6 });
     const rule = { type: 'highest', n: 2 } as const;
-    // Same 6 states either way; only the top face moves, 6 versus 6 * 11.
-    expect(keepAcrossComplexity([withoutFaces, other], rule)).toBe(432);
-    expect(keepAcrossComplexity([withFaces, other], rule)).toBe(4752);
+    // Same 6 states either way; only the ceiling moves, 6 against 6 + 10 * 6.
+    expect(keepWork([withoutFaces, other], rule)).toBe(6 * 6 * (2 * 6 + 3) * 2);
+    expect(keepWork([withFaces, other], rule)).toBe(66 * 6 * (2 * 66 + 3) * 2);
   });
 
   it('sixty mixed dice keeping three exceeds the cap', () => {
@@ -307,8 +422,11 @@ describe('keepAcrossComplexity — keep-across-parts state space', () => {
       part({ id: 'b', count: 20, sides: 8 }),
       part({ id: 'c', count: 20, sides: 10 }),
     ];
-    // 21^3 states, squared, times n=3, times the d10's top face.
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 3 })).toBe(2572983630);
+    // 21^3 states over the d10's 10 levels, a kept sum reaching 3 * 10 plus the
+    // 60 dice still to be counted, across 3 parts.
+    const c = keepWork(parts, { type: 'highest', n: 3 });
+    expect(c).toBe(10 * 21 ** 3 * (3 * 10 + 60) * 3);
+    expect(c).toBeGreaterThan(MAX_KEEP_WORK);
   });
 
   it('a state space too large to count overflows instead of wrapping', () => {
@@ -319,14 +437,14 @@ describe('keepAcrossComplexity — keep-across-parts state space', () => {
       part({ id: 'd', count: 100, sides: 6 }),
       part({ id: 'e', count: 100, sides: 6 }),
     ];
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 2 })).toBe(COMPLEXITY_OVERFLOW);
+    expect(keepWork(parts, { type: 'highest', n: 2 })).toBe(COMPLEXITY_OVERFLOW);
   });
 
   it('invalid dice score zero rather than a bogus cost', () => {
-    expect(keepAcrossComplexity([part({ count: 0, sides: 6 })], { type: 'highest', n: 2 })).toBe(0);
-    expect(keepAcrossComplexity([part({ count: 2, sides: 1 })], { type: 'highest', n: 2 })).toBe(0);
-    expect(keepAcrossComplexity([part({ count: 2, sides: 6 })], { type: 'highest', n: 0 })).toBe(0);
-    expect(keepAcrossComplexity([part({ count: 2, sides: 6 })], { type: 'highest', n: 1.5 })).toBe(
+    expect(keepWork([part({ count: 0, sides: 6 })], { type: 'highest', n: 2 })).toBe(0);
+    expect(keepWork([part({ count: 2, sides: 1 })], { type: 'highest', n: 2 })).toBe(0);
+    expect(keepWork([part({ count: 2, sides: 6 })], { type: 'highest', n: 0 })).toBe(0);
+    expect(keepWork([part({ count: 2, sides: 6 })], { type: 'highest', n: 1.5 })).toBe(
       0,
     );
   });
@@ -338,7 +456,7 @@ describe('keepAcrossComplexity — keep-across-parts state space', () => {
       part({ id: 'c', count: 0, sides: 10 }),
     ];
 
-    expect(keepAcrossComplexity(parts, { type: 'highest', n: 3 })).toBe(0);
+    expect(keepWork(parts, { type: 'highest', n: 3 })).toBe(0);
   });
 
   it('folds into the expression cost and trips the guard', () => {
@@ -388,7 +506,9 @@ describe('checkComplexity — a check row pays for three rolls', () => {
     const e = checkExpr(
       checkSpec({
         effect: {
-          parts: [part({ id: 'e', count: 4, sides: 6, keep: { type: 'highest', n: 3 } })],
+          parts: [
+            part({ id: 'e', count: 4, sides: 6, explode: { onFaces: [6], depthCap: 10 } }),
+          ],
           flatModifier: 0,
         },
         crit: { onFaces: [20], effect: 'doubleDice' },
@@ -396,54 +516,65 @@ describe('checkComplexity — a check row pays for three rolls', () => {
       [part({ id: 't', count: 1, sides: 20, explode: { onFaces: [20], depthCap: 2 } })],
     );
 
-    // 40 for the exploding check die, 126 for 4d6kh3, 1287 for the doubled 8d6kh3.
-    expect(checkComplexity(e)).toBe(1453);
+    // 40 for the exploding check die, 60 for the exploding effect, and 60 again
+    // for the doubled effect a critical rolls.
+    expect(checkComplexity(e)).toBe(160);
   });
 
   it('a check row is scored through checkComplexity, a sum row only by its dice', () => {
     const e = checkExpr(
       checkSpec({
         effect: {
-          parts: [part({ id: 'e', count: 4, sides: 6, keep: { type: 'highest', n: 3 } })],
+          parts: [
+            part({ id: 'e', count: 4, sides: 6, explode: { onFaces: [6], depthCap: 10 } }),
+          ],
           flatModifier: 0,
         },
       }),
       [part({ id: 't', count: 1, sides: 20, explode: { onFaces: [20], depthCap: 2 } })],
     );
 
-    // 40 for the exploding check die plus 126 for the 4d6kh3 effect it triggers.
-    expect(checkComplexity(e)).toBe(166);
-    expect(expressionComplexity(e)).toBe(166);
+    // 40 for the exploding check die plus 60 for the exploding effect it triggers.
+    expect(checkComplexity(e)).toBe(100);
+    expect(expressionComplexity(e)).toBe(100);
     expect(expressionComplexity({ ...e, mode: 'sum' })).toBe(40);
   });
 
-  it('an extra-die crit costs one more die on the first effect part', () => {
-    const e = checkExpr(
-      checkSpec({
-        effect: {
-          parts: [part({ id: 'e', count: 4, sides: 6, keep: { type: 'highest', n: 3 } })],
-          flatModifier: 0,
-        },
-        crit: { onFaces: [20], effect: 'extraDie' },
-      }),
-    );
-
-    // 126 for 4d6kh3 plus 252 for the 5d6kh3 a crit rolls.
-    expect(checkComplexity(e)).toBe(378);
+  // A crit rolls more dice, and dice counts move the width rather than the
+  // per-part cost, so the crit variant is measured where it lands.
+  const effectOf = (count: number, sides: number): CheckSpec['effect'] => ({
+    parts: [part({ id: 'e', count, sides })],
+    flatModifier: 0,
   });
 
-  it('a max-plus-roll crit costs a second roll of the same dice', () => {
-    const e = checkExpr(
-      checkSpec({
-        effect: {
-          parts: [part({ id: 'e', count: 4, sides: 6, keep: { type: 'highest', n: 3 } })],
-          flatModifier: 0,
-        },
-        crit: { onFaces: [20], effect: 'maxPlusRoll' },
-      }),
+  it('an extra-die crit is one die wider than the effect alone', () => {
+    const plain = checkExpr(checkSpec({ effect: effectOf(40, 100) }));
+    const extra = checkExpr(
+      checkSpec({ effect: effectOf(40, 100), crit: { onFaces: [20], effect: 'extraDie' } }),
     );
+    expect(supportWidth(extra) - supportWidth(plain)).toBe(99);
+  });
 
-    expect(checkComplexity(e)).toBe(252);
+  it('a max-plus-roll crit rolls the same dice, so it is no wider', () => {
+    const plain = checkExpr(checkSpec({ effect: effectOf(40, 100) }));
+    const maxPlus = checkExpr(
+      checkSpec({ effect: effectOf(40, 100), crit: { onFaces: [20], effect: 'maxPlusRoll' } }),
+    );
+    // It adds the dice's maximum as a flat bonus, which shifts rather than widens.
+    expect(supportWidth(maxPlus)).toBe(supportWidth(plain));
+  });
+
+  it('a doubling crit is measured, not taken on trust', () => {
+    // The effect alone is inside the width gate and the doubled one is not, so
+    // scoring only the ordinary effect would admit a roll twice the size of the
+    // one it measured.
+    const plain = checkExpr(checkSpec({ effect: effectOf(40, 100) }));
+    const doubled = checkExpr(
+      checkSpec({ effect: effectOf(40, 100), crit: { onFaces: [20], effect: 'doubleDice' } }),
+    );
+    expect(expressionTooComplex(plain)).toBe(false);
+    expect(supportWidth(doubled)).toBe(2 * supportWidth(plain) - 1);
+    expect(expressionTooComplex(doubled)).toBe(true);
   });
 
   it('does not charge for a crit whose roll a none success scale skips', () => {
@@ -462,25 +593,21 @@ describe('checkComplexity — a check row pays for three rolls', () => {
 
   it('a crit that can never happen is not charged for', () => {
     const e = checkExpr(
-      checkSpec({
-        effect: {
-          parts: [part({ id: 'e', count: 4, sides: 6, keep: { type: 'highest', n: 3 } })],
-          flatModifier: 0,
-        },
-        crit: { onFaces: [], effect: 'doubleDice' },
-      }),
+      checkSpec({ effect: effectOf(40, 100), crit: { onFaces: [], effect: 'doubleDice' } }),
     );
+    const bare = checkExpr(checkSpec({ effect: effectOf(40, 100) }));
 
-    expect(checkComplexity(e)).toBe(126);
+    expect(supportWidth(e)).toBe(supportWidth(bare));
+    expect(expressionTooComplex(e)).toBe(false);
   });
 
   it('a check row with no spec scores only its check dice', () => {
     const e = expr({
       mode: 'check',
-      parts: [part({ count: 4, sides: 6, keep: { type: 'highest', n: 3 } })],
+      parts: [part({ count: 1, sides: 6, explode: { onFaces: [6], depthCap: 10 } })],
     });
 
-    expect(checkComplexity(e)).toBe(126);
+    expect(checkComplexity(e)).toBe(60);
   });
 
   it('a huge effect trips the guard even though the check dice are cheap', () => {
@@ -488,21 +615,22 @@ describe('checkComplexity — a check row pays for three rolls', () => {
       checkSpec({
         effect: {
           parts: [
-            part({ id: 'e', count: 20, sides: 20, keep: { type: 'highest', n: 3 } }),
+            part({ id: 'e', count: 999, sides: 6, keep: { type: 'highest', n: 500 } }),
           ],
           flatModifier: 0,
         },
       }),
     );
 
-    expect(expressionComplexity(e)).toBe(COMPLEXITY_OVERFLOW);
+    // The effect's keep walk is what refuses it, on the keep clause rather than
+    // through the expression's own total.
     expect(expressionTooComplex(e)).toBe(true);
     expect(expressionTooComplex({ ...e, mode: 'sum' })).toBe(false);
   });
 
   it('doubling a borderline effect trips the guard the effect alone does not', () => {
     const effect = {
-      parts: [part({ id: 'e', count: 10, sides: 10, keep: { type: 'highest', n: 5 } })],
+      parts: [part({ id: 'e', count: 500, sides: 6, keep: { type: 'highest', n: 250 } })],
       flatModifier: 0,
     };
     const withoutCrit = checkExpr(checkSpec({ effect }));
@@ -510,7 +638,8 @@ describe('checkComplexity — a check row pays for three rolls', () => {
       checkSpec({ effect, crit: { onFaces: [20], effect: 'doubleDice' } }),
     );
 
-    expect(checkComplexity(withoutCrit)).toBe(92378);
+    // 500d6 keeping 250 is a walk the guard affords; the 1000d6 keeping 250 that
+    // a doubling crit rolls is not, and it is a roll the row actually makes.
     expect(expressionTooComplex(withoutCrit)).toBe(false);
     expect(expressionTooComplex(withCrit)).toBe(true);
   });
@@ -533,12 +662,12 @@ describe('checkComplexity — a check row pays for three rolls', () => {
     expect(expressionTooComplex(e)).toBe(true);
   });
 
-  it('check dice too big to count overflow whatever the effect costs', () => {
+  it('check dice too big to count refuse the row whatever the effect costs', () => {
     const e = checkExpr(checkSpec({}), [
-      part({ id: 't', count: 100, sides: 100, keep: { type: 'highest', n: 50 } }),
+      part({ id: 't', count: 999, sides: 6, keep: { type: 'highest', n: 500 } }),
     ]);
 
-    expect(checkComplexity(e)).toBe(COMPLEXITY_OVERFLOW);
+    expect(expressionTooComplex(e)).toBe(true);
   });
 
   it('an over-budget check row returns an empty distribution within 50 ms', () => {
@@ -546,7 +675,7 @@ describe('checkComplexity — a check row pays for three rolls', () => {
       checkSpec({
         effect: {
           parts: [
-            part({ id: 'e', count: 20, sides: 20, keep: { type: 'highest', n: 3 } }),
+            part({ id: 'e', count: 999, sides: 6, keep: { type: 'highest', n: 500 } }),
           ],
           flatModifier: 0,
         },

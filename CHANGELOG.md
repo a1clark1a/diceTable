@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-14
+
+### Changed
+
+- Some rolls that keep the best dice across parts now say "(too complex)" where they used to draw. The check that decides this was measuring the old way of working the odds out, and the app no longer works them out that way, so it had to be replaced rather than adjusted. The rolls affected all combine very large dice with keeping across parts, such as three d1000 keeping the best two, or three d20 exploding fifty deep. They drew in about a tenth of a second before, so if you were using one, it is a real loss rather than a slow roll being tidied away, and it is worth saying so plainly.
+- A check whose critical rolls more dice than an ordinary hit is now measured on the dice the critical really rolls. That is more honest, and it means a few check rolls with large critical effects are refused where they used to draw, because they were only ever accepted on the size of the smaller roll.
+
+### Fixed
+
+- Keeping some of a roll's dice while those dice can explode no longer freezes the page. Keep and Explode on the same group was reaching the maths through a route that grew with the number of faces a die could show, and an exploding d6 can show 56 of them rather than 6. Six dice keeping five took 25 seconds of a locked-up tab, eight dice keeping seven would have taken about half an hour, and the check meant to catch that was reading the die as though it had never exploded. Both are now under a hundredth of a second, and the check reads the roll the app is actually going to make.
+- Rolls that kept dice are no longer turned away for work the app does not do. Keeping the best few of twenty d20s, of thirty d6s, or of a hundred d100s all said "(too complex)" and now simply answer, as does roll-and-keep at the size those systems actually use: twelve exploding d10s keeping six is nine milliseconds. A few of the largest of these take about a second rather than being instant, which is still a roll you can wait for rather than one that locks the tab.
+- A roll that explodes on a low face is no longer refused for being wide. Exploding a d100 on a 1 was measured as though every extra die could land on 100, which made a roll reaching 150 look like one reaching 5,100.
+- Dark mode no longer flashes light on every page load. The small script that sets the theme before the page paints was written straight into the page, and the site's own security policy does not allow that, so it never ran once in production: every visit painted light and then corrected itself when the app loaded. It is a file now, which the policy does allow.
+- The warning about a roll that can never stop exploding now asks the right question. Picking the same face twice, or picking faces the die does not have, was read as exploding on everything and refused. Meanwhile a d6 that rerolls 1 to 3 and explodes on 4 to 6 really can never stop, and that passed, leaving a blank row and no reason for it.
+
 ## [2.1.0] - 2026-09-14
 
 ### Added
@@ -245,7 +260,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
 [2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
 [2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0
 [1.9.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.9.0

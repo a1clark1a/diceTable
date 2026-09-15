@@ -15,39 +15,14 @@
     <meta name="theme-color" content="#f2f1ed" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#131519" media="(prefers-color-scheme: dark)" />
 
-    <!-- Applies the saved color mode before first paint so the pre-mount frame
-         matches the app instead of flashing white. Mirrors next-themes exactly
-         ("theme" storage key, class strategy, system fallback); the provider
-         takes over the class on mount. The second block mirrors the other thing
-         the first frame can get wrong: TablePage hides the hero once the table
-         has rolls, and the store hydrates synchronously, so without this a
-         returning visitor watches the preboot hero paint and vanish. Either
-         read failing leaves the hero visible, which is the empty-table state a
-         first visit and a crawler both get. -->
-    <script>
-      (function () {
-        try {
-          var theme = localStorage.getItem('theme');
-          if (
-            theme === 'dark' ||
-            (theme !== 'light' &&
-              window.matchMedia('(prefers-color-scheme: dark)').matches)
-          ) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch (_) {
-          /* storage blocked: stay light */
-        }
-        try {
-          var saved = localStorage.getItem('dicetable.v2');
-          if (saved && JSON.parse(saved).value.expressions.length > 0) {
-            document.documentElement.classList.add('has-rolls');
-          }
-        } catch (_) {
-          /* storage blocked or malformed: show the hero */
-        }
-      })();
-    </script>
+    <!-- Applies the saved color mode and the has-rolls state before first
+         paint, so the pre-mount frame matches the app instead of flashing.
+         See public/boot.js for what it does and why it is a file: the
+         deployed Content-Security-Policy is `script-src 'self'` with no
+         'unsafe-inline', so an inline block here is blocked and runs nowhere.
+         Plain and synchronous on purpose; defer or type=module would put it
+         after the paint it exists to fix. -->
+    <script src="/boot.js"></script>
 
     <!-- Pre-mount styles only. Chakra isn't loaded yet, so these hardcode the
          theme's resolved values (bg / fg / fg.muted, Inter stack, container

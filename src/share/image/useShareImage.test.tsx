@@ -9,6 +9,7 @@ import { toaster } from '../../components/share/toaster-store';
 import { SCHEMA_VERSION } from '../../state/persistedSchema';
 import { decodeFromHashFragment } from '../decode';
 import { SHARE_CARD_ROW_LIMIT } from '../../types';
+import { WIDTH_REFUSED_PART } from '../../test/tooComplex';
 
 const STORAGE_KEY = 'dicetable.v2';
 const ENVELOPE_VERSION = 2;
@@ -75,15 +76,13 @@ function poolRowSeed(id: string): unknown {
   };
 }
 
-// Keep-highest over a hundred d100s blows past the complexity guard, so the
-// row is valid to store yet yields an empty distribution.
+// A hundred d100s land on too many totals for the complexity guard, so the row
+// is valid to store yet yields an empty distribution.
 function overloadedRowSeed(): unknown {
   return {
     id: 'seed-heavy',
     name: 'Too heavy',
-    parts: [
-      { id: 'seed-heavy-part', count: 100, sides: 100, keep: { type: 'highest', n: 1 } },
-    ],
+    parts: [{ ...WIDTH_REFUSED_PART, id: 'seed-heavy-part' }],
     flatModifier: 0,
     rollMode: 'normal',
     mode: 'sum',

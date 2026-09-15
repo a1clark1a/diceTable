@@ -4,6 +4,7 @@ import { emptyDistribution, totalMass } from './distribution';
 import { keepAcrossDistribution } from './keepAcross';
 import { applyRollMode, sumPartsDistribution } from './roll';
 import { mean } from './stats';
+import { KEEP_REFUSED_PART } from '../test/tooComplex';
 
 const part = (overrides: Partial<DicePart>): DicePart => ({
   id: 'p',
@@ -325,7 +326,7 @@ describe('sumPartsDistribution', () => {
   });
 
   it('a part too complex to enumerate collapses the whole roll to empty', () => {
-    const heavy = part({ id: 'b', count: 20, sides: 20, keep: { type: 'highest', n: 3 } });
+    const heavy = { ...KEEP_REFUSED_PART, id: 'b' };
     const d = sumPartsDistribution([part({ id: 'a', count: 1, sides: 6 }), heavy]);
     expect(d.size).toBe(0);
 

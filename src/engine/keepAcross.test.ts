@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { DicePart, Distribution, Expression, KeepRule } from '../types';
-import { totalMass } from './distribution';
+import { totalMass, uniformDistribution } from './distribution';
 import { expressionDistribution } from './expression';
 import { keepAcrossDistribution } from './keepAcross';
-import { partDistribution } from './parts';
+import { partDistribution, singleDieDistribution } from './parts';
 import { mean, stddev } from './stats';
+import { referenceKeep } from '../test/referenceKeep';
 
 const part = (overrides: Partial<DicePart>): DicePart => ({
   id: 'p',
@@ -167,16 +168,20 @@ describe('keepAcrossDistribution: n against the dice count', () => {
   });
 });
 
-describe('keepAcrossDistribution: matches the per-part keep rule', () => {
+// A per-part keep rule runs this same walk, so asserting the two against each
+// other would only assert that one function equals itself. The oracle is the
+// enumeration the engine used to run, which shares no code and no idea with it.
+describe('keepAcrossDistribution: matches an independent enumeration', () => {
   it('highest 3 across one part equals 4d6kh3, mean 15869/1296', () => {
     const across = keepAcrossDistribution([part({ count: 4, sides: 6 })], {
       type: 'highest',
       n: 3,
     });
-    const perPart = partDistribution(
-      part({ count: 4, sides: 6, keep: { type: 'highest', n: 3 } }),
-    );
-    expectSameDistribution(across, perPart);
+    const reference = referenceKeep(uniformDistribution(6), 4, {
+      type: 'highest',
+      n: 3,
+    });
+    expectSameDistribution(across, reference);
     expect(mean(across)).toBeCloseTo(15869 / 1296, 10);
   });
 
@@ -185,10 +190,28 @@ describe('keepAcrossDistribution: matches the per-part keep rule', () => {
       type: 'lowest',
       n: 1,
     });
-    const perPart = partDistribution(
-      part({ count: 2, sides: 6, keep: { type: 'lowest', n: 1 } }),
-    );
-    expectSameDistribution(across, perPart);
+    const reference = referenceKeep(uniformDistribution(6), 2, { type: 'lowest', n: 1 });
+    expectSameDistribution(across, reference);
+  });
+
+  // The whole subject of the change that moved per-part keep onto this walk: a
+  // die whose faces come from a chain, which the enumeration prices by distinct
+  // face and the walk prices by threshold.
+  it('agrees with the enumeration on dice whose faces come from a chain', () => {
+    const exploding = part({
+      count: 4,
+      sides: 6,
+      explode: { onFaces: [6], depthCap: 2 },
+    });
+    const single = singleDieDistribution(exploding);
+    for (const type of ['highest', 'lowest'] as const) {
+      for (let n = 1; n <= 4; n++) {
+        expectSameDistribution(
+          partDistribution({ ...exploding, keep: { type, n } }),
+          referenceKeep(single, 4, { type, n }),
+        );
+      }
+    }
   });
 });
 
