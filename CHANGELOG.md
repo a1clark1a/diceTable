@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-14
+
 ### Changed
 
 - Some rolls that keep the best dice across parts now say "(too complex)" where they used to draw. The check that decides this was measuring the old way of working the odds out, and the app no longer works them out that way, so it had to be replaced rather than adjusted. The rolls affected all combine very large dice with keeping across parts, such as three d1000 keeping the best two, or three d20 exploding fifty deep. They drew in about a tenth of a second before, so if you were using one, it is a real loss rather than a slow roll being tidied away, and it is worth saying so plainly.
@@ -258,7 +260,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
 [2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
 [2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0
 [1.9.0]: https://github.com/a1clark1a/diceTable/releases/tag/v1.9.0
