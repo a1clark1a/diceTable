@@ -217,9 +217,18 @@ export default function TablePage() {
               zIndex={2}
               bg="bg"
             >
-              <TargetToolbar />
-              <Box flex="1" minW={0} />
-              <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
+              {/* The toolbar takes the row's free space rather than sitting
+                  beside a spacer. In a row, its own flexShrink={0} sized it to
+                  its content, about 390px of full-width phone rows, which ran
+                  the Edit buttons off a 360px screen. */}
+              <Box flex="1" minW={0}>
+                <TargetToolbar />
+              </Box>
+              {/* Its buttons hide below md, but the empty group would still
+                  take a gap and pull the Edit buttons off the cards' edge. */}
+              <Box display={{ base: 'none', md: 'contents' }}>
+                <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
+              </Box>
             </Flex>
             <TargetHitView onFindRoll={openFind} />
           </Stack>
