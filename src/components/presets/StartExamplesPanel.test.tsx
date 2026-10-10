@@ -68,7 +68,7 @@ describe('StartExamplesPanel', () => {
 
   it('"Use this roll" appends the pool preset already in pool mode with fresh ids', () => {
     renderPanel();
-    const poolIdx = STARTER_PRESETS.findIndex((p) => p.expr.mode === 'pool');
+    const poolIdx = STARTER_PRESETS.findIndex((p) => p.rows[0]!.mode === 'pool');
     fireEvent.click(useThisRollButtons()[poolIdx]!);
 
     const state = readState();
@@ -100,7 +100,7 @@ describe('StartExamplesPanel', () => {
       screen.getByRole('button', { name: 'Load every example' }),
     );
     expect(readState().map((e) => e.name)).toEqual(
-      STARTER_PRESETS.map((p) => p.expr.name),
+      STARTER_PRESETS.map((p) => p.name),
     );
   });
 

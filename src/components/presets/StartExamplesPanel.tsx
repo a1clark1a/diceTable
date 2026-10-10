@@ -1,7 +1,7 @@
 import { Box, Button, Heading, Stack, Text } from '@chakra-ui/react';
 import { Plus } from 'lucide-react';
 import { useApp } from '../../state/useApp';
-import { STARTER_PRESETS } from '../../presets/starterRolls';
+import { STARTER_PRESETS, STARTER_ROWS } from '../../presets/starterRolls';
 import { PresetCardGrid } from './PresetCardGrid';
 
 export function StartExamplesPanel() {
@@ -33,7 +33,7 @@ export function StartExamplesPanel() {
         </Text>
       </Stack>
       <Box mt={{ base: 5, md: 6 }}>
-        <PresetCardGrid />
+        <PresetCardGrid presets={STARTER_PRESETS} />
       </Box>
       <Stack
         direction={{ base: 'column', md: 'row' }}
@@ -45,7 +45,7 @@ export function StartExamplesPanel() {
         <Button
           colorPalette="blue"
           minH={{ base: '48px', md: '44px' }}
-          onClick={() => addExpressions(STARTER_PRESETS.map((p) => p.expr))}
+          onClick={() => addExpressions([...STARTER_ROWS])}
         >
           Load every example
         </Button>

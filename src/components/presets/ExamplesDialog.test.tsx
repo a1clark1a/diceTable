@@ -4,6 +4,7 @@ import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
 import { useApp } from '../../state/useApp';
 import { STARTER_PRESETS } from '../../presets/starterRolls';
+import { RECIPES } from '../../presets/recipes';
 import { ExamplesDialog } from './ExamplesDialog';
 
 // Serializing state into the DOM keeps the probe pure (no writes to test
@@ -46,7 +47,7 @@ afterEach(() => {
 });
 
 describe('ExamplesDialog', () => {
-  it('opens from the Find a roll button and lists every preset card', async () => {
+  it('opens from the Find a roll button and lists every recipe card', async () => {
     renderDialog();
     expect(screen.queryByRole('dialog')).toBeNull();
 
@@ -54,8 +55,8 @@ describe('ExamplesDialog', () => {
 
     expect(screen.getByRole('heading', { name: 'Find a roll' })).toBeInTheDocument();
     expect(
-      screen.getAllByRole('button', { name: 'Use this roll' }),
-    ).toHaveLength(STARTER_PRESETS.length);
+      screen.getAllByRole('button', { name: /^Use (this roll|these \d+ rolls)$/ }),
+    ).toHaveLength(RECIPES.length);
   });
 
   it('"Use this roll" appends to the table and keeps the dialog open', async () => {
