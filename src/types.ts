@@ -74,7 +74,16 @@ export interface Expression {
    * carries its own dice and modifier.
    */
   check?: CheckSpec;
+  /** Why the row exists, in the user's words. Trimmed, never empty, at most MAX_NOTE_LENGTH. */
+  note?: string;
 }
+
+/**
+ * Notes are the one field a user can make arbitrarily long, and every row's
+ * note rides along in a share link, so the cap is what keeps a full table's
+ * link pasteable.
+ */
+export const MAX_NOTE_LENGTH = 200;
 
 export type Distribution = Map<number, number>;
 

@@ -112,6 +112,17 @@ export function percentile(dist: Distribution, p: number): number {
   return keys[keys.length - 1] ?? 0;
 }
 
+/**
+ * The span holding the middle `mass` of results: from the (1 - mass) / 2
+ * percentile to the (1 + mass) / 2 one. Each end is the first result whose
+ * running total reaches it, so on discrete dice the span covers at least
+ * `mass` and usually more.
+ */
+export function middleRange(dist: Distribution, mass: number): [number, number] {
+  const tail = (1 - Math.min(1, Math.max(0, mass))) / 2;
+  return [percentile(dist, tail), percentile(dist, 1 - tail)];
+}
+
 // hitProbability(dist, v, ruling) for every integer v in [min..max], computed
 // in one cumulative pass instead of one full-distribution scan per point.
 export function hitSeries(

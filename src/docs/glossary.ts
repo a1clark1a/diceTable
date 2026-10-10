@@ -518,6 +518,13 @@ const uiTips: Record<string, string> = {
   moveDown:
     'Move this roll one place down. The order sets which rolls the chart draws first.',
   moveDownAtBottom: 'This roll is already at the bottom.',
+  sweepCheckRow:
+    'Variants work on Sum and Pool rolls. For a check, duplicate it and change one value by hand.',
+  sweepSourceDie: 'This roll already uses this die.',
+  note:
+    'A reminder of why this roll exists, like what you changed from the last version. It goes along when you share the table.',
+  spreadBand:
+    'The shaded part is where most of this roll’s results land. A narrower band means a steadier roll.',
 };
 
 export function getEntry(id: string): GlossaryEntry | undefined {

@@ -17,6 +17,12 @@ interface NumberStepperProps {
   max?: number;
   ariaLabel: string;
   invalid?: boolean;
+  /**
+   * Runs after Enter commits. The field blurs itself on Enter, which inside a
+   * non-modal popover drops focus to the page; this lets the caller hand it
+   * on instead.
+   */
+  onEnter?: () => void;
 }
 
 export function NumberStepper({
@@ -26,6 +32,7 @@ export function NumberStepper({
   max,
   ariaLabel,
   invalid,
+  onEnter,
 }: NumberStepperProps) {
   // Typed input commits through the same [min, max] the +/- buttons respect.
   // Clamping in parse (not in commit) keeps the displayed buffer and the
@@ -90,7 +97,11 @@ export function NumberStepper({
         value={buf.value}
         onChange={(e) => buf.setValue(e.target.value)}
         onBlur={buf.onBlur}
-        onKeyDown={buf.onKeyDown}
+        onKeyDown={(e) => {
+          const enter = e.key === 'Enter';
+          buf.onKeyDown(e);
+          if (enter) onEnter?.();
+        }}
         inputMode="numeric"
         textAlign="center"
         fontFamily="mono"

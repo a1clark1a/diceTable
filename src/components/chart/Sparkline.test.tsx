@@ -246,7 +246,7 @@ describe('Sparkline pool ladder', () => {
         />
       </Plain>,
     );
-    const bars = container.querySelectorAll('rect[fill="#000"]');
+    const bars = container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])');
     expect(bars).toHaveLength(6);
     bars.forEach((b) => expect(b.getAttribute('fill-opacity')).toBe('0.55'));
     expect(container.querySelectorAll('path[fill-opacity]')).toHaveLength(0);
@@ -283,7 +283,7 @@ describe('Sparkline pool ladder', () => {
         <Sparkline dist={dist} color="#000" view="pmf" mode="pool" />
       </Plain>,
     );
-    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(2);
+    expect(container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])')).toHaveLength(2);
     expect(
       container.querySelectorAll('rect[fill="transparent"]'),
     ).toHaveLength(3);
@@ -309,10 +309,10 @@ describe('Sparkline pool ladder', () => {
       </Plain>,
     );
     expect(
-      container.querySelectorAll('rect[fill="#000"][fill-opacity="0.55"]'),
+      container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])[fill-opacity="0.55"]'),
     ).toHaveLength(2);
     expect(
-      container.querySelectorAll('rect[fill="#000"][fill-opacity="0.16"]'),
+      container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])[fill-opacity="0.16"]'),
     ).toHaveLength(2);
     expect(container.querySelector('path[fill-opacity="0.55"]')).toBeNull();
   });
@@ -328,7 +328,7 @@ describe('Sparkline pool ladder', () => {
         />
       </Plain>,
     );
-    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(0);
+    expect(container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])')).toHaveLength(0);
     expect(container.querySelector('path[fill="none"]')).not.toBeNull();
   });
 
@@ -346,7 +346,7 @@ describe('Sparkline pool ladder', () => {
         />
       </Plain>,
     );
-    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(6);
+    expect(container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])')).toHaveLength(6);
   });
 });
 

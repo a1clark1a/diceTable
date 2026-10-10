@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -16,7 +17,14 @@ import { ShapeCardLabel } from '../chart/Sparkline';
 import { effectiveChartView } from '../chart/effectiveView';
 import { sortedKeys } from '../../engine/distribution';
 import { formatPercent } from '../chart/format';
+import {
+  SPREAD_BAND_OPACITY,
+  SPREAD_BAND_Z_INDEX,
+  spreadBand,
+} from '../chart/spreadBand';
 import { useApp } from '../../state/useApp';
+import { HelpTerm } from '../ui/help-term';
+import { tipForId } from '../../docs/glossary';
 
 interface InspectChartBodyProps {
   dist: Distribution;
@@ -180,11 +188,32 @@ export default function InspectChartBody({
       ? stats.modes[0]
       : undefined;
   const showMeanTick = effectiveView === 'pmf' && dist.size > 0;
+  // The target view's own shading is the point of that view; a band beside it
+  // would read as a second target.
+  const band = useMemo(
+    () => (effectiveView !== 'target' ? spreadBand(dist) : null),
+    [dist, effectiveView],
+  );
 
   return (
     <Stack gap={3}>
       <Box bg="bg.subtle" borderRadius="md" px={3} py={3}>
-      <ShapeCardLabel view={effectiveView} />
+      <HStack justify="space-between" gap={3}>
+        <ShapeCardLabel view={effectiveView} />
+        {band !== null && (
+          <HStack gap={1.5} fontSize="2xs" color="fg.muted">
+            <Box
+              w="10px"
+              h="10px"
+              borderRadius="2px"
+              bg={color}
+              opacity={SPREAD_BAND_OPACITY * 2.5}
+              flexShrink={0}
+            />
+            <HelpTerm tip={tipForId('spreadBand')}>Most results</HelpTerm>
+          </HStack>
+        )}
+      </HStack>
       <Box w="100%" h={{ base: '280px', md: '360px' }} mt={2}>
         <ResponsiveContainer
           width="100%"
@@ -247,6 +276,17 @@ export default function InspectChartBody({
                 fontWeight: 600,
               }}
             />
+            {band !== null && (
+              <ReferenceArea
+                x1={band[0] - 0.5}
+                x2={band[1] + 0.5}
+                fill={color}
+                fillOpacity={SPREAD_BAND_OPACITY}
+                stroke="none"
+                ifOverflow="hidden"
+                zIndex={SPREAD_BAND_Z_INDEX}
+              />
+            )}
             {effectiveView === 'pmf' && (
               <Area
                 dataKey="value"

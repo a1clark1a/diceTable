@@ -21,7 +21,7 @@ export interface PartErrors {
  *
  * The question is whether any face the die can still show is one that stops.
  */
-function everyFaceExplodes(part: DicePart): boolean {
+export function everyFaceExplodes(part: DicePart): boolean {
   if (!part.explode) return false;
   if (!Number.isInteger(part.sides) || part.sides < 2) return false;
 

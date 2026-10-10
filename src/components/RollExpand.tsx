@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Flex,
   HStack,
   Stack,
   Text,
@@ -14,6 +15,7 @@ import { DicePartRow } from './editor/DicePartRow';
 import { KeepAcrossPanel } from './editor/KeepAcrossPanel';
 import { Panel } from './editor/controls';
 import { RowTools } from './editor/RowTools';
+import { NoteField } from './editor/NoteField';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
@@ -92,9 +94,10 @@ export function RollExpand({ expression }: RollExpandProps) {
         <Box pb={3} borderBottomWidth="1px" borderColor="border.subtle">
           {/* The table's pinned actions column has no width to spare, so the
               row's order and copy controls live here, where both layouts
-              render them from one place. */}
-          <HStack px={3} gap={2} align="flex-start">
-            <Box flex="1" minW={0}>
+              render them from one place. On a phone they wrap onto their own
+              line under the formula; the note always sits below both. */}
+          <Flex px={3} columnGap={2} rowGap={2} wrap="wrap" align="flex-start">
+            <Box flex="1 1 9rem" minW={0}>
               <Text
                 fontSize="xs"
                 fontWeight="semibold"
@@ -115,8 +118,15 @@ export function RollExpand({ expression }: RollExpandProps) {
                 <ExpressionDiceText expr={expression} showRollMode />
               </Box>
             </Box>
-            <RowTools exprId={expression.id} exprName={expression.name} />
-          </HStack>
+            <RowTools expression={expression} />
+          </Flex>
+          <Box px={3}>
+            <NoteField
+              exprId={expression.id}
+              note={expression.note}
+              updateExpression={updateExpression}
+            />
+          </Box>
         </Box>
 
         {check ? (

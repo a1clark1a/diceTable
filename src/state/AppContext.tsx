@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
 import { normalizeExpression } from './normalize';
 import { applyPartPatch, defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
+import { planSweep, type SweepTarget } from './sweep';
 import { toaster } from '../components/share/toaster-store';
 import {
   AppContext,
@@ -14,6 +15,7 @@ import {
 } from './useApp';
 import {
   MAX_EXPRESSIONS,
+  MAX_NOTE_LENGTH,
   MAX_TARGETS,
   type ChartSurface,
   type ChartView,
@@ -115,19 +117,24 @@ function reIdExpression(expr: Expression): Expression {
   return next;
 }
 
-// Import, duplicate and sweep all land rows through here, so the re-id, the
-// name de-duplication, the repair pass and the row cap cannot drift apart
-// between them. Rows past the cap are dropped; callers compare the lengths to
-// say so.
+// Every row that enters the table as a copy of another passes through here
+// before insertExpressionsAt. It is a separate step so a caller that needs the
+// new ids before the update runs, like the sweep's Undo, can mint them first.
+function freshCopy(expr: Expression): Expression {
+  return normalizeExpression(reIdExpression(expr));
+}
+
+// Import, duplicate and sweep all land rows through here, so the name
+// de-duplication and the row cap cannot drift apart between them. Rows arrive
+// as fresh copies; rows past the cap are dropped, and callers compare the
+// lengths to say so.
 function insertExpressionsAt(
   existing: Expression[],
   index: number,
-  incoming: Expression[],
+  fresh: Expression[],
 ): { expressions: Expression[]; inserted: Expression[] } {
   const room = Math.max(0, MAX_EXPRESSIONS - existing.length);
-  const accepted = incoming.slice(0, room);
-  const renamed = renameCollisions(existing, accepted);
-  const inserted = renamed.map((e) => normalizeExpression(reIdExpression(e)));
+  const inserted = renameCollisions(existing, fresh.slice(0, room));
   return {
     expressions: [
       ...existing.slice(0, index),
@@ -213,6 +220,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       onWriteError,
     },
   );
+
+  // For actions that must decide something before their update runs. Event
+  // handlers fire after commit, so this is current by the time one reads it.
+  const latest = useRef(state);
+  useEffect(() => {
+    latest.current = state;
+  }, [state]);
 
   // Every row edit funnels through here, so normalizeExpression only has to be
   // right in one place for no mutation to be able to persist an invariant break.
@@ -432,7 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { expressions, inserted } = insertExpressionsAt(
           prev.expressions,
           index + 1,
-          [source],
+          [freshCopy(source)],
         );
         const copy = inserted[0];
         if (copy === undefined) return prev;
@@ -463,6 +477,68 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     },
     [setState],
+  );
+
+  const removeExpressions = useCallback(
+    (ids: ReadonlySet<string>) => {
+      setState((prev) => {
+        const remaining = prev.expressions.filter((e) => !ids.has(e.id));
+        if (remaining.length === prev.expressions.length) return prev;
+        const { expandedId, baselineId } = prev.ui;
+        return {
+          ...prev,
+          expressions: remaining,
+          ui: {
+            ...prev.ui,
+            expandedId: expandedId !== null && ids.has(expandedId) ? null : expandedId,
+            baselineId: baselineId !== null && ids.has(baselineId) ? null : baselineId,
+          },
+        };
+      });
+    },
+    [setState],
+  );
+
+  // The variants are planned and re-id'd before the update rather than inside
+  // it, because the Undo on the toast has to name exactly the rows it made, and
+  // an updater can run more than once or later than this call.
+  const sweepExpression = useCallback(
+    (id: string, target: SweepTarget, values: readonly number[]) => {
+      const current = latest.current;
+      const source = current.expressions.find((e) => e.id === id);
+      if (source === undefined) return;
+      const room = MAX_EXPRESSIONS - current.expressions.length;
+      const fresh = planSweep(source, target, values, room).variants.map((v) =>
+        freshCopy(v.expr),
+      );
+      if (fresh.length === 0) return;
+      setState((prev) => {
+        const index = prev.expressions.findIndex((e) => e.id === id);
+        if (index < 0) return prev;
+        const { expressions } = insertExpressionsAt(prev.expressions, index + 1, fresh);
+        return { ...prev, expressions };
+      });
+      const created = new Set(fresh.map((e) => e.id));
+      const undo = () => {
+        const present = latest.current.expressions.filter((e) => created.has(e.id)).length;
+        if (present === 0) return;
+        removeExpressions(created);
+        toaster.create({
+          type: 'info',
+          title: present === 1 ? 'Removed 1 roll' : `Removed ${present} rolls`,
+        });
+      };
+      // A phone can have the source's open editor between it and the new rows,
+      // so the toast says where they went.
+      toaster.create({
+        type: 'success',
+        title: fresh.length === 1 ? 'Added 1 roll' : `Added ${fresh.length} rolls`,
+        description: `Just below ${source.name}.`,
+        duration: 8000,
+        action: { label: 'Undo', onClick: undo },
+      });
+    },
+    [setState, removeExpressions],
   );
 
   const renameExpression = useCallback(
@@ -505,6 +581,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if ('check' in patch) {
           if (patch.check) next.check = patch.check;
           else delete next.check;
+        }
+        if ('note' in patch) {
+          const note = (patch.note ?? '').trim().slice(0, MAX_NOTE_LENGTH);
+          if (note.length > 0) next.note = note;
+          else delete next.note;
         }
         return next;
       });
@@ -596,7 +677,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { expressions, inserted } = insertExpressionsAt(
           prev.expressions,
           prev.expressions.length,
-          incoming,
+          incoming.slice(0, room).map(freshCopy),
         );
         if (incoming.length > room) {
           toaster.create({
@@ -642,6 +723,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteExpression,
       duplicateExpression,
       moveExpression,
+      sweepExpression,
       renameExpression,
       updateExpression,
       setAllRollModes,
@@ -667,6 +749,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       deleteExpression,
       duplicateExpression,
       moveExpression,
+      sweepExpression,
       renameExpression,
       updateExpression,
       setAllRollModes,

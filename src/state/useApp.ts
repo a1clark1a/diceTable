@@ -18,6 +18,7 @@ import type {
   TargetState,
   WorkshopView,
 } from '../types';
+import type { SweepTarget } from './sweep';
 
 export type ExpressionPatch = {
   flatModifier?: number;
@@ -26,6 +27,7 @@ export type ExpressionPatch = {
   successThreshold?: SuccessThreshold | undefined;
   keepAcross?: KeepRule | undefined;
   check?: CheckSpec | undefined;
+  note?: string | undefined;
 };
 
 export type PartPatch = {
@@ -67,6 +69,7 @@ export interface AppContextValue {
   deleteExpression: (id: string) => void;
   duplicateExpression: (id: string) => void;
   moveExpression: (id: string, delta: -1 | 1) => void;
+  sweepExpression: (id: string, target: SweepTarget, values: readonly number[]) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
   setAllRollModes: (mode: RollMode) => void;
