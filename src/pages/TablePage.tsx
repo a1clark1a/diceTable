@@ -48,7 +48,8 @@ function CompareActions() {
       // only thing that moves and this row has to be pinned to survive a long
       // one. No 2xl step for that reason: unlike the table's caption row,
       // nothing here ever stops travelling. Static below md, where the mobile
-      // toolbar already holds top:0 and this row's controls are hidden anyway.
+      // toolbar already holds top:0 and this row carries only Find a roll,
+      // which the toolbar's menu also reaches once the row has scrolled away.
       position={{ base: 'static', md: 'sticky' }}
       top={0}
       zIndex={2}
@@ -127,7 +128,7 @@ export default function TablePage() {
                 wrap="wrap"
                 minH="48px"
                 // Below md the sticky toolbar already holds top:0 and this band
-                // carries nothing but the caption; at 2xl the rolls scroll
+                // carries only the caption and Find a roll; at 2xl the rolls scroll
                 // inside the table box so it never moves. In between, the page
                 // itself scrolls and this is the row you need to keep.
                 position={{ base: 'static', md: 'sticky', '2xl': 'static' }}
@@ -135,7 +136,12 @@ export default function TablePage() {
                 zIndex={2}
                 bg="bg"
               >
-                <BaselineCaption />
+                {/* On a phone the caption shares this line with Find a roll, so
+                    it wraps beside the button instead of pushing it onto a line
+                    of its own. */}
+                <Box flex={{ base: '1', md: 'initial' }} minW={0}>
+                  <BaselineCaption />
+                </Box>
                 <Flex gap={2} align="center" ms="auto">
                   {/* Below md the sticky toolbar carries these instead. While
                       the cards are showing they always apply, since every card
@@ -158,7 +164,11 @@ export default function TablePage() {
                     />
                   </Box>
                   <RowActions />
-                  <ScrollButtons chartRef={chartRef} />
+                  {/* Its buttons hide below md, but the empty group would still
+                      take a gap and pull Find a roll off the cards' right edge. */}
+                  <Box display={{ base: 'none', md: 'contents' }}>
+                    <ScrollButtons chartRef={chartRef} />
+                  </Box>
                 </Flex>
               </Flex>
               {tableFits ? <RollsTable /> : <RollsCards />}

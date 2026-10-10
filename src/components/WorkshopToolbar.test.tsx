@@ -179,10 +179,13 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     ).toBeInTheDocument();
 
     // Roll mode, Add roll and Clear sit behind the overflow, not on the bar.
+    // Find a roll's labelled button belongs to the list header instead: on the
+    // bar it would push a phone's toolbar onto a second line.
     for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
     expect(screen.queryByRole('button', { name: /add roll/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Find a roll' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear all' })).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Table actions' }),
@@ -208,6 +211,9 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /add roll/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: /find a roll/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /clear all rolls/i }),

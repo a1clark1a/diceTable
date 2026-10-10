@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- The Examples button is now called Find a roll, and on a phone it sits on the toolbar instead of inside the overflow menu, so you can find it without knowing it is there. The dialog's "Load every example" is now "Load the starter set", and still adds the same eight rolls.
+- The Examples button is now called Find a roll, and on a phone it now shows as its own button, in the same place as on a bigger screen, instead of only inside the overflow menu, so you can find it without knowing it is there. The dialog's "Load every example" is now "Load the starter set", and still adds the same eight rolls.
 
 ## [2.2.0] - 2026-09-14
 

@@ -5,7 +5,6 @@ import {
 } from 'react';
 import {
   Box,
-  Button,
   Flex,
   HStack,
   IconButton,
@@ -103,19 +102,6 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
         <HStack gap={2} rowGap={2} align="center" wrap="wrap" ms="auto">
           {/* This bar is the only thing on screen below md, so its copy of the
               pair owns that band and the caption row's copy owns the one above. */}
-          {/* Outside the overflow menu on purpose: someone hunting for their
-              game's roll would never think to look behind a "more" button. */}
-          {hasRows && (
-            <Button
-              size="sm"
-              variant="outline"
-              minH="40px"
-              onClick={() => setExamplesOpen(true)}
-            >
-              <Search size={16} />
-              Find a roll
-            </Button>
-          )}
           <ScrollButtons
             chartRef={chartRef}
             display={{ base: 'inline-flex', md: 'none' }}
@@ -173,6 +159,18 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
                   </Menu.Item>
                   {hasRows && (
                     <>
+                      {/* The labelled button sits above the rows and scrolls
+                          away with them. This copy reaches it from deep in a
+                          long list without making the bar wrap to a second
+                          line. */}
+                      <Menu.Item
+                        value="find"
+                        minH="40px"
+                        onClick={() => setExamplesOpen(true)}
+                      >
+                        <Search size={14} />
+                        Find a roll
+                      </Menu.Item>
                       <Menu.Item
                         value="clear"
                         color="red.fg"
