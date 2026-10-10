@@ -243,7 +243,14 @@ describe('closing What\'s new', () => {
   });
 
   it('records the version when Escape is pressed', async () => {
+    giveElementsALayoutBox();
     const dialog = await openSince();
+    // The Escape listener arrives a frame after the dialog renders, the same
+    // frame focus moves in; under a loaded suite an Escape sent before it is
+    // simply missed.
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Got it' })).toHaveFocus(),
+    );
     fireEvent.keyDown(dialog, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(window.localStorage.getItem(LAST_SEEN)).toBe('9.2.0');
