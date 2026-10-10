@@ -13,6 +13,18 @@ export interface Release {
 // highlight, what they will see or can now do, no em-dashes.
 export const RELEASES: readonly Release[] = [
   {
+    version: '2.3.0',
+    date: '2026-10-10',
+    title: "Find a roll and What's new",
+    highlights: [
+      'Examples is now Find a roll, a searchable library of ready-made rolls for the games people play, like Blades, Shadowrun and 40k.',
+      "Each recipe card says what the roll is also called, why it is built that way, and anything it leaves out of the game's rules.",
+      'After an update, What\'s new shows what changed since your last visit, and the version in the footer opens the full list any time.',
+      'Find a roll has its own button on a phone too, and an empty table offers it from your first visit.',
+      "On a phone, the Target view's Edit buttons no longer run off the right edge of the screen.",
+    ],
+  },
+  {
     version: '2.2.0',
     date: '2026-09-14',
     title: 'Keep-the-best odds, even for exploding dice',

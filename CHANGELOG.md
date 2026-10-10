@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-10
+
 ### Added
 
 - Find a roll: the Examples button is now a searchable library of ready-made rolls for the games people actually play. Type a game ("Blades", "Shadowrun", "L5R", "40k"), a rule ("advantage", "explode") or some dice ("3d6"), or narrow it with the chips for adding up, counting successes, best or worst of, head to head and beating a number. Each card says what the roll is also called, why it is built the way it is, and the average and range the row will show once you add it. Some recipes add two or three rows at once, so you can compare advantage with disadvantage, or a normal hit with a critical, side by side.
@@ -275,7 +277,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.3.0
 [2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
 [2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
 [2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0
