@@ -6,14 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-10-10
+
 ### Added
 
 - Find a roll: the Examples button is now a searchable library of ready-made rolls for the games people actually play. Type a game ("Blades", "Shadowrun", "L5R", "40k"), a rule ("advantage", "explode") or some dice ("3d6"), or narrow it with the chips for adding up, counting successes, best or worst of, head to head and beating a number. Each card says what the roll is also called, why it is built the way it is, and the average and range the row will show once you add it. Some recipes add two or three rows at once, so you can compare advantage with disadvantage, or a normal hit with a critical, side by side.
 - Every recipe was checked against the game's own rules before it went in, and where a recipe leaves something out it says so on the card: a Blades resistance roll does not count the critical that clears stress, and Daggerheart's total does not count doubles.
+- What's new: after an update, the app opens a short list of what changed since your last visit, one section per version with the newest on top, and then stays out of the way until the next one. The version number in the footer opens the same list whenever you like, going all the way back to the first release. A first visit never shows it, and opening a shared link holds it for your next visit, so a link always lands on the rolls it carries.
 
 ### Changed
 
 - The Examples button is now called Find a roll, and on a phone it now shows as its own button, in the same place as on a bigger screen, instead of only inside the overflow menu, so you can find it without knowing it is there. An empty table offers it too, so the game recipes are there from your first visit. The dialog's "Load every example" is now "Load the starter set", and still adds the same eight rolls.
+- The privacy page now names everything the app keeps in your browser, including the version you last opened and your light or dark choice, and says plainly what the error screen's reset clears.
 
 ### Fixed
 
@@ -273,7 +277,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.3.0
 [2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
 [2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
 [2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0

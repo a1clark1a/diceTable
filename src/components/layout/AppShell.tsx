@@ -1,10 +1,16 @@
-import { Box, Flex, HStack, Text } from '@chakra-ui/react';
+import { useRef } from 'react';
+import { Box, Button, Flex, HStack, Text } from '@chakra-ui/react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Toaster } from '../share/Toaster';
 import { useShareLinkAutoload } from '../share/useShareLinkAutoload';
+import { tapTarget } from '../tapTarget';
+import { useWhatsNew } from '../whatsNew/useWhatsNew';
+import { WhatsNewDialog } from '../whatsNew/WhatsNewDialog';
 
 export function AppShell() {
+  const whatsNew = useWhatsNew();
+  const whatsNewButtonRef = useRef<HTMLButtonElement>(null);
   useShareLinkAutoload();
   return (
     <Flex direction="column" h="100dvh" bg="bg">
@@ -29,7 +35,9 @@ export function AppShell() {
       <Box
         as="footer"
         px={{ base: 3, md: 6 }}
-        py={2}
+        // Below lg the What's new button is finger-sized and already sets the
+        // footer's height, so padding there would only add an empty band.
+        py={{ base: 0, lg: 1 }}
         borderTopWidth="1px"
         borderColor="border.subtle"
       >
@@ -59,16 +67,45 @@ export function AppShell() {
               )}
             </NavLink>
           </HStack>
-          <Text
-            color="fg.subtle"
-            fontFamily="mono"
-            style={{ fontVariantNumeric: 'tabular-nums' }}
+          <Button
+            ref={whatsNewButtonRef}
+            onClick={whatsNew.openAll}
+            variant="ghost"
+            size="xs"
+            h="auto"
+            minH={tapTarget('24px')}
+            px={1.5}
+            // Optical alignment with the padded edge on desktop only: at phone
+            // width the pull would put the focus ring against the screen edge.
+            me={{ base: 0, lg: -1.5 }}
+            gap={1.5}
+            fontSize="xs"
+            fontWeight="normal"
+            color="fg.muted"
+            _hover={{ color: 'fg', bg: 'bg.muted' }}
           >
-            v{__APP_VERSION__}
-            {import.meta.env.PROD ? '' : ` · ${__COMMIT_SHA__}`}
-          </Text>
+            What&apos;s new
+            <Text
+              as="span"
+              color="fg.subtle"
+              fontFamily="mono"
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              v{__APP_VERSION__}
+              {import.meta.env.PROD ? '' : ` · ${__COMMIT_SHA__}`}
+            </Text>
+          </Button>
         </Flex>
       </Box>
+      <WhatsNewDialog
+        open={whatsNew.open}
+        mode={whatsNew.mode}
+        releases={whatsNew.releases}
+        sinceVersion={whatsNew.sinceVersion}
+        current={whatsNew.current}
+        onClose={whatsNew.close}
+        returnFocusRef={whatsNewButtonRef}
+      />
       <Toaster />
     </Flex>
   );
