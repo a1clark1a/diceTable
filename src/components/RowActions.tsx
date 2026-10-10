@@ -5,9 +5,12 @@ import { useApp } from '../state/useApp';
 import { MAX_EXPRESSIONS } from '../types';
 import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
-import { ExamplesDialog } from './presets/ExamplesDialog';
 import { ClearAllDialog } from './ClearAllDialog';
 import { useIsDesktop } from '../hooks/useBreakpoint';
+
+interface RowActionsProps {
+  onFindRoll: () => void;
+}
 
 /**
  * Adding, seeding and clearing act on the rows, so they sit with the data
@@ -17,10 +20,9 @@ import { useIsDesktop } from '../hooks/useBreakpoint';
  * hunting for their game's roll would never think to look behind a "more"
  * button, and the sticky bar has no room left for it on a phone.
  */
-export function RowActions() {
+export function RowActions({ onFindRoll }: RowActionsProps) {
   const isDesktop = useIsDesktop();
   const { expressions, addExpression } = useApp();
-  const [examplesOpen, setExamplesOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
 
   const hasRows = expressions.length > 0;
@@ -58,7 +60,7 @@ export function RowActions() {
               size="sm"
               variant="outline"
               h={{ base: '40px', md: '32px' }}
-              onClick={() => setExamplesOpen(true)}
+              onClick={onFindRoll}
             >
               <Search size={16} />
               Find a roll
@@ -80,7 +82,6 @@ export function RowActions() {
           )}
         </>
       )}
-      <ExamplesDialog open={examplesOpen} onOpenChange={setExamplesOpen} />
       <ClearAllDialog open={clearOpen} onOpenChange={setClearOpen} />
     </HStack>
   );

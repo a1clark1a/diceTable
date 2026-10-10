@@ -350,7 +350,7 @@ describe('baseline deltas treat a check row as sum scale', () => {
 describe('other workshop views with a check row', () => {
   it('scores a check row in the target hit view off its effect, not its d20', () => {
     seed([CHECK_ROW, SUM_ROW], { targetValues: [10] });
-    renderIn(<TargetHitView />);
+    renderIn(<TargetHitView onFindRoll={() => {}} />);
     expect(screen.getByText('Longsword')).toBeInTheDocument();
     expect(screen.getByText('26.7%')).toBeInTheDocument();
     expect(screen.getByText('58.3%')).toBeInTheDocument();

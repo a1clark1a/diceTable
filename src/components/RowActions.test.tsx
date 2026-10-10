@@ -5,6 +5,7 @@ import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
 import { useApp } from '../state/useApp';
 import { RowActions } from './RowActions';
+import { ExamplesDialog } from './presets/ExamplesDialog';
 
 const Providers = ({ children }: { children: React.ReactNode }) => (
   <ChakraProvider value={defaultSystem}>
@@ -17,10 +18,22 @@ function RowCount() {
   return <div data-testid="row-count">{expressions.length}</div>;
 }
 
+// The page owns the library dialog and the button only asks for it, so the
+// harness stands in for the page.
+function RowActionsWithLibrary() {
+  const [libraryOpen, setLibraryOpen] = React.useState(false);
+  return (
+    <>
+      <RowActions onFindRoll={() => setLibraryOpen(true)} />
+      <ExamplesDialog open={libraryOpen} onOpenChange={setLibraryOpen} />
+    </>
+  );
+}
+
 function renderActions() {
   render(
     <Providers>
-      <RowActions />
+      <RowActionsWithLibrary />
       <RowCount />
     </Providers>,
   );

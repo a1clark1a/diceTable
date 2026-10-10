@@ -3,6 +3,8 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import indexHtml from '../../index.html?raw';
 import bootJs from '../../public/boot.js?raw';
+import type { DicePart } from '../types';
+import { WIDTH_REFUSED_PART } from '../test/tooComplex';
 
 // The overlay chart lazy-loads recharts, which needs browser APIs jsdom does
 // not provide; the page-level seam under test is which sections render, not
@@ -29,14 +31,17 @@ function renderPage() {
 
 type WorkshopView = 'table' | 'target' | 'rolloff' | 'matrix';
 
-function seedOneRoll(view: WorkshopView) {
+function seedOneRoll(
+  view: WorkshopView,
+  parts: DicePart[] = [{ id: 'p1', count: 1, sides: 8 }],
+) {
   const state = {
     version: 3,
     expressions: [
       {
         id: 'e1',
         name: 'Longsword',
-        parts: [{ id: 'p1', count: 1, sides: 8 }],
+        parts,
         flatModifier: 0,
         rollMode: 'normal',
         mode: 'sum',
@@ -185,6 +190,45 @@ describe('TablePage row actions', () => {
     expect(
       screen.getAllByRole('button', { name: /add roll/i }).length,
     ).toBeGreaterThan(0);
+  });
+});
+
+describe('TablePage roll library', () => {
+  // The dialog machine opens a beat after the click.
+  async function openLibrary() {
+    fireEvent.click(screen.getByRole('button', { name: 'Find a roll' }));
+    return await screen.findByRole('dialog');
+  }
+
+  it('opens from an empty table and stays open once the first roll lands', async () => {
+    renderPage();
+    const dialog = await openLibrary();
+
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: 'Use this roll' })[0]!,
+    );
+
+    // The start panel gives way to the table underneath, and that swap must
+    // not take the library down with it.
+    expect(screen.queryByText('Start with an example')).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('stays open on Target hit when the first chartable roll lands', async () => {
+    seedOneRoll('target', [WIDTH_REFUSED_PART]);
+    renderPage();
+    const emptyHint = /add a roll with valid dice/i;
+    expect(screen.getByText(emptyHint)).toBeInTheDocument();
+    const dialog = await openLibrary();
+
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: 'Use this roll' })[0]!,
+    );
+
+    // The view has swapped to its full layout, which is the remount that used
+    // to close a dialog owned by the button.
+    expect(screen.queryByText(emptyHint)).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
 

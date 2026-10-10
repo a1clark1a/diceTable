@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
@@ -35,11 +35,11 @@ function readState(): ProbedExpression[] {
   ) as ProbedExpression[];
 }
 
-function renderPanel() {
+function renderPanel(onFindRoll: () => void = () => {}) {
   return render(
     <ChakraProvider value={defaultSystem}>
       <AppProvider>
-        <StartExamplesPanel />
+        <StartExamplesPanel onFindRoll={onFindRoll} />
         <StateProbe />
       </AppProvider>
     </ChakraProvider>,
@@ -102,6 +102,14 @@ describe('StartExamplesPanel', () => {
     expect(readState().map((e) => e.name)).toEqual(
       STARTER_PRESETS.map((p) => p.name),
     );
+  });
+
+  it('"Find a roll" asks for the full library and adds nothing itself', () => {
+    const onFindRoll = vi.fn();
+    renderPanel(onFindRoll);
+    fireEvent.click(screen.getByRole('button', { name: 'Find a roll' }));
+    expect(onFindRoll).toHaveBeenCalledTimes(1);
+    expect(readState()).toHaveLength(0);
   });
 
   it('"Start from a blank roll" adds the default new roll', () => {

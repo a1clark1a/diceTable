@@ -21,7 +21,8 @@ import { tipForId } from '../../docs/glossary';
 
 interface ExamplesDialogProps {
   // Controlled when `open` is supplied, which also drops the built-in trigger:
-  // the toolbar opens this from a menu item that cannot host a Dialog.Trigger.
+  // the page owns one instance and opens it from several buttons and a menu
+  // item, none of which can host a Dialog.Trigger.
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }

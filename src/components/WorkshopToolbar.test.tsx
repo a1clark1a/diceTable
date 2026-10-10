@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
 import { useApp } from '../state/useApp';
 import { WorkshopToolbar } from './WorkshopToolbar';
+import { ExamplesDialog } from './presets/ExamplesDialog';
 import type { ChartView, ExpressionMode, RollMode } from '../types';
 
 const Providers = ({ children }: { children: React.ReactNode }) => (
@@ -21,11 +22,19 @@ function RowCount() {
 
 // The table view is the only one that owns a chart, so the harness mirrors
 // that split: with a ref for the chart-view chips, without one for the rest.
+// The page owns the library dialog, so the harness stands in for it too.
 function Harness({ withChart = true }: { withChart?: boolean }) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const openLibrary = () => setLibraryOpen(true);
   return (
     <>
-      {withChart ? <WorkshopToolbar chartRef={chartRef} /> : <WorkshopToolbar />}
+      {withChart ? (
+        <WorkshopToolbar chartRef={chartRef} onFindRoll={openLibrary} />
+      ) : (
+        <WorkshopToolbar onFindRoll={openLibrary} />
+      )}
+      <ExamplesDialog open={libraryOpen} onOpenChange={setLibraryOpen} />
       <div ref={chartRef} data-testid="chart" />
       <RowCount />
     </>
