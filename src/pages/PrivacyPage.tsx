@@ -70,7 +70,8 @@ export default function PrivacyPage() {
           a shared link also notes the time in the tab&apos;s session storage,
           which your browser deletes when the tab closes. None of this leaves
           your device. You can clear it any time from your browser settings.
-          The error screen, if the app fails to load, clears your rolls.
+          If the app fails to load, its error screen can clear your rolls,
+          target settings, and view preferences.
         </Text>
       </Section>
 
