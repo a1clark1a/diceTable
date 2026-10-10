@@ -14,7 +14,7 @@ export default function PrivacyPage() {
           Privacy
         </Heading>
         <Text color="fg.subtle" fontSize="sm">
-          Last updated: 2026-05-28
+          Last updated: 2026-10-10
         </Text>
       </Stack>
 
@@ -63,9 +63,14 @@ export default function PrivacyPage() {
           Your rolls, target settings, and view preferences are saved in your
           browser&apos;s <Text as="span" fontFamily="mono">localStorage</Text>{' '}
           under the key <Text as="span" fontFamily="mono">dicetable.v2</Text>.
-          This data never leaves your device. You can clear it any time from
-          your browser settings, or from the error screen if the app fails to
-          load.
+          Two smaller values sit beside it: the last version you opened, under{' '}
+          <Text as="span" fontFamily="mono">dicetable.lastSeenVersion</Text>, so
+          What&apos;s new shows each update only once, and your light or dark
+          choice, under <Text as="span" fontFamily="mono">theme</Text>. Opening
+          a shared link also notes the time in the tab&apos;s session storage,
+          which your browser deletes when the tab closes. None of this leaves
+          your device. You can clear it any time from your browser settings.
+          The error screen, if the app fails to load, clears your rolls.
         </Text>
       </Section>
 

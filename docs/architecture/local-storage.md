@@ -2,7 +2,7 @@
 
 > Status: Living doc — update when the persistence contract changes.
 > Owner: Clark
-> Last updated: 2026-05-07
+> Last updated: 2026-10-10
 
 This is the foundational reference for how DiceTable persists user data. Read this before changing anything that touches `localStorage`, `useLocalStorage`, `persistedSchema`, or the shape of `PersistedState`. Every persistence change is a compatibility decision — this doc exists so those decisions stay deliberate.
 
@@ -10,7 +10,7 @@ This is the foundational reference for how DiceTable persists user data. Read th
 
 ## TL;DR
 
-- **One key.** All app state lives under a single `localStorage` key: `dicetable.v2`.
+- **One key for the table.** Everything the user authored, plus their view preferences, lives under a single `localStorage` key: `dicetable.v2`. Two small app-wide values sit outside it on purpose; see [Other keys](#other-keys).
 - **One envelope.** Stored as `{ version, value }`. The version bumps with breaking shape changes.
 - **One validator.** [`validatePersistedState`](../../src/state/persistedSchema.ts) is the only trusted way data crosses the boundary back into the app.
 - **One source of truth.** [`AppContext`](../../src/state/AppContext.tsx) is the single component that owns persisted state. Every other component reads from context, never from `localStorage` directly.
@@ -147,6 +147,18 @@ interface PersistedState {
 
 `Expression` and `DicePart` are defined in [`types.ts`](../../src/types.ts). Optional fields on parts (`keep`, `reroll`, `explode`) are persisted with the `'key' in patch` semantics — present means "set this", absent means "no rule". Don't persist `undefined`-valued keys; either include them with a value or omit them.
 
+### Other keys
+
+Nothing here is table data, so none of it goes through the envelope, the validator or `AppContext`, and none of it travels in an export or share link (those carry only `Expression[]`).
+
+| Key | Storage | Owner | Contract |
+| --- | --- | --- | --- |
+| `theme` | localStorage | next-themes, via [`color-mode.tsx`](../../src/components/ui/color-mode.tsx) | `'light'` / `'dark'`, written only when the user toggles. Read before paint by `public/boot.js`. |
+| `dicetable.lastSeenVersion` | localStorage | [`src/whatsNew/lastSeen.ts`](../../src/whatsNew/lastSeen.ts) | A plain `X.Y.Z` string: the newest version whose What's new the user has closed. Anything else reads as missing. Never moves backwards. Survives **Reset saved data**, which is intended: it is not the user's data, and clearing it would only replay a dialog. A shape change gets a new key rather than an envelope. |
+| `dicetable.shareVisit` | sessionStorage | [`src/share/autoload.ts`](../../src/share/autoload.ts) | A millisecond timestamp written when a share link is opened, read for 30 s. It lets a build loaded by the service worker's update reload know the visit came from a link, after the old build already stripped the URL fragment. |
+
+Each is read and written inside `try/catch`, and blocked storage degrades to "behave as if absent" (What's new then never auto-opens, since it could never remember being closed).
+
 ### The error boundary
 
 [`ErrorBoundary`](../../src/components/ErrorBoundary.tsx) wraps `<AppProvider>` in [`App.tsx`](../../src/App.tsx) with `storageKey="dicetable.v2"`. On any uncaught render error it shows a recovery panel with a **Reset saved data** button that calls `localStorage.removeItem(key)` and reloads. This is the user-facing escape hatch when validation passes but a runtime invariant breaks.
@@ -221,11 +233,11 @@ A migrator is the right tool when **most users** would lose meaningful work on a
 
 - **If it's data** (something the user authored and would notice losing): add it to `types.ts`, extend `validatePersistedState` to enforce its shape, decide whether old payloads need a migrator (optional with default ⇒ no, required ⇒ yes), and update tests.
 - **If it's UI preference** (chart toggle, expanded row, last-used target): add it to the `ui` block, give it a sensible default in `validateUi`. No version bump.
-- **Never add it loose.** Don't write a sibling key to `localStorage`. The whole app state lives under one envelope; a second key creates a second migration timeline.
+- **Never add it loose.** Don't write table data or a table preference to a sibling key. The table lives under one envelope; a second key creates a second migration timeline. The only exceptions are app-wide values that are not the user's data and must outlive a reset, listed under [Other keys](#other-keys) with their own contracts.
 
 ### Adding a new action
 
-Add the callback to `AppContext.tsx` using the functional `setState` form. Don't read `localStorage` directly from a component; the hook is the only authorized reader, and `AppContext` is the only authorized owner.
+Add the callback to `AppContext.tsx` using the functional `setState` form. Don't read `localStorage` directly from a component; for `dicetable.v2` the hook is the only authorized reader, and `AppContext` is the only authorized owner.
 
 ### Reading the current value outside React
 
@@ -305,3 +317,4 @@ These are reasonable directions if a real need shows up. Not roadmap commitments
 | ID generation                       | [`src/state/defaultPart.ts`](../../src/state/defaultPart.ts) (`newId`)            |
 | Recovery UI                         | [`src/components/ErrorBoundary.tsx`](../../src/components/ErrorBoundary.tsx)      |
 | Boundary wiring                     | [`src/App.tsx`](../../src/App.tsx)                                                |
+| Last-seen version (What's new)      | [`src/whatsNew/lastSeen.ts`](../../src/whatsNew/lastSeen.ts)                      |
