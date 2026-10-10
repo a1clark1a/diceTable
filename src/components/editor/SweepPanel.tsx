@@ -12,7 +12,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { LayersPlus } from 'lucide-react';
-import { useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useId, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useApp } from '../../state/useApp';
 import { STANDARD_DICE } from '../../state/defaultPart';
 import {
@@ -51,11 +51,7 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
   const pointerLayout = useTableFits();
   const [open, setOpen] = useState(false);
   const chooserRef = useRef<HTMLButtonElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  // The tooltip and the overlay both mark the one button as their trigger, and
-  // the tooltip's marks win, so the overlay can no longer find its trigger to
-  // hand focus back to on close. It is told where the button is instead.
-  const toTrigger = () => triggerRef.current;
+  const tipId = useId();
   const room = MAX_EXPRESSIONS - total;
   const sweepable = sweepTargets(expr).length > 0;
 
@@ -82,15 +78,20 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
   const blocked = !sweepable || room <= 0;
   const tip = tipForId(blocked ? (sweepable ? 'rowCap' : 'sweepCheckRow') : 'sweep');
   const onOpenChange = (d: { open: boolean }) => setOpen(d.open && !blocked);
+  // The tooltip hangs on a wrapper (see TapTip's `wrap`), so the button names
+  // the tip as its own description for anyone who cannot see it.
   const trigger = (
     <Button
-      ref={triggerRef}
       {...triggerProps}
       aria-disabled={blocked || undefined}
       data-disabled={blocked ? '' : undefined}
+      aria-describedby={tipId}
     >
       {label}
     </Button>
+  );
+  const description = (
+    <VisuallyHidden id={tipId}>{tip}</VisuallyHidden>
   );
 
   const title = `Variants of ${expr.name}`;
@@ -109,22 +110,28 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
       <Popover.Root
         open={open}
         onOpenChange={onOpenChange}
-        positioning={{ placement: 'bottom-end' }}
+        // An editor low on the screen leaves the panel little room below it;
+        // fitting it to the viewport lets its body scroll with the buttons
+        // pinned, instead of running past the bottom edge.
+        positioning={{ placement: 'bottom-end', fitViewport: true }}
         initialFocusEl={() => chooserRef.current}
-        finalFocusEl={toTrigger}
         lazyMount
         unmountOnExit
       >
-        <TapTip tip={tip} hold={blocked}>
+        <TapTip tip={tip} hold={blocked} wrap>
           <Popover.Trigger asChild>{trigger}</Popover.Trigger>
         </TapTip>
+        {description}
         <Portal>
           <Popover.Positioner>
-            <Popover.Content w="360px" maxW="calc(100vw - 32px)" aria-label={title}>
-              <Popover.Arrow>
-                <Popover.ArrowTip />
-              </Popover.Arrow>
-              <Popover.Body>{form}</Popover.Body>
+            <Popover.Content
+              w="360px"
+              maxW="calc(100vw - 32px)"
+              overflowY="auto"
+              aria-label={title}
+            >
+              {/* No arrow: a scrolling content box clips it. */}
+              <Popover.Body pb={0}>{form}</Popover.Body>
             </Popover.Content>
           </Popover.Positioner>
         </Portal>
@@ -147,11 +154,11 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
       // A two-part roll's chooser runs past 80vh on a short phone; the body
       // scrolls and the confirm row stays reachable.
       scrollBehavior="inside"
-      finalFocusEl={toTrigger}
     >
-      <TapTip tip={tip} hold={blocked}>
+      <TapTip tip={tip} hold={blocked} wrap>
         <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
       </TapTip>
+      {description}
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
@@ -551,14 +558,18 @@ function SweepForm({ expr, room, chooserRef, layout, onDone }: SweepFormProps) {
         </VisuallyHidden>
       </Box>
 
-      {/* In the sheet the form scrolls, and the buttons stay pinned to its
-          bottom edge so confirming never means scrolling to find them. */}
+      {/* When the panel is taller than the room it has, the form scrolls and
+          the buttons stay pinned to its bottom edge, so confirming never means
+          scrolling to find them. */}
       <HStack
         justify="flex-end"
         gap={2}
-        {...(layout === 'sheet'
-          ? { position: 'sticky', bottom: 0, bg: 'bg.panel', pt: 2, pb: 4, mt: -2 }
-          : {})}
+        position="sticky"
+        bottom={0}
+        bg="bg.panel"
+        pt={2}
+        pb={4}
+        mt={-2}
       >
         <Button
           size="sm"

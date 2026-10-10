@@ -1,3 +1,4 @@
+import { Box } from '@chakra-ui/react';
 import { cloneElement, useEffect, useState, type PointerEvent, type ReactElement } from 'react';
 import { Tooltip } from '../ui/tooltip';
 
@@ -13,6 +14,14 @@ interface TapTipProps {
    * marker, whose tip is all a tap can give.
    */
   hold?: boolean;
+  /**
+   * Hang the tooltip on a wrapper instead of on the child. Needed when the
+   * child is already a popover or dialog trigger: each machine finds its
+   * trigger by the same data attributes, so on one element the tooltip's
+   * overwrite the overlay's and it loses its anchor and its focus return. The
+   * child then carries the tip itself as its description.
+   */
+  wrap?: boolean;
   children: ReactElement<{ onPointerDown?: (e: PointerEvent<HTMLElement>) => void }>;
 }
 
@@ -24,7 +33,7 @@ interface TapTipProps {
  * live keeps this one wrapper in both states and flips `hold`, because
  * swapping wrappers would remount the button and drop its focus.
  */
-export function TapTip({ tip, hold = true, children }: TapTipProps) {
+export function TapTip({ tip, hold = true, wrap = false, children }: TapTipProps) {
   const [hoverOpen, setHoverOpen] = useState(false);
   // The tap's timestamp, so a second tap restarts the hold; 0 is no hold.
   const [heldSince, setHeldSince] = useState(0);
@@ -35,11 +44,10 @@ export function TapTip({ tip, hold = true, children }: TapTipProps) {
     return () => clearTimeout(timer);
   }, [heldSince]);
 
-  const childPointerDown = children.props.onPointerDown;
-  const onPointerDown = (e: PointerEvent<HTMLElement>) => {
-    childPointerDown?.(e);
+  const holdOnTouch = (e: PointerEvent<HTMLElement>) => {
     if (hold && e.pointerType === 'touch') setHeldSince(e.timeStamp || 1);
   };
+  const childPointerDown = children.props.onPointerDown;
 
   return (
     <Tooltip
@@ -51,7 +59,18 @@ export function TapTip({ tip, hold = true, children }: TapTipProps) {
       closeOnClick={!hold}
       closeOnPointerDown={!hold}
     >
-      {cloneElement(children, { onPointerDown })}
+      {wrap ? (
+        <Box as="span" display="inline-flex" onPointerDown={holdOnTouch}>
+          {children}
+        </Box>
+      ) : (
+        cloneElement(children, {
+          onPointerDown: (e: PointerEvent<HTMLElement>) => {
+            childPointerDown?.(e);
+            holdOnTouch(e);
+          },
+        })
+      )}
     </Tooltip>
   );
 }

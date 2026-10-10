@@ -81,7 +81,7 @@ export function NoteField({ exprId, note, updateExpression }: NoteFieldProps) {
         onBlur={buf.onBlur}
         onKeyDown={buf.onKeyDown}
         maxLength={MAX_NOTE_LENGTH}
-        placeholder="Why this roll exists, like what you changed"
+        placeholder="Why this roll exists"
         aria-label="Roll note"
         aria-describedby={showCount ? countId : undefined}
       />

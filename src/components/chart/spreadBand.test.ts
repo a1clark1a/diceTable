@@ -10,8 +10,13 @@ describe('spreadBand', () => {
     expect(spreadBand(partDistribution({ id: 'p', count: 2, sides: 6 }))).toEqual([4, 10]);
   });
 
-  it('draws 3 to 18 on 1d20, 10% clear on each side', () => {
-    expect(spreadBand(uniformDistribution(20))).toEqual([3, 18]);
+  it('draws nothing on a flat 1d20, which has no middle where most land', () => {
+    expect(spreadBand(uniformDistribution(20))).toBeNull();
+  });
+
+  it('draws nothing on a flat die shifted by a modifier', () => {
+    const plusThree = new Map([...uniformDistribution(12)].map(([k, p]) => [k + 3, p]));
+    expect(spreadBand(plusThree)).toBeNull();
   });
 
   // The middle 80% of a d8 already reaches both ends, so a band would shade

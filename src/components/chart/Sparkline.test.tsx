@@ -672,16 +672,15 @@ describe('Sparkline spread band', () => {
 
   // 1d20: running totals reach 10% exactly at 2 and 90% exactly at 18, so the
   // band is 2 to 18, buckets 1 to 17 of 20 at 4 units each.
-  // Results 3 to 18 are buckets 2 to 17 at 4 units each.
-  it('draws 3 to 18 for 1d20', () => {
+  // Every face of a d20 is as likely as the next, so there is no middle where
+  // most results land; a band would only shade all but the two end faces.
+  it('draws no band for a flat 1d20', () => {
     const { container } = render(
       <Plain>
         <Sparkline dist={uniformDistribution(20)} color="#000" view="pmf" />
       </Plain>,
     );
-    const { x, width } = bandBox(container);
-    expect(x).toBeCloseTo(8, 9);
-    expect(width).toBeCloseTo(64, 9);
+    expect(bandIn(container)).toBeNull();
   });
 
   it('draws no band for a single fixed result', () => {
@@ -744,13 +743,20 @@ describe('Sparkline spread band', () => {
   it('snaps the band to bucket edges on a wide row', () => {
     const { container } = render(
       <Plain>
-        <Sparkline dist={uniformDistribution(2000)} color="#000" view="pmf" />
+        <Sparkline
+          dist={convolve(uniformDistribution(1000), uniformDistribution(1000))}
+          color="#000"
+          view="pmf"
+        />
       </Plain>,
     );
-    // 201 to 1800 sit in buckets 4 to 35 of 40, two units each.
+    // 2d1000 has 1,999 results in 40 buckets, two units each, so both edges
+    // of the band land on a bucket boundary rather than between them.
     const { x, width } = bandBox(container);
-    expect(x).toBeCloseTo(8, 9);
-    expect(width).toBeCloseTo(64, 9);
+    expect(x % 2).toBeCloseTo(0, 9);
+    expect(width % 2).toBeCloseTo(0, 9);
+    expect(x).toBeGreaterThan(0);
+    expect(x + width).toBeLessThan(80);
   });
 
   it('fills the band with the row colour at low strength, full plot height', () => {

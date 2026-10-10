@@ -15,8 +15,7 @@ import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
 import { buildMonotonePath } from './monotonePath';
 import { shapeHeaderView } from './effectiveView';
 import { missProbability, rowPeak } from './zeroSpike';
-import { middleRange } from '../../engine/stats';
-import { SPREAD_BAND_MASS, SPREAD_BAND_OPACITY } from './spreadBand';
+import { SPREAD_BAND_OPACITY, spreadBand } from './spreadBand';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
   pmf: { text: 'PMF', tip: tipForId('pmf') },
@@ -297,10 +296,10 @@ function buildGeometry(
   // region there would read as a second target. A band over every bucket says
   // nothing and turns a flat roll's light fill into a slab, so it is dropped.
   let band: [number, number] | null = null;
-  if (resolvedView !== 'target') {
-    const [lo, hi] = middleRange(dist, SPREAD_BAND_MASS);
-    const first = bucketOf(lo - min);
-    const last = bucketOf(hi - min);
+  const range = resolvedView !== 'target' ? spreadBand(dist) : null;
+  if (range !== null) {
+    const first = bucketOf(range[0] - min);
+    const last = bucketOf(range[1] - min);
     if (first > 0 || last < buckets - 1) band = [first, last];
   }
 
