@@ -297,6 +297,15 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'A CCDF curve at value k is P(X ≥ k), the chance of rolling k or more, which is just 1 minus the CDF. It starts at 1 (100%) on the far left and falls toward 0 on the right. To read a target, find your DC on the x-axis and look up: that height is your hit chance against ≥ DC.',
   },
   {
+    id: 'spread-band',
+    term: 'Spread band',
+    group: 'distributions',
+    plain:
+      'The faint shaded part of a roll’s shape: where most of its results land. A narrower band means a steadier roll.',
+    details:
+      'The band runs from the 10th to the 90th percentile, so at most a tenth of results fall below it and at most a tenth above. On dice the edges land on whole results, so it usually covers a little more than 80%, which is why it says “most” rather than a number. A single die, with or without a modifier, lands anywhere equally and has no middle, so it gets no band. It shows on the Shape sparkline, in the inspector, and on the comparison chart for the roll you single out.',
+  },
+  {
     id: 'convolution',
     term: 'Convolution',
     group: 'distributions',
@@ -313,7 +322,17 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'One named line in the table. Each row is independent, and gets its own chart series while the chart has room to draw it.',
     details:
-      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, and it decides which rolls the chart draws first when there are more than it can show at once.',
+      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, and it decides which rolls the chart draws first when there are more than it can show at once. Move a roll up or down from its expanded editor to change that order.',
+  },
+  {
+    id: 'variants',
+    term: 'Variants',
+    alt: 'sweep',
+    group: 'app',
+    plain:
+      'A family of copies of one roll that each change a single value, like the same weapon on a d6, d8 and d10. Make them from Variants in a roll’s editor.',
+    details:
+      'Pick what to change (the dice count, the die, how many to keep, the modifier, or a pool’s success number) and the values to try, and up to seven new rolls land directly below the original, named for what changed. Seven, because the chart has eight colours and the original keeps one, so every member of the family draws in its own colour and line. Values that would not make an honest roll are left out and named before you confirm: keeping more dice than you roll, a success number the dice never reach, a die that would never stop exploding, or a roll too large to work out. Once made, variants are ordinary rows you can edit, move or delete on their own.',
   },
   {
     id: 'baseline',
