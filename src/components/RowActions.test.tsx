@@ -51,9 +51,73 @@ function seedRows(count: number) {
   );
 }
 
+// jsdom has no matchMedia, so useIsDesktop defaults to the desktop branch.
+// Emulate a viewport to exercise the phone layout.
+function mockViewport(isDesktop: boolean) {
+  window.matchMedia = ((query: string) => ({
+    matches: isDesktop,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
 afterEach(() => {
   window.localStorage.clear();
   Reflect.deleteProperty(window, 'matchMedia');
+});
+
+describe('RowActions on desktop', () => {
+  it('offers Add roll, Find a roll and Clear all rolls side by side', () => {
+    mockViewport(true);
+    seedRows(2);
+    renderActions();
+    expect(
+      screen.getByRole('button', { name: /add roll/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Find a roll' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Clear all rolls' }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('RowActions on a phone', () => {
+  it('opens the roll library from a labelled Find a roll button', async () => {
+    mockViewport(false);
+    seedRows(2);
+    renderActions();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Find a roll' }));
+
+    // The dialog machine opens a beat after the click.
+    await screen.findByRole('dialog');
+    expect(
+      screen.getByRole('heading', { name: 'Find a roll' }),
+    ).toBeInTheDocument();
+  });
+
+  it('leaves Add roll and Clear all rolls to the overflow menu', () => {
+    mockViewport(false);
+    seedRows(2);
+    renderActions();
+    expect(screen.queryByRole('button', { name: /add roll/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Clear all rolls' })).toBeNull();
+  });
+
+  it('renders no buttons at all on an empty table', () => {
+    mockViewport(false);
+    seedRows(0);
+    renderActions();
+    expect(screen.getByTestId('row-count')).toHaveTextContent('0');
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
 });
 
 describe('RowActions add', () => {

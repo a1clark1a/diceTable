@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import indexHtml from '../../index.html?raw';
 import bootJs from '../../public/boot.js?raw';
@@ -186,4 +186,52 @@ describe('TablePage row actions', () => {
       screen.getAllByRole('button', { name: /add roll/i }).length,
     ).toBeGreaterThan(0);
   });
+});
+
+describe('TablePage row actions on a phone', () => {
+  beforeEach(() => {
+    // Every breakpoint query answers false, which is a phone: no desktop row
+    // actions, cards instead of the table.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['table', 'target', 'rolloff', 'matrix'] as const)(
+    'shows a labelled Find a roll button outside the overflow menu on the %s view',
+    (view) => {
+      seedOneRoll(view);
+      renderPage();
+      const find = screen.getByRole('button', { name: 'Find a roll' });
+      expect(find).toBeVisible();
+      expect(find.closest('[role="menu"]')).toBeNull();
+    },
+  );
+
+  it.each(['table', 'target', 'rolloff', 'matrix'] as const)(
+    'keeps Add roll out of the Find a roll row on the %s view',
+    (view) => {
+      seedOneRoll(view);
+      renderPage();
+      // Scoped to the row rather than the page: on Rolls the cards end with a
+      // full-width Add roll of their own, which is not the row action.
+      const row = screen.getByRole('button', { name: 'Find a roll' })
+        .parentElement;
+      expect(row).not.toBeNull();
+      expect(
+        within(row!).queryByRole('button', { name: /add roll/i }),
+      ).toBeNull();
+    },
+  );
 });

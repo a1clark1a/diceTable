@@ -269,6 +269,34 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     ).toBeInTheDocument();
   });
 
+  it('opens the roll library from the overflow menu', async () => {
+    mockViewport(false);
+    seedRows(['normal', 'normal']);
+    renderToolbar();
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table actions' }));
+    selectMenuItem(
+      await screen.findByRole('menuitem', { name: 'Find a roll' }),
+    );
+
+    await screen.findByRole('dialog');
+    expect(
+      screen.getByRole('heading', { name: 'Find a roll' }),
+    ).toBeInTheDocument();
+  });
+
+  it('leaves Find a roll out of the menu on an empty table', async () => {
+    mockViewport(false);
+    seedRows([]);
+    renderToolbar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table actions' }));
+    await screen.findByRole('menuitem', { name: /add roll/i });
+
+    expect(screen.queryByRole('menuitem', { name: /find a roll/i })).toBeNull();
+  });
+
   it('hides the roll-mode group and destructive items on an empty table', async () => {
     mockViewport(false);
     seedRows([]);
