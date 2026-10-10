@@ -279,3 +279,98 @@ describe('TablePage row actions on a phone', () => {
     },
   );
 });
+
+describe('TablePage Target view on a phone', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // A pool row is what brings the pool target row, so the toolbar shows both.
+  function seedSumAndPool() {
+    const state = {
+      version: 3,
+      expressions: [
+        {
+          id: 'e1',
+          name: 'Longsword',
+          parts: [{ id: 'p1', count: 1, sides: 8 }],
+          flatModifier: 0,
+          rollMode: 'normal',
+          mode: 'sum',
+        },
+        {
+          id: 'e2',
+          name: 'Pool',
+          parts: [{ id: 'p2', count: 5, sides: 10 }],
+          flatModifier: 0,
+          rollMode: 'normal',
+          mode: 'pool',
+          successThreshold: { direction: 'gte', value: 8 },
+        },
+      ],
+      ui: {
+        expandedId: null,
+        chartView: 'pmf',
+        target: { values: [] as number[], ruling: 'gte' as const },
+        view: 'target',
+        poolTarget: 1,
+        baselineId: null,
+      },
+    };
+    window.localStorage.setItem(
+      'dicetable.v2',
+      JSON.stringify({ version: 2, value: state }),
+    );
+  }
+
+  // jsdom measures nothing, but it does resolve each element's base styles, so
+  // these pin the two rules that keep the Edit buttons on a 360px screen. The
+  // target and pool target rows share one toolbar; its parent is the slot the
+  // view's row gives it.
+  function targetToolbarSlot(): HTMLElement {
+    const pool = screen.getByRole('button', { name: 'Edit pool targets' });
+    let toolbar = screen.getByRole('button', { name: 'Edit targets' })
+      .parentElement;
+    while (toolbar !== null && !toolbar.contains(pool)) {
+      toolbar = toolbar.parentElement;
+    }
+    expect(toolbar?.parentElement).toBeTruthy();
+    return toolbar!.parentElement!;
+  }
+
+  it('lets the target settings take the row width instead of their content width', () => {
+    seedSumAndPool();
+    renderPage();
+    const slot = getComputedStyle(targetToolbarSlot());
+    expect(slot.flexGrow).toBe('1');
+    expect(slot.minWidth).toBe('0px');
+  });
+
+  it('leaves nothing else in that row to take space beside them', () => {
+    seedSumAndPool();
+    renderPage();
+    const slot = targetToolbarSlot();
+    const siblings = [...slot.parentElement!.children].filter(
+      (el) => el !== slot,
+    );
+    expect(siblings.length).toBeGreaterThan(0);
+    // The scroll pair lives on the sticky toolbar below md; a spacer or an
+    // empty group left in this row would still take a gap.
+    for (const el of siblings) {
+      expect(getComputedStyle(el).display).toBe('none');
+    }
+  });
+});
