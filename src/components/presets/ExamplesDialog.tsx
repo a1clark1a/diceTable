@@ -18,6 +18,7 @@ import { RECIPES, filterRecipes } from '../../presets/recipes';
 import { PresetCardGrid } from './PresetCardGrid';
 import { Tooltip } from '../ui/tooltip';
 import { tipForId } from '../../docs/glossary';
+import { chipFocusRing } from '../editor/focusRings';
 
 interface ExamplesDialogProps {
   // Controlled when `open` is supplied, which also drops the built-in trigger:
@@ -43,7 +44,9 @@ export function ExamplesDialog({ open, onOpenChange }: ExamplesDialogProps) {
       onOpenChange={(e) => setOpen(e.open)}
       lazyMount
       unmountOnExit
-      placement="center"
+      // Top-anchored from md: centred, the dialog re-centred on every keystroke
+      // that changed the result count, moving the search field under the caret.
+      placement={{ mdDown: 'center', md: 'top' }}
       scrollBehavior="inside"
       size={{ mdDown: 'full', md: 'lg' }}
     >
@@ -114,37 +117,59 @@ function RecipeLibrary() {
         Search by game, rule or dice. Adding one puts it at the bottom of your
         table, where you can rename it, change the dice, or delete it.
       </Text>
-      <InputGroup startElement={<Search size={16} />} w="full">
-        <Input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Blades, advantage, 4d6…"
-          aria-label="Search rolls"
-          minH="44px"
-        />
-      </InputGroup>
-      <Flex gap={2} wrap="wrap" role="group" aria-label="Filter by kind of roll">
-        {FAMILY_FILTERS.map((f) => {
-          const isActive = family === f.value;
-          return (
-            <Button
-              key={f.label}
-              size="sm"
-              variant={isActive ? 'solid' : 'outline'}
-              colorPalette={isActive ? 'blue' : 'gray'}
-              aria-pressed={isActive}
-              minH="40px"
-              onClick={() => setFamily(f.value)}
-            >
-              {f.label}
-            </Button>
-          );
-        })}
-      </Flex>
-      <Text fontSize="xs" color="fg.muted" aria-live="polite">
-        {shown.length === 1 ? '1 result' : `${shown.length} results`}
-      </Text>
+      {/* Pinned while the cards scroll, so narrowing the search never means
+          scrolling back up. Only from md: on a phone three rows of chips would
+          hold a third of the screen for good. */}
+      <Stack
+        gap={4}
+        position={{ base: 'static', md: 'sticky' }}
+        // Sticky measures from inside the body's 8px top padding, which left
+        // a strip of scrolled cards showing above the search field.
+        top={-2}
+        zIndex={1}
+        bg="bg.panel"
+        pt={{ base: 0, md: 2 }}
+        mt={{ base: 0, md: -2 }}
+        pb={{ base: 0, md: 3 }}
+        borderBottomWidth={{ base: '0', md: '1px' }}
+        borderColor="border"
+      >
+        <InputGroup startElement={<Search size={16} />} w="full">
+          <Input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Blades, advantage, 4d6…"
+            aria-label="Search rolls"
+            minH="44px"
+            // The gray palette's ring measures 2.5:1 on the panel; the chips
+            // below ring in this blue too.
+            focusRingColor="blue.solid"
+          />
+        </InputGroup>
+        <Flex gap={2} wrap="wrap" role="group" aria-label="Filter by kind of roll">
+          {FAMILY_FILTERS.map((f) => {
+            const isActive = family === f.value;
+            return (
+              <Button
+                key={f.label}
+                size="sm"
+                variant={isActive ? 'solid' : 'outline'}
+                colorPalette={isActive ? 'blue' : 'gray'}
+                aria-pressed={isActive}
+                minH="40px"
+                _focusVisible={chipFocusRing}
+                onClick={() => setFamily(f.value)}
+              >
+                {f.label}
+              </Button>
+            );
+          })}
+        </Flex>
+        <Text fontSize="xs" color="fg.muted" aria-live="polite">
+          {shown.length === 1 ? '1 result' : `${shown.length} results`}
+        </Text>
+      </Stack>
       {shown.length > 0 ? (
         <PresetCardGrid presets={shown} />
       ) : (

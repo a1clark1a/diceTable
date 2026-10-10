@@ -34,14 +34,17 @@ function PresetCard({ preset }: { preset: StarterPreset }) {
       display="flex"
       flexDirection="column"
     >
-      <HStack justify="space-between" align="baseline" gap={{ base: 2, md: 3 }}>
-        <Text fontSize="sm" fontWeight="semibold">
+      {/* Stacked, not side by side: notation like "1d20 + 5 vs AC 15, two crit
+          ranges" is as long as the name, and sharing a line squeezed both into
+          ragged columns. */}
+      <Stack gap={1} align="flex-start">
+        <Text fontSize="sm" fontWeight="semibold" css={{ textWrap: 'balance' }}>
           {preset.name}
         </Text>
-        <Code fontSize="xs" flexShrink={0} maxW="55%" whiteSpace="normal" textAlign="end">
+        <Code fontSize="xs" whiteSpace="normal">
           {preset.dice}
         </Code>
-      </HStack>
+      </Stack>
       {preset.alsoCalled.length > 0 && (
         <Text fontSize="xs" color="fg.muted" mt={1}>
           Also called {preset.alsoCalled.join(' · ')}

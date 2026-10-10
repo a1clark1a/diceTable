@@ -92,7 +92,10 @@ async function renderTablePage() {
   return { RECIPES };
 }
 
-describe('recipe library boot cost', () => {
+// Each test imports Chakra and the whole page afresh, which is the point and is
+// also slow: a busy machine pushed one past the default 15s, and its leftover
+// render then broke the next test.
+describe('recipe library boot cost', { timeout: 60_000 }, () => {
   it('importing the recipe and starter modules computes no distribution', async () => {
     const { RECIPES } = await import('../../presets/recipes');
     const { STARTER_PRESETS } = await import('../../presets/starterRolls');
