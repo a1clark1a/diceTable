@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import indexHtml from '../../index.html?raw';
 import bootJs from '../../public/boot.js?raw';
+import type { DicePart } from '../types';
+import { WIDTH_REFUSED_PART } from '../test/tooComplex';
 
 // The overlay chart lazy-loads recharts, which needs browser APIs jsdom does
 // not provide; the page-level seam under test is which sections render, not
@@ -29,14 +31,17 @@ function renderPage() {
 
 type WorkshopView = 'table' | 'target' | 'rolloff' | 'matrix';
 
-function seedOneRoll(view: WorkshopView) {
+function seedOneRoll(
+  view: WorkshopView,
+  parts: DicePart[] = [{ id: 'p1', count: 1, sides: 8 }],
+) {
   const state = {
     version: 3,
     expressions: [
       {
         id: 'e1',
         name: 'Longsword',
-        parts: [{ id: 'p1', count: 1, sides: 8 }],
+        parts,
         flatModifier: 0,
         rollMode: 'normal',
         mode: 'sum',
@@ -185,5 +190,187 @@ describe('TablePage row actions', () => {
     expect(
       screen.getAllByRole('button', { name: /add roll/i }).length,
     ).toBeGreaterThan(0);
+  });
+});
+
+describe('TablePage roll library', () => {
+  // The dialog machine opens a beat after the click.
+  async function openLibrary() {
+    fireEvent.click(screen.getByRole('button', { name: 'Find a roll' }));
+    return await screen.findByRole('dialog');
+  }
+
+  it('opens from an empty table and stays open once the first roll lands', async () => {
+    renderPage();
+    const dialog = await openLibrary();
+
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: 'Use this roll' })[0]!,
+    );
+
+    // The start panel gives way to the table underneath, and that swap must
+    // not take the library down with it.
+    expect(screen.queryByText('Start with an example')).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('stays open on Target hit when the first chartable roll lands', async () => {
+    seedOneRoll('target', [WIDTH_REFUSED_PART]);
+    renderPage();
+    const emptyHint = /add a roll with valid dice/i;
+    expect(screen.getByText(emptyHint)).toBeInTheDocument();
+    const dialog = await openLibrary();
+
+    fireEvent.click(
+      within(dialog).getAllByRole('button', { name: 'Use this roll' })[0]!,
+    );
+
+    // The view has swapped to its full layout, which is the remount that used
+    // to close a dialog owned by the button.
+    expect(screen.queryByText(emptyHint)).toBeNull();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});
+
+describe('TablePage row actions on a phone', () => {
+  beforeEach(() => {
+    // Every breakpoint query answers false, which is a phone: no desktop row
+    // actions, cards instead of the table.
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each(['table', 'target', 'rolloff', 'matrix'] as const)(
+    'shows a labelled Find a roll button outside the overflow menu on the %s view',
+    (view) => {
+      seedOneRoll(view);
+      renderPage();
+      const find = screen.getByRole('button', { name: 'Find a roll' });
+      expect(find).toBeVisible();
+      expect(find.closest('[role="menu"]')).toBeNull();
+    },
+  );
+
+  it.each(['table', 'target', 'rolloff', 'matrix'] as const)(
+    'keeps Add roll out of the Find a roll row on the %s view',
+    (view) => {
+      seedOneRoll(view);
+      renderPage();
+      // Scoped to the row rather than the page: on Rolls the cards end with a
+      // full-width Add roll of their own, which is not the row action.
+      const row = screen.getByRole('button', { name: 'Find a roll' })
+        .parentElement;
+      expect(row).not.toBeNull();
+      expect(
+        within(row!).queryByRole('button', { name: /add roll/i }),
+      ).toBeNull();
+    },
+  );
+});
+
+describe('TablePage Target view on a phone', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // A pool row is what brings the pool target row, so the toolbar shows both.
+  function seedSumAndPool() {
+    const state = {
+      version: 3,
+      expressions: [
+        {
+          id: 'e1',
+          name: 'Longsword',
+          parts: [{ id: 'p1', count: 1, sides: 8 }],
+          flatModifier: 0,
+          rollMode: 'normal',
+          mode: 'sum',
+        },
+        {
+          id: 'e2',
+          name: 'Pool',
+          parts: [{ id: 'p2', count: 5, sides: 10 }],
+          flatModifier: 0,
+          rollMode: 'normal',
+          mode: 'pool',
+          successThreshold: { direction: 'gte', value: 8 },
+        },
+      ],
+      ui: {
+        expandedId: null,
+        chartView: 'pmf',
+        target: { values: [] as number[], ruling: 'gte' as const },
+        view: 'target',
+        poolTarget: 1,
+        baselineId: null,
+      },
+    };
+    window.localStorage.setItem(
+      'dicetable.v2',
+      JSON.stringify({ version: 2, value: state }),
+    );
+  }
+
+  // jsdom measures nothing, but it does resolve each element's base styles, so
+  // these pin the two rules that keep the Edit buttons on a 360px screen. The
+  // target and pool target rows share one toolbar; its parent is the slot the
+  // view's row gives it.
+  function targetToolbarSlot(): HTMLElement {
+    const pool = screen.getByRole('button', { name: 'Edit pool targets' });
+    let toolbar = screen.getByRole('button', { name: 'Edit targets' })
+      .parentElement;
+    while (toolbar !== null && !toolbar.contains(pool)) {
+      toolbar = toolbar.parentElement;
+    }
+    expect(toolbar?.parentElement).toBeTruthy();
+    return toolbar!.parentElement!;
+  }
+
+  it('lets the target settings take the row width instead of their content width', () => {
+    seedSumAndPool();
+    renderPage();
+    const slot = getComputedStyle(targetToolbarSlot());
+    expect(slot.flexGrow).toBe('1');
+    expect(slot.minWidth).toBe('0px');
+  });
+
+  it('leaves nothing else in that row to take space beside them', () => {
+    seedSumAndPool();
+    renderPage();
+    const slot = targetToolbarSlot();
+    const siblings = [...slot.parentElement!.children].filter(
+      (el) => el !== slot,
+    );
+    expect(siblings.length).toBeGreaterThan(0);
+    // The scroll pair lives on the sticky toolbar below md; a spacer or an
+    // empty group left in this row would still take a gap.
+    for (const el of siblings) {
+      expect(getComputedStyle(el).display).toBe('none');
+    }
   });
 });

@@ -14,7 +14,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 1,
     title: 'Add your first roll',
     plain:
-      'Click + Add roll. A new row appears with the default 1d20. Click its name to rename it, for example "Attack roll". Prefer a head start? An empty table offers "Start with an example" with ready-made rolls, and the Examples button keeps the same rolls available once your table has rows.',
+      'Click + Add roll. A new row appears with the default 1d20. Click its name to rename it, for example "Attack roll". Prefer a head start? An empty table offers "Start with an example" with ready-made rolls, and the Find a roll button, there and above your rows, searches a library of ready-made rolls by game or by rule.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -24,8 +24,8 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         <Text>
           Prefer a head start? An empty table offers{' '}
           <strong>Start with an example</strong> with ready-made rolls, and the{' '}
-          <strong>Examples</strong> button keeps the same rolls available once
-          your table has rows.
+          <strong>Find a roll</strong> button, there and above your rows,
+          searches a library of ready-made rolls by game or by rule.
         </Text>
         <Text color="fg.muted" fontSize="sm">
           The colored swatch on the left of each row matches that row’s color

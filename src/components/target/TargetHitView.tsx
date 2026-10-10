@@ -37,7 +37,11 @@ const KIND_FILTERS: { value: TargetKindFilter; label: string }[] = [
   { value: 'pool', label: 'Pools' },
 ];
 
-export function TargetHitView() {
+interface TargetHitViewProps {
+  onFindRoll: () => void;
+}
+
+export function TargetHitView({ onFindRoll }: TargetHitViewProps) {
   // Sub-view, kind filter and grid sort all live in app state rather than here,
   // so the share image can picture the selection actually on screen.
   const {
@@ -97,7 +101,7 @@ export function TargetHitView() {
   if (rows.length === 0) {
     return (
       <Stack gap={3} align="flex-start">
-        <RowActions />
+        <RowActions onFindRoll={onFindRoll} />
         <Text fontSize="sm" color="fg.muted" px={1}>
           Add a roll with valid dice to see hit chances against your targets.
         </Text>
@@ -181,7 +185,7 @@ export function TargetHitView() {
           {hint}
         </Text>
         <Box ms="auto">
-          <RowActions />
+          <RowActions onFindRoll={onFindRoll} />
         </Box>
       </HStack>
       {/* Curves need no target of their own: they plot the hit chance for every
