@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Box, Flex, Grid, Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
@@ -11,6 +11,7 @@ import { HeadToHeadView } from '../components/compare/HeadToHeadView';
 import { WorkshopToolbar } from '../components/WorkshopToolbar';
 import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
+import { ExamplesDialog } from '../components/presets/ExamplesDialog';
 import { RowActions } from '../components/RowActions';
 import { RollModeControl } from '../components/RollModeControl';
 import { RailSplitter, RAIL_MIN, TABLE_WIDTH } from '../components/layout/RailSplitter';
@@ -35,7 +36,7 @@ interface WorkshopViewEntry extends WorkshopViewChip {
  * now, which left it changing these two views while being uneditable from them.
  * Scroll-to-top left with the same toolbar, and both of these views can run long.
  */
-function CompareActions() {
+function CompareActions({ onFindRoll }: { onFindRoll: () => void }) {
   return (
     <Flex
       gap={4}
@@ -48,13 +49,14 @@ function CompareActions() {
       // only thing that moves and this row has to be pinned to survive a long
       // one. No 2xl step for that reason: unlike the table's caption row,
       // nothing here ever stops travelling. Static below md, where the mobile
-      // toolbar already holds top:0 and this row's controls are hidden anyway.
+      // toolbar already holds top:0 and this row carries only Find a roll,
+      // which the toolbar's menu also reaches once the row has scrolled away.
       position={{ base: 'static', md: 'sticky' }}
       top={0}
       zIndex={2}
       bg="bg"
     >
-      <RowActions />
+      <RowActions onFindRoll={onFindRoll} />
       {/* Below md the sticky toolbar's overflow menu already holds it, so a
           second copy here would spend a line of a phone screen on a duplicate. */}
       <Box display={{ base: 'none', md: 'contents' }}>
@@ -74,6 +76,12 @@ export default function TablePage() {
   // Session-only: a remembered pixel width is wrong the moment the viewport
   // changes, so this resets with the tab rather than persisting.
   const [tableWidth, setTableWidth] = useState(TABLE_WIDTH);
+  // One library for the whole page rather than one per button: adding the
+  // first roll swaps the empty panel for the table, and Target hit swaps its
+  // own layout once a row becomes chartable, and either would unmount a
+  // dialog that belonged to the button that opened it.
+  const [findOpen, setFindOpen] = useState(false);
+  const openFind = useCallback(() => setFindOpen(true), []);
   const { expressions, view, setView, chartViews, target } = useApp();
   // The shape column is the surface this line's chips drive, and it can offer
   // the target view whenever any row has something to measure against.
@@ -88,7 +96,7 @@ export default function TablePage() {
       // view renders exactly as it did when RollsTable/RollsCards owned it.
       render: () => (
         <>
-          <WorkshopToolbar chartRef={chartRef} />
+          <WorkshopToolbar chartRef={chartRef} onFindRoll={openFind} />
           <Grid
             ref={gridRef}
             flex="1"
@@ -127,7 +135,7 @@ export default function TablePage() {
                 wrap="wrap"
                 minH="48px"
                 // Below md the sticky toolbar already holds top:0 and this band
-                // carries nothing but the caption; at 2xl the rolls scroll
+                // carries only the caption and Find a roll; at 2xl the rolls scroll
                 // inside the table box so it never moves. In between, the page
                 // itself scrolls and this is the row you need to keep.
                 position={{ base: 'static', md: 'sticky', '2xl': 'static' }}
@@ -135,7 +143,12 @@ export default function TablePage() {
                 zIndex={2}
                 bg="bg"
               >
-                <BaselineCaption />
+                {/* On a phone the caption shares this line with Find a roll, so
+                    it wraps beside the button instead of pushing it onto a line
+                    of its own. */}
+                <Box flex={{ base: '1', md: 'initial' }} minW={0}>
+                  <BaselineCaption />
+                </Box>
                 <Flex gap={2} align="center" ms="auto">
                   {/* Below md the sticky toolbar carries these instead. While
                       the cards are showing they always apply, since every card
@@ -157,8 +170,12 @@ export default function TablePage() {
                       density="24px"
                     />
                   </Box>
-                  <RowActions />
-                  <ScrollButtons chartRef={chartRef} />
+                  <RowActions onFindRoll={openFind} />
+                  {/* Its buttons hide below md, but the empty group would still
+                      take a gap and pull Find a roll off the cards' right edge. */}
+                  <Box display={{ base: 'none', md: 'contents' }}>
+                    <ScrollButtons chartRef={chartRef} />
+                  </Box>
                 </Flex>
               </Flex>
               {tableFits ? <RollsTable /> : <RollsCards />}
@@ -187,7 +204,7 @@ export default function TablePage() {
       mobileLabel: 'Target',
       render: () => (
         <>
-          <WorkshopToolbar />
+          <WorkshopToolbar onFindRoll={openFind} />
           <Stack gap={3}>
             <Flex
               gap={3}
@@ -204,7 +221,7 @@ export default function TablePage() {
               <Box flex="1" minW={0} />
               <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
             </Flex>
-            <TargetHitView />
+            <TargetHitView onFindRoll={openFind} />
           </Stack>
         </>
       ),
@@ -214,9 +231,9 @@ export default function TablePage() {
       label: 'Roll-off',
       render: () => (
         <>
-          <WorkshopToolbar />
+          <WorkshopToolbar onFindRoll={openFind} />
           <Stack gap={3} align="flex-start">
-            <CompareActions />
+            <CompareActions onFindRoll={openFind} />
             <RollOffView />
           </Stack>
         </>
@@ -228,9 +245,9 @@ export default function TablePage() {
       mobileLabel: 'Versus',
       render: () => (
         <>
-          <WorkshopToolbar />
+          <WorkshopToolbar onFindRoll={openFind} />
           <Stack gap={3} align="flex-start">
-            <CompareActions />
+            <CompareActions onFindRoll={openFind} />
             <HeadToHeadView />
           </Stack>
         </>
@@ -271,7 +288,12 @@ export default function TablePage() {
         active={active.id}
         onSelect={setView}
       />
-      {expressions.length === 0 ? <StartExamplesPanel /> : active.render()}
+      {expressions.length === 0 ? (
+        <StartExamplesPanel onFindRoll={openFind} />
+      ) : (
+        active.render()
+      )}
+      <ExamplesDialog open={findOpen} onOpenChange={setFindOpen} />
     </Stack>
   );
 }

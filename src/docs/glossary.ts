@@ -491,7 +491,7 @@ const uiTips: Record<string, string> = {
   clearAll:
     'Remove every roll from the table. Asks you to confirm first.',
   examples:
-    'Ready-made example rolls. Adding one appends it to your table.',
+    'Search ready-made rolls by game, rule or dice. Adding one puts it at the bottom of your table.',
   share:
     'Copy a link, copy JSON, or download a file of your rolls. Anyone with the link sees the same table.',
   shareImage:

@@ -109,7 +109,7 @@ function renderView() {
   return render(
     <ChakraProvider value={defaultSystem}>
       <AppProvider>
-        <TargetHitView />
+        <TargetHitView onFindRoll={() => {}} />
       </AppProvider>
     </ChakraProvider>,
   );

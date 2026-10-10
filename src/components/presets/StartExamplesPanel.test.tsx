@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
@@ -35,11 +35,11 @@ function readState(): ProbedExpression[] {
   ) as ProbedExpression[];
 }
 
-function renderPanel() {
+function renderPanel(onFindRoll: () => void = () => {}) {
   return render(
     <ChakraProvider value={defaultSystem}>
       <AppProvider>
-        <StartExamplesPanel />
+        <StartExamplesPanel onFindRoll={onFindRoll} />
         <StateProbe />
       </AppProvider>
     </ChakraProvider>,
@@ -68,7 +68,7 @@ describe('StartExamplesPanel', () => {
 
   it('"Use this roll" appends the pool preset already in pool mode with fresh ids', () => {
     renderPanel();
-    const poolIdx = STARTER_PRESETS.findIndex((p) => p.expr.mode === 'pool');
+    const poolIdx = STARTER_PRESETS.findIndex((p) => p.rows[0]!.mode === 'pool');
     fireEvent.click(useThisRollButtons()[poolIdx]!);
 
     const state = readState();
@@ -100,8 +100,16 @@ describe('StartExamplesPanel', () => {
       screen.getByRole('button', { name: 'Load every example' }),
     );
     expect(readState().map((e) => e.name)).toEqual(
-      STARTER_PRESETS.map((p) => p.expr.name),
+      STARTER_PRESETS.map((p) => p.name),
     );
+  });
+
+  it('"Find a roll" asks for the full library and adds nothing itself', () => {
+    const onFindRoll = vi.fn();
+    renderPanel(onFindRoll);
+    fireEvent.click(screen.getByRole('button', { name: 'Find a roll' }));
+    expect(onFindRoll).toHaveBeenCalledTimes(1);
+    expect(readState()).toHaveLength(0);
   });
 
   it('"Start from a blank roll" adds the default new roll', () => {
