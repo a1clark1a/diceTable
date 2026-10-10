@@ -75,7 +75,9 @@ export function AppShell() {
             h="auto"
             minH={tapTarget('24px')}
             px={1.5}
-            me={-1.5}
+            // Optical alignment with the padded edge on desktop only: at phone
+            // width the pull would put the focus ring against the screen edge.
+            me={{ base: 0, lg: -1.5 }}
             gap={1.5}
             fontSize="xs"
             fontWeight="normal"

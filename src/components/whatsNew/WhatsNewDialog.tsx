@@ -8,6 +8,7 @@ import {
   List,
   Portal,
   Stack,
+  StackSeparator,
   Text,
 } from '@chakra-ui/react';
 import { ExternalLink } from 'lucide-react';
@@ -85,15 +86,23 @@ export function WhatsNewDialog({
               </Dialog.Description>
             </Dialog.Header>
             <Dialog.Body>
-              <Stack gap={6}>
+              <Stack
+                gap={5}
+                separator={<StackSeparator borderColor="border.subtle" />}
+              >
                 {releases.map((r) => (
                   <Stack key={r.version} as="section" gap={2}>
                     <Stack gap={0.5}>
                       <Heading as="h3" size="sm">
-                        v{r.version} · {r.title}
+                        {r.title}
                       </Heading>
-                      <Text fontSize="xs" color="fg.subtle">
-                        {formatReleaseDate(r.date)}
+                      <Text
+                        fontSize="xs"
+                        color="fg.subtle"
+                        fontFamily="mono"
+                        style={{ fontVariantNumeric: 'tabular-nums' }}
+                      >
+                        v{r.version} · {formatReleaseDate(r.date)}
                       </Text>
                     </Stack>
                     <List.Root gap={1.5} ps={5} fontSize="sm">

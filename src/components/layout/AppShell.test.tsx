@@ -119,7 +119,7 @@ describe('What\'s new on open', () => {
     window.localStorage.setItem(LAST_SEEN, '9.0.0');
     renderShell();
     const dialog = await screen.findByRole('dialog');
-    expect(releaseHeadings(dialog)).toEqual(['v9.2.0 · Third theme', 'v9.1.0 · Second theme']);
+    expect(releaseHeadings(dialog)).toEqual(['Third theme', 'Second theme']);
     expect(within(dialog).getByText('Since your last visit (v9.0.0).')).toBeInTheDocument();
   });
 
@@ -127,7 +127,7 @@ describe('What\'s new on open', () => {
     seedSavedTable();
     renderShell();
     const dialog = await screen.findByRole('dialog');
-    expect(releaseHeadings(dialog)).toEqual(['v9.2.0 · Third theme']);
+    expect(releaseHeadings(dialog)).toEqual(['Third theme']);
     expect(within(dialog).getByText('New in v9.2.0.')).toBeInTheDocument();
   });
 
@@ -263,9 +263,9 @@ describe('What\'s new from the footer', () => {
     fireEvent.click(screen.getByRole('button', { name: /what's new/i }));
     const dialog = await screen.findByRole('dialog');
     expect(releaseHeadings(dialog)).toEqual([
-      'v9.2.0 · Third theme',
-      'v9.1.0 · Second theme',
-      'v9.0.0 · First theme',
+      'Third theme',
+      'Second theme',
+      'First theme',
     ]);
     expect(within(dialog).getByText('Every version of DiceTable, newest first.')).toBeInTheDocument();
   });
