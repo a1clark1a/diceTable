@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Button, HStack, IconButton } from '@chakra-ui/react';
-import { Dices, Plus, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import { MAX_EXPRESSIONS } from '../types';
 import { Tooltip } from './ui/tooltip';
@@ -12,8 +12,8 @@ import { useIsDesktop } from '../hooks/useBreakpoint';
 /**
  * Adding, seeding and clearing act on the rows, so they sit with the data
  * rather than in the page chrome. Every view that can show rows renders this
- * same element; phones reach the same actions through the toolbar's overflow
- * menu, which is why this renders nothing there.
+ * same element; phones reach the same actions through the sticky toolbar,
+ * which is why this renders nothing there.
  */
 export function RowActions() {
   const isDesktop = useIsDesktop();
@@ -56,8 +56,8 @@ export function RowActions() {
               h="32px"
               onClick={() => setExamplesOpen(true)}
             >
-              <Dices size={16} />
-              Examples
+              <Search size={16} />
+              Find a roll
             </Button>
           </Tooltip>
           <Tooltip content={tipForId('clearAll')}>

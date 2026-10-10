@@ -7,7 +7,7 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { Dices } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useApp } from '../../state/useApp';
 import { STARTER_PRESETS } from '../../presets/starterRolls';
 import { PresetCardGrid } from './PresetCardGrid';
@@ -45,8 +45,8 @@ export function ExamplesDialog({ open, onOpenChange }: ExamplesDialogProps) {
         <Tooltip content={tipForId('examples')} disabled={isOpen}>
           <Dialog.Trigger asChild>
             <Button size="sm" variant="outline" minH="48px">
-              <Dices size={16} />
-              Examples
+              <Search size={16} />
+              Find a roll
             </Button>
           </Dialog.Trigger>
         </Tooltip>
@@ -56,7 +56,7 @@ export function ExamplesDialog({ open, onOpenChange }: ExamplesDialogProps) {
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>Example rolls</Dialog.Title>
+              <Dialog.Title>Find a roll</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
               <Stack gap={4}>
@@ -77,7 +77,7 @@ export function ExamplesDialog({ open, onOpenChange }: ExamplesDialogProps) {
                   setOpen(false);
                 }}
               >
-                Load every example
+                Load the starter set
               </Button>
             </Dialog.Footer>
             <Dialog.CloseTrigger asChild>

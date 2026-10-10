@@ -178,7 +178,7 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
       screen.getByRole('button', { name: 'Jump to chart' }),
     ).toBeInTheDocument();
 
-    // Everything else is behind the overflow, not on the bar.
+    // Roll mode, Add roll and Clear sit behind the overflow, not on the bar.
     for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
@@ -208,9 +208,6 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /add roll/i }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: /example rolls/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /clear all rolls/i }),

@@ -37,7 +37,7 @@ function renderDialog() {
 // The dialog machine opens a beat after the trigger click, so mount waits on
 // the dialog role appearing rather than querying synchronously.
 async function openDialog() {
-  fireEvent.click(screen.getByRole('button', { name: 'Examples' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Find a roll' }));
   return await screen.findByRole('dialog');
 }
 
@@ -46,13 +46,13 @@ afterEach(() => {
 });
 
 describe('ExamplesDialog', () => {
-  it('opens from the Examples button and lists every preset card', async () => {
+  it('opens from the Find a roll button and lists every preset card', async () => {
     renderDialog();
     expect(screen.queryByRole('dialog')).toBeNull();
 
     await openDialog();
 
-    expect(screen.getByText('Example rolls')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Find a roll' })).toBeInTheDocument();
     expect(
       screen.getAllByRole('button', { name: 'Use this roll' }),
     ).toHaveLength(STARTER_PRESETS.length);
@@ -70,12 +70,12 @@ describe('ExamplesDialog', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('"Load every example" appends all presets and closes the dialog', async () => {
+  it('"Load the starter set" appends all presets and closes the dialog', async () => {
     renderDialog();
     await openDialog();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Load every example' }),
+      screen.getByRole('button', { name: 'Load the starter set' }),
     );
 
     expect(readNames()).toHaveLength(STARTER_PRESETS.length);

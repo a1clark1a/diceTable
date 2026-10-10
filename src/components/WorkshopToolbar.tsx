@@ -5,13 +5,14 @@ import {
 } from 'react';
 import {
   Box,
+  Button,
   Flex,
   HStack,
   IconButton,
   Menu,
   Portal,
 } from '@chakra-ui/react';
-import { Check, Dices, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Check, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import {
   MAX_EXPRESSIONS,
@@ -102,6 +103,19 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
         <HStack gap={2} rowGap={2} align="center" wrap="wrap" ms="auto">
           {/* This bar is the only thing on screen below md, so its copy of the
               pair owns that band and the caption row's copy owns the one above. */}
+          {/* Outside the overflow menu on purpose: someone hunting for their
+              game's roll would never think to look behind a "more" button. */}
+          {hasRows && (
+            <Button
+              size="sm"
+              variant="outline"
+              minH="40px"
+              onClick={() => setExamplesOpen(true)}
+            >
+              <Search size={16} />
+              Find a roll
+            </Button>
+          )}
           <ScrollButtons
             chartRef={chartRef}
             display={{ base: 'inline-flex', md: 'none' }}
@@ -159,14 +173,6 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
                   </Menu.Item>
                   {hasRows && (
                     <>
-                      <Menu.Item
-                        value="examples"
-                        minH="40px"
-                        onClick={() => setExamplesOpen(true)}
-                      >
-                        <Dices size={14} />
-                        Example rolls
-                      </Menu.Item>
                       <Menu.Item
                         value="clear"
                         color="red.fg"

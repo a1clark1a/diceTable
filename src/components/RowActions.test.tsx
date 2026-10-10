@@ -79,7 +79,7 @@ describe('RowActions add', () => {
       screen.getByRole('button', { name: /add roll/i }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /clear/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /examples/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /find a roll/i })).toBeNull();
   });
 });
 
