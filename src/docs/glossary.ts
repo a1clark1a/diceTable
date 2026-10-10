@@ -1,3 +1,5 @@
+import { MAX_EXPRESSIONS } from '../types';
+
 export type GlossaryGroup =
   | 'notation'
   | 'roll-modes'
@@ -518,6 +520,9 @@ const uiTips: Record<string, string> = {
   moveDown:
     'Move this roll one place down. The order sets which rolls the chart draws first.',
   moveDownAtBottom: 'This roll is already at the bottom.',
+  rowCap: `Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`,
+  sweep:
+    'Make copies of this roll that each try a different value, like a d6, d8 and d10. They land just below it.',
   sweepCheckRow:
     'Variants work on Sum and Pool rolls. For a check, duplicate it and change one value by hand.',
   sweepSourceDie: 'This roll already uses this die.',

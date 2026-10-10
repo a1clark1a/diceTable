@@ -51,6 +51,11 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
   const pointerLayout = useTableFits();
   const [open, setOpen] = useState(false);
   const chooserRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  // The tooltip and the overlay both mark the one button as their trigger, and
+  // the tooltip's marks win, so the overlay can no longer find its trigger to
+  // hand focus back to on close. It is told where the button is instead.
+  const toTrigger = () => triggerRef.current;
   const room = MAX_EXPRESSIONS - total;
   const sweepable = sweepTargets(expr).length > 0;
 
@@ -71,23 +76,22 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
     h: tapTarget('32px'),
   } as const;
 
-  // A blocked trigger stays outside the Popover and Dialog triggers: an
-  // aria-disabled trigger would still open its panel.
-  if (!sweepable || room <= 0) {
-    return (
-      <TapTip
-        tip={
-          sweepable
-            ? `Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`
-            : tipForId('sweepCheckRow')
-        }
-      >
-        <Button {...triggerProps} aria-disabled data-disabled="">
-          {label}
-        </Button>
-      </TapTip>
-    );
-  }
+  // Blocked and live share one trigger, so a sweep that fills the table does
+  // not swap the button out from under the focus it is about to restore. An
+  // aria-disabled trigger still asks to open, so the request is refused here.
+  const blocked = !sweepable || room <= 0;
+  const tip = tipForId(blocked ? (sweepable ? 'rowCap' : 'sweepCheckRow') : 'sweep');
+  const onOpenChange = (d: { open: boolean }) => setOpen(d.open && !blocked);
+  const trigger = (
+    <Button
+      ref={triggerRef}
+      {...triggerProps}
+      aria-disabled={blocked || undefined}
+      data-disabled={blocked ? '' : undefined}
+    >
+      {label}
+    </Button>
+  );
 
   const title = `Variants of ${expr.name}`;
   const form = (
@@ -104,15 +108,16 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
     return (
       <Popover.Root
         open={open}
-        onOpenChange={(d) => setOpen(d.open)}
+        onOpenChange={onOpenChange}
         positioning={{ placement: 'bottom-end' }}
         initialFocusEl={() => chooserRef.current}
+        finalFocusEl={toTrigger}
         lazyMount
         unmountOnExit
       >
-        <Popover.Trigger asChild>
-          <Button {...triggerProps}>{label}</Button>
-        </Popover.Trigger>
+        <TapTip tip={tip} hold={blocked}>
+          <Popover.Trigger asChild>{trigger}</Popover.Trigger>
+        </TapTip>
         <Portal>
           <Popover.Positioner>
             <Popover.Content w="360px" maxW="calc(100vw - 32px)" aria-label={title}>
@@ -132,17 +137,21 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
   return (
     <Dialog.Root
       open={open}
-      onOpenChange={(d) => setOpen(d.open)}
+      onOpenChange={onOpenChange}
       initialFocusEl={() => chooserRef.current}
       lazyMount
       unmountOnExit
       placement="bottom"
       size="lg"
       motionPreset="slide-in-bottom"
+      // A two-part roll's chooser runs past 80vh on a short phone; the body
+      // scrolls and the confirm row stays reachable.
+      scrollBehavior="inside"
+      finalFocusEl={toTrigger}
     >
-      <Dialog.Trigger asChild>
-        <Button {...triggerProps}>{label}</Button>
-      </Dialog.Trigger>
+      <TapTip tip={tip} hold={blocked}>
+        <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      </TapTip>
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
@@ -150,7 +159,7 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
             <Dialog.Header py={3}>
               <Dialog.Title fontSize="sm">{title}</Dialog.Title>
             </Dialog.Header>
-            <Dialog.Body pb={6}>{form}</Dialog.Body>
+            <Dialog.Body pb={0}>{form}</Dialog.Body>
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
@@ -250,6 +259,7 @@ const SKIP_ORDER: readonly SweepSkipReason[] = [
   'keepOverCount',
   'thresholdOffDie',
   'endless',
+  'allRerolled',
   'invalid',
   'tooComplex',
   'overLimit',
@@ -275,6 +285,8 @@ function skipSentence(
         : `Skips ${list}: its faces never reach the success number.`;
     case 'endless':
       return `Skips ${list}: every face would explode, so it would never stop.`;
+    case 'allRerolled':
+      return `Skips ${list}: every face would be rerolled, so it would never land.`;
     case 'invalid':
       return `Skips ${list}: that roll can’t be built.`;
     case 'tooComplex':
@@ -539,7 +551,15 @@ function SweepForm({ expr, room, chooserRef, layout, onDone }: SweepFormProps) {
         </VisuallyHidden>
       </Box>
 
-      <HStack justify="flex-end" gap={2}>
+      {/* In the sheet the form scrolls, and the buttons stay pinned to its
+          bottom edge so confirming never means scrolling to find them. */}
+      <HStack
+        justify="flex-end"
+        gap={2}
+        {...(layout === 'sheet'
+          ? { position: 'sticky', bottom: 0, bg: 'bg.panel', pt: 2, pb: 4, mt: -2 }
+          : {})}
+      >
         <Button
           size="sm"
           variant="ghost"

@@ -3,6 +3,7 @@ import { everyFaceExplodes, validatePart } from '../components/editor/validatePa
 import type { DicePart, Expression } from '../types';
 import { applyPartPatch, sidesPatch } from './defaultPart';
 import { normalizeExpression } from './normalize';
+import { ROW_PALETTE_LIGHT } from '../components/chart/palette';
 
 /** The one value a sweep varies. Parts are addressed by id, as the editor does. */
 export type SweepTarget =
@@ -13,10 +14,11 @@ export type SweepTarget =
   | { kind: 'poolThreshold' };
 
 /**
- * Eight is the number of palette slots, so a family never repeats a colour and
- * dash pair on the chart.
+ * Colour and dash come from row position and repeat every palette length.
+ * The source takes the first slot of its family, so one fewer than the
+ * palette keeps every member, source included, on its own colour and dash.
  */
-export const MAX_SWEEP_VARIANTS = 8;
+export const MAX_SWEEP_VARIANTS = ROW_PALETTE_LIGHT.length - 1;
 
 /** Bounds the editor's own controls already enforce, so a sweep cannot exceed them. */
 export const SWEEP_BOUNDS: Record<SweepTarget['kind'], { min: number; max: number }> = {
@@ -32,6 +34,7 @@ export type SweepSkipReason =
   | 'keepOverCount'
   | 'thresholdOffDie'
   | 'endless'
+  | 'allRerolled'
   | 'invalid'
   | 'tooComplex'
   | 'overLimit'
@@ -141,15 +144,28 @@ function whyMisleading(expr: Expression): SweepSkipReason | null {
     if (errors.count !== undefined || errors.sides !== undefined) return 'invalid';
     if (errors.keepN !== undefined) return 'keepOverCount';
     if (everyFaceExplodes(part)) return 'endless';
+    if (everyFaceRerolled(part)) return 'allRerolled';
     dice += part.count;
     maxSides = Math.max(maxSides, part.sides);
   }
   if (expr.keepAcross !== undefined && expr.keepAcross.n > dice) return 'keepOverCount';
-  if (expr.mode === 'pool' && expr.successThreshold !== undefined) {
-    const { value } = expr.successThreshold;
-    if (value < 1 || value > maxSides) return 'thresholdOffDie';
-  }
+  // Only "at or above" can sit out of reach. "At or below" a number past the
+  // largest face makes every die succeed, which is exactly what it says.
+  const threshold = expr.mode === 'pool' ? expr.successThreshold : undefined;
+  if (threshold?.direction === 'gte' && threshold.value > maxSides) return 'thresholdOffDie';
   return null;
+}
+
+// Rerolling "always" on every face the die has means it never lands, and the
+// row draws nothing. The editor can reach this by hand too; a sweep must not
+// make one without saying so.
+function everyFaceRerolled(part: DicePart): boolean {
+  if (part.reroll?.mode !== 'always') return false;
+  const rerolled = new Set(part.reroll.values);
+  for (let face = 1; face <= part.sides; face++) {
+    if (!rerolled.has(face)) return false;
+  }
+  return true;
 }
 
 function facesCleared(before: DicePart | undefined, after: DicePart | undefined): boolean {

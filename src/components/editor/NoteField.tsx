@@ -7,7 +7,7 @@ import { MAX_NOTE_LENGTH } from '../../types';
 import { tipForId } from '../../docs/glossary';
 import { FlushedInput } from '../FlushedInput';
 import { HelpTerm } from '../ui/help-term';
-import { Tooltip } from '../ui/tooltip';
+import { TapTip } from './TapTip';
 import { tapTarget } from '../tapTarget';
 
 // The count only appears once it is worth reading, so a short note never
@@ -92,12 +92,15 @@ export function NoteField({ exprId, note, updateExpression }: NoteFieldProps) {
 /**
  * Marks a row that carries a note. The note itself is the tooltip, so it is a
  * tab stop: a tooltip only keyboard users could never open would hide the text.
+ * A tap holds it open too, since the table also shows on touch tablets. An
+ * img role is what lets the span carry a name at all.
  */
 export function NoteMarker({ note }: { note: string }) {
   return (
-    <Tooltip content={note}>
+    <TapTip tip={note}>
       <Box
         as="span"
+        role="img"
         tabIndex={0}
         aria-label={`Note: ${note}`}
         color="fg.muted"
@@ -109,6 +112,6 @@ export function NoteMarker({ note }: { note: string }) {
       >
         <StickyNote size={14} aria-hidden />
       </Box>
-    </Tooltip>
+    </TapTip>
   );
 }

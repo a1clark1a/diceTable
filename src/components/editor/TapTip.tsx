@@ -7,16 +7,24 @@ const TOUCH_TIP_MS = 3000;
 
 interface TapTipProps {
   tip: string;
+  /**
+   * Whether a tap holds the tip open. Off for a control whose tap does
+   * something, where the action is the answer; on for a blocked control or a
+   * marker, whose tip is all a tap can give.
+   */
+  hold?: boolean;
   children: ReactElement<{ onPointerDown?: (e: PointerEvent<HTMLElement>) => void }>;
 }
 
 /**
- * A tooltip for a control that is blocked and says why. The tooltip machine
- * ignores touch pointers, so on a phone a blocked button would do nothing and
- * explain nothing; a tap holds the tip open for a few seconds instead. Hover
- * and keyboard focus behave exactly as any other tooltip.
+ * A tooltip a tap can open. The tooltip machine ignores touch pointers, so on
+ * a phone a blocked button would do nothing and explain nothing; a tap holds
+ * the tip open for a few seconds instead. Hover and keyboard focus behave
+ * exactly as any other tooltip. A control that can switch between blocked and
+ * live keeps this one wrapper in both states and flips `hold`, because
+ * swapping wrappers would remount the button and drop its focus.
  */
-export function TapTip({ tip, children }: TapTipProps) {
+export function TapTip({ tip, hold = true, children }: TapTipProps) {
   const [hoverOpen, setHoverOpen] = useState(false);
   // The tap's timestamp, so a second tap restarts the hold; 0 is no hold.
   const [heldSince, setHeldSince] = useState(0);
@@ -30,7 +38,7 @@ export function TapTip({ tip, children }: TapTipProps) {
   const childPointerDown = children.props.onPointerDown;
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
     childPointerDown?.(e);
-    if (e.pointerType === 'touch') setHeldSince(e.timeStamp || 1);
+    if (hold && e.pointerType === 'touch') setHeldSince(e.timeStamp || 1);
   };
 
   return (
@@ -40,8 +48,8 @@ export function TapTip({ tip, children }: TapTipProps) {
       // the tip at once; a held tip ignores them until its time is up.
       open={hoverOpen || heldSince !== 0}
       onOpenChange={(d) => setHoverOpen(d.open)}
-      closeOnClick={false}
-      closeOnPointerDown={false}
+      closeOnClick={!hold}
+      closeOnPointerDown={!hold}
     >
       {cloneElement(children, { onPointerDown })}
     </Tooltip>

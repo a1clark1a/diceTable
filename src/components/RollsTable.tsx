@@ -332,7 +332,7 @@ export function RollsTable() {
                 borderLeftColor="transparent"
               >
                 <Tooltip
-                  content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+                  content={tipForId('rowCap')}
                   disabled={!atCap}
                 >
                   <Button

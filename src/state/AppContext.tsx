@@ -583,7 +583,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           else delete next.check;
         }
         if ('note' in patch) {
-          const note = (patch.note ?? '').trim().slice(0, MAX_NOTE_LENGTH);
+          // Cut, then trimmed again, so a cut that lands on a space or between
+          // the two halves of an emoji stores what a reload would read back.
+          const note = (patch.note ?? '')
+            .trim()
+            .slice(0, MAX_NOTE_LENGTH)
+            .replace(/[\uD800-\uDBFF]$/, '')
+            .trimEnd();
           if (note.length > 0) next.note = note;
           else delete next.note;
         }

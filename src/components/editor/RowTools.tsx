@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { useApp } from '../../state/useApp';
 import { MAX_EXPRESSIONS, type Expression } from '../../types';
 import { tipForId } from '../../docs/glossary';
-import { Tooltip } from '../ui/tooltip';
 import { tapTarget } from '../tapTarget';
 import { TapTip } from './TapTip';
 import { VariantsControl } from './SweepPanel';
@@ -31,7 +30,7 @@ export function RowTools({ expression }: RowToolsProps) {
   const upRef = useRef<HTMLButtonElement>(null);
   const downRef = useRef<HTMLButtonElement>(null);
   const duplicateRef = useRef<HTMLButtonElement>(null);
-  const refocus = useRef<HTMLButtonElement | null>(null);
+  const refocus = useRef<'up' | 'down' | null>(null);
   const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
@@ -41,17 +40,20 @@ export function RowTools({ expression }: RowToolsProps) {
   }, []);
 
   // Reordering moves this row's DOM, and a moved node drops focus, so the
-  // pressed button takes it back once the new position has rendered.
+  // pressed button takes it back once the new position has rendered. The ref
+  // is read here rather than at the click, so focus lands on whatever node is
+  // mounted after the move.
   useEffect(() => {
-    const el = refocus.current;
+    const which = refocus.current;
     refocus.current = null;
+    const el = which === 'up' ? upRef.current : which === 'down' ? downRef.current : null;
     if (el !== null && document.activeElement !== el) el.focus();
   }, [index]);
 
   const move = (delta: -1 | 1) => {
     const blocked = delta === -1 ? atTop : atBottom;
     if (blocked) return;
-    refocus.current = delta === -1 ? upRef.current : downRef.current;
+    refocus.current = delta === -1 ? 'up' : 'down';
     moveExpression(exprId, delta);
     setAnnouncement(`Moved to ${index + delta + 1} of ${total}`);
   };
@@ -91,11 +93,7 @@ export function RowTools({ expression }: RowToolsProps) {
       <ToolButton
         ref={duplicateRef}
         label={`Duplicate ${exprName}`}
-        tip={
-          atCap
-            ? `Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`
-            : tipForId('duplicate')
-        }
+        tip={tipForId(atCap ? 'rowCap' : 'duplicate')}
         blocked={atCap}
         onClick={duplicate}
       >
@@ -142,9 +140,9 @@ function ToolButton({ ref, label, tip, blocked, onClick, children }: ToolButtonP
       {children}
     </IconButton>
   );
-  return blocked ? (
-    <TapTip tip={tip}>{button}</TapTip>
-  ) : (
-    <Tooltip content={tip}>{button}</Tooltip>
+  return (
+    <TapTip tip={tip} hold={blocked}>
+      {button}
+    </TapTip>
   );
 }
