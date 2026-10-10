@@ -115,6 +115,37 @@ function reIdExpression(expr: Expression): Expression {
   return next;
 }
 
+// Import, duplicate and sweep all land rows through here, so the re-id, the
+// name de-duplication, the repair pass and the row cap cannot drift apart
+// between them. Rows past the cap are dropped; callers compare the lengths to
+// say so.
+function insertExpressionsAt(
+  existing: Expression[],
+  index: number,
+  incoming: Expression[],
+): { expressions: Expression[]; inserted: Expression[] } {
+  const room = Math.max(0, MAX_EXPRESSIONS - existing.length);
+  const accepted = incoming.slice(0, room);
+  const renamed = renameCollisions(existing, accepted);
+  const inserted = renamed.map((e) => normalizeExpression(reIdExpression(e)));
+  return {
+    expressions: [
+      ...existing.slice(0, index),
+      ...inserted,
+      ...existing.slice(index),
+    ],
+    inserted,
+  };
+}
+
+function capReachedToast() {
+  toaster.create({
+    type: 'info',
+    title: `Up to ${MAX_EXPRESSIONS} rolls`,
+    description: 'Delete a row to add another.',
+  });
+}
+
 // "Better than half" on the row's first die: 4+ on a d6, 6+ on a d10, 11+ on a
 // d20. Lands near real dice-pool systems without being tuned to any one of them.
 function seedSuccessThreshold(parts: DicePart[]): SuccessThreshold {
@@ -355,11 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addExpression = useCallback(() => {
     setState((prev) => {
       if (prev.expressions.length >= MAX_EXPRESSIONS) {
-        toaster.create({
-          type: 'info',
-          title: `Up to ${MAX_EXPRESSIONS} rolls`,
-          description: 'Delete a row to add another.',
-        });
+        capReachedToast();
         return prev;
       }
       const created = defaultExpression(nextDefaultName(prev.expressions));
@@ -384,6 +411,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
           expressions: remaining,
           ui: { ...prev.ui, expandedId: nextExpanded, baselineId: nextBaseline },
         };
+      });
+    },
+    [setState],
+  );
+
+  // The copy lands directly below its source so the variant sits beside what
+  // it is compared with. The baseline stays where it was: the source is still
+  // the roll the user pinned.
+  const duplicateExpression = useCallback(
+    (id: string) => {
+      setState((prev) => {
+        const index = prev.expressions.findIndex((e) => e.id === id);
+        const source = prev.expressions[index];
+        if (source === undefined) return prev;
+        if (prev.expressions.length >= MAX_EXPRESSIONS) {
+          capReachedToast();
+          return prev;
+        }
+        const { expressions, inserted } = insertExpressionsAt(
+          prev.expressions,
+          index + 1,
+          [source],
+        );
+        const copy = inserted[0];
+        if (copy === undefined) return prev;
+        return {
+          ...prev,
+          expressions,
+          ui: { ...prev.ui, expandedId: copy.id },
+        };
+      });
+    },
+    [setState],
+  );
+
+  // A swap, so every row keeps its object identity and no distribution is
+  // recomputed; only the palette slots of the two rows trade places.
+  const moveExpression = useCallback(
+    (id: string, delta: -1 | 1) => {
+      setState((prev) => {
+        const from = prev.expressions.findIndex((e) => e.id === id);
+        const to = from + delta;
+        const moving = prev.expressions[from];
+        const other = prev.expressions[to];
+        if (from < 0 || moving === undefined || other === undefined) return prev;
+        const expressions = prev.expressions.slice();
+        expressions[from] = other;
+        expressions[to] = moving;
+        return { ...prev, expressions };
       });
     },
     [setState],
@@ -517,19 +593,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
           return prev;
         }
-        const accepted = incoming.slice(0, room);
-        const renamed = renameCollisions(prev.expressions, accepted);
-        const fresh = renamed.map((e) => normalizeExpression(reIdExpression(e)));
+        const { expressions, inserted } = insertExpressionsAt(
+          prev.expressions,
+          prev.expressions.length,
+          incoming,
+        );
         if (incoming.length > room) {
           toaster.create({
             type: 'info',
-            title: `Added ${accepted.length} of ${incoming.length} rolls`,
+            title: `Added ${inserted.length} of ${incoming.length} rolls`,
             description: `Table is now full at ${MAX_EXPRESSIONS}.`,
           });
         }
         return {
           ...prev,
-          expressions: [...prev.expressions, ...fresh],
+          expressions,
           ui: { ...prev.ui, expandedId: null },
         };
       });
@@ -562,6 +640,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPoolTargets,
       addExpression,
       deleteExpression,
+      duplicateExpression,
+      moveExpression,
       renameExpression,
       updateExpression,
       setAllRollModes,
@@ -585,6 +665,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPoolTargets,
       addExpression,
       deleteExpression,
+      duplicateExpression,
+      moveExpression,
       renameExpression,
       updateExpression,
       setAllRollModes,

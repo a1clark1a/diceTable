@@ -65,6 +65,8 @@ export interface AppContextValue {
   setRollOffSort: (sort: RollOffSort) => void;
   addExpression: () => void;
   deleteExpression: (id: string) => void;
+  duplicateExpression: (id: string) => void;
+  moveExpression: (id: string, delta: -1 | 1) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
   setAllRollModes: (mode: RollMode) => void;

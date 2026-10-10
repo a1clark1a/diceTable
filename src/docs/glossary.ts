@@ -510,6 +510,14 @@ const uiTips: Record<string, string> = {
     'Curves picture rolls that add into a total. Switch a roll to Sum to see one here.',
   import:
     'Bring rolls in from a share link, JSON, or a file. Choose to add to the table or replace it.',
+  duplicate:
+    'Make a copy of this roll just below it, ready to change one thing and compare.',
+  moveUp:
+    'Move this roll one place up. The order sets which rolls the chart draws first.',
+  moveUpAtTop: 'This roll is already at the top.',
+  moveDown:
+    'Move this roll one place down. The order sets which rolls the chart draws first.',
+  moveDownAtBottom: 'This roll is already at the bottom.',
 };
 
 export function getEntry(id: string): GlossaryEntry | undefined {

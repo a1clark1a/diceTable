@@ -13,6 +13,7 @@ import { CheckEditor } from './editor/CheckEditor';
 import { DicePartRow } from './editor/DicePartRow';
 import { KeepAcrossPanel } from './editor/KeepAcrossPanel';
 import { Panel } from './editor/controls';
+import { RowTools } from './editor/RowTools';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
@@ -89,26 +90,33 @@ export function RollExpand({ expression }: RollExpandProps) {
         mx={{ base: 'auto', lg: '0' }}
       >
         <Box pb={3} borderBottomWidth="1px" borderColor="border.subtle">
-          <Box px={3}>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="fg.muted"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={1}
-            >
-              Formula
-            </Text>
-            <Box
-              fontFamily="mono"
-              fontSize="lg"
-              color="fg"
-              style={{ fontVariantNumeric: 'tabular-nums' }}
-            >
-              <ExpressionDiceText expr={expression} showRollMode />
+          {/* The table's pinned actions column has no width to spare, so the
+              row's order and copy controls live here, where both layouts
+              render them from one place. */}
+          <HStack px={3} gap={2} align="flex-start">
+            <Box flex="1" minW={0}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="fg.muted"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={1}
+              >
+                Formula
+              </Text>
+              <Box
+                fontFamily="mono"
+                fontSize="lg"
+                color="fg"
+                wordBreak="break-word"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                <ExpressionDiceText expr={expression} showRollMode />
+              </Box>
             </Box>
-          </Box>
+            <RowTools exprId={expression.id} exprName={expression.name} />
+          </HStack>
         </Box>
 
         {check ? (
