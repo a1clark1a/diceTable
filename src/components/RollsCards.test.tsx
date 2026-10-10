@@ -342,3 +342,76 @@ describe('RollsCards inspect modal target', () => {
     expect(within(dialog).queryByText('Target')).toBeNull();
   });
 });
+
+// One card carries a note and its sibling does not, so presence and absence
+// are checked on the same list.
+const CARD_NOTE = 'v2: d8, the d10 spiked too hard';
+
+function seedNotedCards() {
+  const state = {
+    version: 3,
+    expressions: [
+      {
+        id: 'sum1',
+        name: 'Sum row',
+        parts: [{ id: 'sp1', count: 2, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'sum',
+        note: CARD_NOTE,
+      },
+      {
+        id: 'sum2',
+        name: 'Bonus row',
+        parts: [{ id: 'sp2', count: 1, sides: 6 }],
+        flatModifier: 5,
+        rollMode: 'normal',
+        mode: 'sum',
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [], ruling: 'gte' },
+      view: 'table',
+      poolTarget: 1,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+describe('RollsCards row note', () => {
+  // A phone has no hover, so the card shows the note itself instead of a
+  // marker whose tooltip would be out of reach.
+  it('shows the note text on a card that has a note', async () => {
+    seedNotedCards();
+    renderCards();
+    expect(
+      within(cardFor('Sum row')).getByText(CARD_NOTE),
+    ).toBeInTheDocument();
+  });
+
+  it('prefixes the note with "Note:" for screen readers', async () => {
+    seedNotedCards();
+    renderCards();
+    const text = within(cardFor('Sum row')).getByText(CARD_NOTE);
+    expect(text).toHaveTextContent(`Note: ${CARD_NOTE}`);
+  });
+
+  it('shows no note on a card without one', async () => {
+    seedNotedCards();
+    renderCards();
+    const card = cardFor('Bonus row');
+    expect(within(card).queryByText(CARD_NOTE)).toBeNull();
+    expect(within(card).queryByText(/^Note:/)).toBeNull();
+  });
+
+  it('shows the note once across the list', async () => {
+    seedNotedCards();
+    renderCards();
+    expect(screen.getAllByText(CARD_NOTE)).toHaveLength(1);
+  });
+});
