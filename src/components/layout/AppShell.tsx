@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { Box, Button, Flex, HStack, Text } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Link, Text } from '@chakra-ui/react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Toaster } from '../share/Toaster';
@@ -62,7 +62,17 @@ export function AppShell({ children, ownTableHasRows }: AppShellProps) {
           fontSize="xs"
         >
           <HStack gap={3}>
-            <Text color="fg.muted">Made by DevZan</Text>
+            <Link
+              href="https://github.com/a1clark1a"
+              target="_blank"
+              rel="noopener noreferrer"
+              color="fg.muted"
+              textDecoration="none"
+              _hover={{ color: 'fg', textDecoration: 'none' }}
+              transition="color 0.15s"
+            >
+              Clark Perfecto
+            </Link>
             <Text color="fg.subtle" aria-hidden>
               ·
             </Text>
