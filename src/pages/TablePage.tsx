@@ -146,7 +146,10 @@ export default function TablePage({ recipe }: TablePageProps) {
           <Grid
             ref={gridRef}
             flex="1"
-            minH={0}
+            // A recipe page's heading sits above this grid and never scrolls
+            // away in the 2xl layout, so without a floor it would squeeze the
+            // table and chart to a sliver; with one, the page scrolls instead.
+            minH={recipe ? { base: 0, '2xl': '26rem' } : 0}
             gap={{ base: 4, '2xl': 0 }}
             alignItems="stretch"
             // Capping the table rather than letting it fill a 1fr track is what

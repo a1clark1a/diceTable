@@ -414,7 +414,13 @@
         "src/engine/stats.ts",
         "src/presets/starterRolls.ts",
         "src/engine/parts.ts",
-        "src/engine/die.ts"
+        "src/engine/die.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx"
       ]
     },
     {
@@ -426,7 +432,14 @@
         "src/engine/stats.ts",
         "src/presets/recipes.ts",
         "src/engine/roll.ts",
-        "src/engine/expression.ts"
+        "src/engine/expression.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/RowTools.tsx",
+        "src/components/TargetToolbar.tsx"
       ]
     },
     {
@@ -438,7 +451,13 @@
         "src/engine/stats.ts",
         "src/presets/recipes.ts",
         "src/engine/die.ts",
-        "src/engine/parts.ts"
+        "src/engine/parts.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx"
       ]
     },
     {
@@ -452,7 +471,14 @@
         "src/engine/parts.ts",
         "src/engine/die.ts",
         "src/engine/roll.ts",
-        "src/engine/expression.ts"
+        "src/engine/expression.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/TargetToolbar.tsx"
       ]
     },
     {
@@ -465,7 +491,14 @@
         "src/presets/recipes.ts",
         "src/engine/die.ts",
         "src/engine/parts.ts",
-        "src/engine/compare.ts"
+        "src/engine/compare.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/RowTools.tsx"
       ]
     },
     {
@@ -478,7 +511,15 @@
         "src/presets/starterRolls.ts",
         "src/engine/parts.ts",
         "src/engine/die.ts",
-        "src/engine/expression.ts"
+        "src/engine/expression.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/PoolControls.tsx",
+        "src/components/TargetToolbar.tsx"
       ]
     },
     {
@@ -491,7 +532,14 @@
         "src/presets/recipes.ts",
         "src/engine/check.ts",
         "src/engine/critEffect.ts",
-        "src/engine/roll.ts"
+        "src/engine/roll.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/CheckEditor.tsx",
+        "src/components/editor/RowTools.tsx"
       ]
     },
     {
@@ -504,19 +552,32 @@
         "src/presets/recipes.ts",
         "src/engine/check.ts",
         "src/engine/critEffect.ts",
-        "src/engine/roll.ts"
+        "src/engine/roll.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/CheckEditor.tsx"
       ]
     },
     {
-      "id": "seo.recipe.keep-highest-mixed-pool",
-      "label": "GEO/SEO · Recipe page /recipes/keep-highest-mixed-pool (heading, intro numbers, HowTo steps)",
+      "id": "seo.recipe.keep-highest-mixed-dice",
+      "label": "GEO/SEO · Recipe page /recipes/keep-highest-mixed-dice (heading, intro numbers, HowTo steps)",
       "deps": [
         "src/presets/recipePages.ts",
         "src/components/seo/structuredData.ts",
         "src/engine/stats.ts",
         "src/presets/recipes.ts",
         "src/engine/keepAcross.ts",
-        "src/engine/roll.ts"
+        "src/engine/roll.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/KeepAcrossPanel.tsx"
       ]
     },
     {
@@ -528,7 +589,13 @@
         "src/engine/stats.ts",
         "src/presets/recipes.ts",
         "src/engine/distribution.ts",
-        "src/engine/parts.ts"
+        "src/engine/parts.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx"
       ]
     }
   ]

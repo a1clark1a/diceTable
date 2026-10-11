@@ -1,5 +1,6 @@
 import { Button, Collapsible, Flex, Heading, List, Stack, Text } from '@chakra-ui/react';
 import { ArrowRight, ChevronRight } from 'lucide-react';
+import { tapTarget } from '../tapTarget';
 import type { RecipePage } from '../../presets/recipePages';
 
 interface RecipeHeroProps {
@@ -31,8 +32,10 @@ export function RecipeHero({ page, onOpen }: RecipeHeroProps) {
             Open this in my table
             <ArrowRight size={16} />
           </Button>
-          <Text fontSize="xs" color="fg.muted">
-            Adds these rolls to your own table and keeps everything already in it.
+          {/* On a phone the toast after the press says the same, and the
+              height this line takes comes out of the rolls below. */}
+          <Text fontSize="xs" color="fg.muted" display={{ base: 'none', md: 'block' }}>
+            Adds them after the rolls you already have.
           </Text>
         </Flex>
       )}
@@ -43,9 +46,11 @@ export function RecipeHero({ page, onOpen }: RecipeHeroProps) {
           <Button
             variant="ghost"
             size="sm"
-            minH={{ base: '44px', md: '32px' }}
+            minH={tapTarget('32px')}
             px={2}
-            ms={-2}
+            // Optical alignment with the heading, short of the page padding so
+            // the focus ring never meets the screen edge.
+            ms={-1}
             color="fg.muted"
             _hover={{ color: 'fg', bg: 'bg.muted' }}
           >

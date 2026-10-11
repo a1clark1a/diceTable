@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { toaster } from '../components/share/toaster-store';
@@ -26,10 +26,25 @@ export default function RecipeRoute() {
   const { addExpressions } = own;
   const page = findRecipePage(slug);
 
+  // The navigation is a transition, so the page stays up for a moment after the
+  // first press, and a second one would add every row again.
+  const opened = useRef(false);
+
   const openInTable = useCallback(
     (rows: Expression[]) => {
-      // addExpressions reports a full or partly full table itself; only the
-      // case it stays quiet about needs saying here.
+      if (opened.current) return;
+      // Leaving would throw away the page, and any edits on it, for nothing.
+      if (ownCount >= MAX_EXPRESSIONS) {
+        toaster.create({
+          type: 'info',
+          title: 'Your table is full',
+          description: `It holds ${MAX_EXPRESSIONS} rolls. Delete some there to make room for these.`,
+        });
+        return;
+      }
+      opened.current = true;
+      // addExpressions reports a partly full table itself; only the case it
+      // stays quiet about needs saying here.
       if (rows.length > 0 && rows.length <= MAX_EXPRESSIONS - ownCount) {
         toaster.create({
           type: 'success',

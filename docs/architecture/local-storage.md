@@ -33,7 +33,7 @@ These exclusions are intentional. Don't add them without a real product reason a
 
 - **Not a database.** No queries, no indexes, no transactions. The whole state is read once, held in memory, and written back on every change.
 - **Not a sync layer.** No multi-device sync, no conflict resolution, no CRDTs, no last-write-wins between tabs.
-- **Not multi-tab safe.** Two tabs of DiceTable open at once will overwrite each other's writes. Not a current use case; flagged below.
+- **Not multi-tab safe.** Two tabs of DiceTable open at once will overwrite each other's writes. Not a current use case; flagged below. Recipe pages make it likelier: a recipe opened from search in a second tab holds the saved table as it was when that tab loaded, so **Open this in my table** there writes that copy plus the recipe's rows over edits made since in the first tab.
 - **Not encrypted.** Anyone with access to the browser profile can read it. Don't put secrets in here. Today's data (dice expressions) is non-sensitive — this is an explicit assumption, not an oversight.
 - **Not migration-by-AI.** A version bump requires a hand-written migrator or an intentional reset. We do not "best-effort merge" old shapes.
 - **Not IndexedDB.** Total state is small (kilobytes). Switching to IDB would buy capacity and async writes we do not need today.

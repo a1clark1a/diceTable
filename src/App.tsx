@@ -18,6 +18,10 @@ const DocsPage = lazy(() => import('./pages/DocsPage'));
 function DocsFallback() {
   return (
     <Box py={8} display="flex" justifyContent="center">
+      {/* The page being left took its title with it, and RouteHead already
+          removed index.html's fallback, so the chunk's load would otherwise
+          leave the tab with no title at all. */}
+      <title>DiceTable</title>
       <Spinner />
     </Box>
   );

@@ -217,6 +217,18 @@ function useAppValue(state: PersistedState, setState: SetState): AppContextValue
     latest.current = state;
   }, [state]);
 
+  // The toaster outlives this table: leaving a recipe page unmounts its table
+  // while the toast stays up on the next page, where its Undo could only report
+  // removing rows it can no longer reach.
+  const undoToasts = useRef(new Set<string>());
+  useEffect(() => {
+    const ids = undoToasts.current;
+    return () => {
+      for (const id of ids) toaster.remove(id);
+      ids.clear();
+    };
+  }, []);
+
   // Every row edit funnels through here, so normalizeExpression only has to be
   // right in one place for no mutation to be able to persist an invariant break.
   const updateExpressionInList = useCallback(
@@ -519,16 +531,18 @@ function useAppValue(state: PersistedState, setState: SetState): AppContextValue
       };
       // A phone can have the source's open editor between it and the new rows,
       // so the toast says where they went.
-      toaster.create({
+      const toastId = toaster.create({
         type: 'success',
         title: fresh.length === 1 ? 'Added 1 roll' : `Added ${fresh.length} rolls`,
         description: `Just below ${source.name}.`,
         duration: 8000,
         action: { label: 'Undo', onClick: undo },
       });
+      undoToasts.current.add(toastId);
     },
     [setState, removeExpressions],
   );
+
 
   const renameExpression = useCallback(
     (id: string, name: string) => {
