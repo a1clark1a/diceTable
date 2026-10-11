@@ -128,7 +128,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     alt: '+2 auto',
     group: 'notation',
     plain:
-      'On a pool roll, the modifier adds or removes successes directly. A roll never drops below zero successes.',
+      'On a pool roll, adding or subtracting changes the number of successes directly. A roll never drops below zero successes.',
     details:
       'Auto-successes shift the count after the dice are read: +2 auto means two free successes on top of whatever you rolled, and −2 takes two away. They don’t change any die’s chance of succeeding. Penalties can’t push a result below zero; all of that would-be-negative chance lands on exactly zero successes.',
   },
@@ -303,7 +303,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'The faint shaded part of a roll’s shape: where most of its results land. A narrower band means a steadier roll.',
     details:
-      'The band runs from the 10th to the 90th percentile, so at most a tenth of results fall below it and at most a tenth above. On dice the edges land on whole results, so it usually covers a little more than 80%, which is why it says “most” rather than a number. A plain single die like 1d20, with or without a modifier, lands anywhere equally and has no middle, so it gets no band. Roll it with advantage, or let it explode, and it has a middle and a band. It shows on the Shape sparkline, in the inspector, and on the comparison chart for the roll you single out.',
+      'The band runs from the 10th to the 90th percentile, so at most a tenth of results fall below it and at most a tenth above. On dice the edges land on whole results, so it usually covers a little more than 80%, which is why it says “most” rather than a number. A plain single die like 1d20, with or without a number added or a multiplier, lands anywhere equally and has no middle, so it gets no band. Roll it with advantage, or let it explode, and it has a middle and a band. It shows on the Shape sparkline, in the inspector, and on the comparison chart for the roll you single out.',
   },
   {
     id: 'convolution',
@@ -312,7 +312,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'The math operation that combines two independent dice into the distribution of their sum. See "The Math" page for how it works.',
     details:
-      'Convolution is why 2d6 peaks at 7 instead of being flat: every way of making 7 (1+6, 2+5, 3+4, 4+3, 5+2, 6+1) adds up, while only one way makes 2 or 12. DiceTable does this combine-step for every extra die and every modifier in your roll. Nothing gets rounded or estimated; the result is the true odds of the sum.',
+      'Convolution is why 2d6 peaks at 7 instead of being flat: every way of making 7 (1+6, 2+5, 3+4, 4+3, 5+2, 6+1) adds up, while only one way makes 2 or 12. DiceTable does this combine-step for every extra die in your roll, then runs the total through any modifier steps. None of the odds are rounded or estimated, so the result is the true chance of every total.',
   },
 
   {
@@ -332,7 +332,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'A family of copies of one roll that each change a single value, like the same weapon on a d6, d8 and d10. Make them from Variants in a roll’s editor.',
     details:
-      'Pick what to change (the dice count, the die, how many to keep, the modifier, or a pool’s success number) and the values to try, and up to seven new rolls land directly below the original, named for what changed. Seven, because the chart has eight colours and the original keeps one, so every member of the family draws in its own colour and line. Values that would not make an honest roll are left out and named before you confirm, such as keeping more dice than you roll, a success number the dice never reach, a die that would never stop exploding or rerolling, or a roll too large to work out. Once made, variants are ordinary rows you can edit, move or delete on their own.',
+      'Pick what to change (the dice count, the die, how many to keep, one modifier step, or a pool’s success number) and the values to try, and up to seven new rolls land directly below the original, named for what changed. Seven, because the chart has eight colours and the original keeps one, so every member of the family draws in its own colour and line. Values that would not make an honest roll are left out and named before you confirm, such as keeping more dice than you roll, a success number the dice never reach, a die that would never stop exploding or rerolling, or a roll too large to work out. Once made, variants are ordinary rows you can edit, move or delete on their own.',
   },
   {
     id: 'baseline',

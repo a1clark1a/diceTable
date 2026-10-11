@@ -238,7 +238,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 7,
     title: 'Compare rolls',
     plain:
-      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them. To compare versions of one roll, open it and press the Duplicate icon for a single copy, or Variants for a family that changes one value: the dice count, the die, how many to keep, the modifier, or a pool’s success number. Up to seven new rolls land right below the original, named for what changed, and fan out on the chart side by side.',
+      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them. To compare versions of one roll, open it and press the Duplicate icon for a single copy, or Variants for a family that changes one value: the dice count, the die, how many to keep, one modifier step, or a pool’s success number. Up to seven new rolls land right below the original, named for what changed, and fan out on the chart side by side.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -255,8 +255,8 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           To compare versions of one roll, open it and press the{' '}
           <strong>Duplicate</strong> icon for a single copy, or{' '}
           <strong>Variants</strong> for a family that changes one value: the
-          dice count, the die, how many to keep, the modifier, or a pool’s
-          success number. Up to seven new rolls land right below the original,
+          dice count, the die, how many to keep, one modifier step, or a
+          pool’s success number. Up to seven new rolls land right below the original,
           named for what changed (<Code>Longsword · d10</Code>), and fan out
           on the chart side by side. The message afterwards has an Undo.
         </Text>
