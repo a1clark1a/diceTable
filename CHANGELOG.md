@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-11
+
 ### Added
 
 - Duplicate a roll: open a roll and press the Duplicate icon beside its formula, and a copy lands directly below it, named "Longsword (2)" and already open, ready to change one thing and compare. Rows can now be put in order too, with Move up and Move down in the same place. The order is what the chart draws first and which rolls head-to-head shows, so the roll you care about no longer has to be the one you added first.
@@ -299,7 +301,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.4.0
 [2.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.3.0
 [2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
 [2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
