@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - A copy or a variant goes directly below the roll it came from, so the rolls after it move down to make room, and each one takes the colour of its new place. Move up and Move down work the same way: the two rolls that trade places also trade colours. That is the rule the colours always followed, but it is the first time a roll can land in, or move through, the middle of the table.
 - The homepage now says what DiceTable is for: building, comparing and balancing dice rolls, for the games you play and the homebrew you write.
+- The footer credits Clark Perfecto by name and links to the GitHub profile.
 
 ### Fixed
 
