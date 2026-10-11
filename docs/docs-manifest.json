@@ -133,7 +133,9 @@
         "src/components/chart/tooltipRows.ts",
         "src/components/chart/litSummary.ts",
         "src/components/chart/useSeriesFocus.ts",
+        "src/components/chart/spreadBand.ts",
         "src/components/inspect/InspectChart.tsx",
+        "src/components/inspect/InspectChartBody.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
       ]
@@ -143,6 +145,9 @@
       "label": "Quickstart · Step 4 (Expand a row — dice parts and roll mode)",
       "deps": [
         "src/components/RollExpand.tsx",
+        "src/components/editor/RowTools.tsx",
+        "src/components/editor/SweepPanel.tsx",
+        "src/components/editor/NoteField.tsx",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/components/docs/Quickstart.tsx",
@@ -178,6 +183,9 @@
       "id": "quickstart.compare",
       "label": "Quickstart · Step 7 (Compare rolls)",
       "deps": [
+        "src/components/editor/RowTools.tsx",
+        "src/components/editor/SweepPanel.tsx",
+        "src/state/sweep.ts",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/components/chart/OverlayChart.tsx",
@@ -280,6 +288,7 @@
         "src/components/chart/seriesEval.ts",
         "src/components/chart/ChartViewChips.tsx",
         "src/components/chart/useChartPanels.ts",
+        "src/components/chart/spreadBand.ts",
         "src/docs/glossary.ts"
       ]
     },
@@ -295,6 +304,9 @@
         "src/engine/compare.ts",
         "src/components/compare/RollOffView.tsx",
         "src/components/compare/HeadToHeadView.tsx",
+        "src/components/editor/RowTools.tsx",
+        "src/components/editor/SweepPanel.tsx",
+        "src/state/sweep.ts",
         "src/docs/glossary.ts"
       ]
     },
@@ -334,7 +346,11 @@
         "src/engine/check.ts",
         "src/engine/keepAcross.ts",
         "src/telemetry/errorReporter.ts",
-        "src/components/docs/docs-tab.ts"
+        "src/components/docs/docs-tab.ts",
+        "src/state/sweep.ts",
+        "src/components/editor/SweepPanel.tsx",
+        "src/components/editor/NoteField.tsx",
+        "src/components/chart/spreadBand.ts"
       ]
     },
     {

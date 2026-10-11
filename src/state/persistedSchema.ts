@@ -1,5 +1,6 @@
 import {
   MAX_EXPRESSIONS,
+  MAX_NOTE_LENGTH,
   MAX_TARGETS,
   type ChartSurface,
   type ChartView,
@@ -256,6 +257,15 @@ export function validateExpression(v: unknown): Expression | null {
     expression.check = check;
   } else if (v.check !== undefined) {
     return null;
+  }
+
+  // A note changes no number, so an older build that drops it loses nothing a
+  // chart shows; no schema or export bump is needed for it.
+  if (v.note !== undefined) {
+    if (typeof v.note !== 'string') return null;
+    const note = v.note.trim();
+    if (note.length > MAX_NOTE_LENGTH) return null;
+    if (note.length > 0) expression.note = note;
   }
 
   return expression;

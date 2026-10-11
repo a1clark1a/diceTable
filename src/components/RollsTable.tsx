@@ -29,6 +29,7 @@ import {
   PoolThresholdEditor,
 } from './editor/PoolControls';
 import { RollExpand } from './RollExpand';
+import { NoteMarker } from './editor/NoteField';
 import { RollPopover, RollResultInline } from './RollResult';
 import { rowColor } from './chart/palette';
 import { RowSparkline, ShapeHeaderLabel } from './chart/Sparkline';
@@ -331,7 +332,7 @@ export function RollsTable() {
                 borderLeftColor="transparent"
               >
                 <Tooltip
-                  content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+                  content={tipForId('rowCap')}
                   disabled={!atCap}
                 >
                   <Button
@@ -527,10 +528,13 @@ const RollTableRow = memo(function RollTableRow({
               onBlur={nameBuf.onBlur}
               onKeyDown={nameBuf.onKeyDown}
               flex="1"
-              minW="150px"
+              // The marker takes its width out of the name rather than adding
+              // to the column, which already sits at its floor at xl.
+              minW={expr.note !== undefined ? '128px' : '150px'}
               fontWeight={isBaseline ? 'semibold' : undefined}
               aria-label="Roll name"
             />
+            {expr.note !== undefined && <NoteMarker note={expr.note} />}
           </HStack>
         </Table.Cell>
         <Table.Cell>

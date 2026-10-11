@@ -5,7 +5,7 @@ import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
 import { InspectChart } from './InspectChart';
 import InspectChartBody from './InspectChartBody';
-import { uniformDistribution } from '../../engine/distribution';
+import { convolve, uniformDistribution } from '../../engine/distribution';
 import type { TargetState } from '../../types';
 
 const noTarget: TargetState = { values: [], ruling: 'gte' };
@@ -286,5 +286,64 @@ describe('InspectChartBody top results', () => {
     expect(valueTexts).toEqual(['1', '2', '3', '4']);
     // sanity: container has the rendered tree
     expect(container).toBeTruthy();
+  });
+});
+
+// jsdom gives ResponsiveContainer no size, so recharts draws no SVG here and
+// the shaded ReferenceArea itself cannot be asserted. The "Most results" key
+// beside the view label is plain markup that shows exactly when the band is
+// drawn, so it stands in for the band's on/off rules.
+describe('InspectChartBody spread band key', () => {
+  const TWO_D6 = convolve(uniformDistribution(6), uniformDistribution(6));
+
+  it('shows the key for 2d6 in PMF view', () => {
+    seed('pmf');
+    render(
+      <AllProviders>
+        <InspectChartBody dist={TWO_D6} color="#000" target={noTarget} />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Most results')).toBeInTheDocument();
+  });
+
+  it('shows the key for 2d6 in CDF view', () => {
+    seed('cdf');
+    render(
+      <AllProviders>
+        <InspectChartBody dist={TWO_D6} color="#000" target={noTarget} />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Most results')).toBeInTheDocument();
+  });
+
+  it('shows no key in target view', () => {
+    seed('target', 7);
+    render(
+      <AllProviders>
+        <InspectChartBody
+          dist={TWO_D6}
+          color="#000"
+          target={{ values: [7], ruling: 'gte' }}
+        />
+      </AllProviders>,
+    );
+    expect(screen.getByText('Target')).toBeInTheDocument();
+    expect(screen.queryByText('Most results')).toBeNull();
+  });
+
+  // A flat roll's band would cover every result, so none is drawn and the key
+  // would name nothing on the chart.
+  it('shows no key for a flat 1d8', () => {
+    seed('pmf');
+    render(
+      <AllProviders>
+        <InspectChartBody
+          dist={uniformDistribution(8)}
+          color="#000"
+          target={noTarget}
+        />
+      </AllProviders>,
+    );
+    expect(screen.queryByText('Most results')).toBeNull();
   });
 });

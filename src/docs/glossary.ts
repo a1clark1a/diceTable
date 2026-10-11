@@ -1,3 +1,5 @@
+import { MAX_EXPRESSIONS } from '../types';
+
 export type GlossaryGroup =
   | 'notation'
   | 'roll-modes'
@@ -295,6 +297,15 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'A CCDF curve at value k is P(X ≥ k), the chance of rolling k or more, which is just 1 minus the CDF. It starts at 1 (100%) on the far left and falls toward 0 on the right. To read a target, find your DC on the x-axis and look up: that height is your hit chance against ≥ DC.',
   },
   {
+    id: 'spread-band',
+    term: 'Spread band',
+    group: 'distributions',
+    plain:
+      'The faint shaded part of a roll’s shape: where most of its results land. A narrower band means a steadier roll.',
+    details:
+      'The band runs from the 10th to the 90th percentile, so at most a tenth of results fall below it and at most a tenth above. On dice the edges land on whole results, so it usually covers a little more than 80%, which is why it says “most” rather than a number. A plain single die like 1d20, with or without a modifier, lands anywhere equally and has no middle, so it gets no band. Roll it with advantage, or let it explode, and it has a middle and a band. It shows on the Shape sparkline, in the inspector, and on the comparison chart for the roll you single out.',
+  },
+  {
     id: 'convolution',
     term: 'Convolution',
     group: 'distributions',
@@ -311,7 +322,17 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain:
       'One named line in the table. Each row is independent, and gets its own chart series while the chart has room to draw it.',
     details:
-      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, and it decides which rolls the chart draws first when there are more than it can show at once.',
+      'Rows do not interact. Changing one never affects the math on another. Their order in the table is also their order in the chart legend and the color palette, and it decides which rolls the chart draws first when there are more than it can show at once. Move a roll up or down from its expanded editor to change that order.',
+  },
+  {
+    id: 'variants',
+    term: 'Variants',
+    alt: 'sweep',
+    group: 'app',
+    plain:
+      'A family of copies of one roll that each change a single value, like the same weapon on a d6, d8 and d10. Make them from Variants in a roll’s editor.',
+    details:
+      'Pick what to change (the dice count, the die, how many to keep, the modifier, or a pool’s success number) and the values to try, and up to seven new rolls land directly below the original, named for what changed. Seven, because the chart has eight colours and the original keeps one, so every member of the family draws in its own colour and line. Values that would not make an honest roll are left out and named before you confirm, such as keeping more dice than you roll, a success number the dice never reach, a die that would never stop exploding or rerolling, or a roll too large to work out. Once made, variants are ordinary rows you can edit, move or delete on their own.',
   },
   {
     id: 'baseline',
@@ -510,6 +531,24 @@ const uiTips: Record<string, string> = {
     'Curves picture rolls that add into a total. Switch a roll to Sum to see one here.',
   import:
     'Bring rolls in from a share link, JSON, or a file. Choose to add to the table or replace it.',
+  duplicate:
+    'Make a copy of this roll just below it, ready to change one thing and compare.',
+  moveUp:
+    'Move this roll one place up. The order sets which rolls the chart draws first.',
+  moveUpAtTop: 'This roll is already at the top.',
+  moveDown:
+    'Move this roll one place down. The order sets which rolls the chart draws first.',
+  moveDownAtBottom: 'This roll is already at the bottom.',
+  rowCap: `Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`,
+  sweep:
+    'Make copies of this roll that each try a different value, like a d6, d8 and d10. They land just below it.',
+  sweepCheckRow:
+    'Variants work on Sum and Pool rolls. For a check, duplicate it and change one value by hand.',
+  sweepSourceDie: 'This roll already uses this die.',
+  note:
+    'A reminder of why this roll exists, like what you changed from the last version. It goes along when you share the table.',
+  spreadBand:
+    'The shaded part is where most of this roll’s results land. A narrower band means a steadier roll.',
 };
 
 export function getEntry(id: string): GlossaryEntry | undefined {

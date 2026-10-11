@@ -8,9 +8,10 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  VisuallyHidden,
   type BoxProps,
 } from '@chakra-ui/react';
-import { ChevronDown, Pin, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Pin, Plus, StickyNote, Trash2 } from 'lucide-react';
 import { useApp, type ExpressionPatch } from '../state/useApp';
 import { useBufferedValue } from '../hooks/useBufferedValue';
 import { getRowData } from '../state/useDistributions';
@@ -141,7 +142,7 @@ export function RollsCards() {
           ))}
       </SimpleGrid>
       <Tooltip
-        content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+        content={tipForId('rowCap')}
         disabled={!atCap}
       >
         <Button
@@ -395,6 +396,20 @@ const RollCard = memo(function RollCard({
             )}
           </Text>
         </HStack>
+
+        {/* A phone has no hover to open a tooltip on, so the card shows the
+            note as text where the table shows a marker. */}
+        {expr.note !== undefined && (
+          <HStack gap={1.5} mt={1} align="flex-start" color="fg.muted">
+            <Box as="span" lineHeight={0} mt="3px" flexShrink={0}>
+              <StickyNote size={12} aria-hidden />
+            </Box>
+            <Text fontSize="xs" lineClamp={2} wordBreak="break-word">
+              <VisuallyHidden>Note: </VisuallyHidden>
+              {expr.note}
+            </Text>
+          </HStack>
+        )}
 
         <HStack gap={1} mt={1.5} flexWrap="wrap" align="center">
           <ExpressionModeToggle mode={expr.mode} onSelect={onModeChange} />

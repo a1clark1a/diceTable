@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Duplicate a roll: open a roll and press the Duplicate icon beside its formula, and a copy lands directly below it, named "Longsword (2)" and already open, ready to change one thing and compare. Rows can now be put in order too, with Move up and Move down in the same place. The order is what the chart draws first and which rolls head-to-head shows, so the roll you care about no longer has to be the one you added first.
+- Variants: open a roll and press Variants to make a whole family of it at once. Pick what to change (the number of dice, the die, how many to keep, the modifier, or a pool's success number), pick the range, and up to seven new rolls appear directly below, named for what changed ("Longsword · d10", "2d6 · +3"). Seven, because the chart has eight colours and the roll you started from keeps one, so every member of the family is drawn in its own colour and line. The chart fans them out side by side, so the balanced one is the one you can see rather than the one you work out. Before you confirm, the panel shows what it will add and says plainly what it is leaving out and why, such as keeping more dice than you roll, a die that never reaches the success number, or a roll too large to work out. The message afterwards has an Undo that removes exactly those rolls. Checks can't make variants yet; duplicate one and change it by hand.
+- Notes on rolls: a short note under the formula, for why a roll exists or what changed from the last version. The table marks a roll that has one, a phone shows the note on the card, and notes travel with the table when you share it, export it or open it on another device.
+- The shape of a roll now shows where most of its results land: a faint band of the roll's colour over the middle of its results, in the small shape beside each roll, in the chart you open from it, and in the comparison chart for whichever roll you point at or pick from the legend. A narrower band is a steadier roll. A flat roll like a single d8 lands anywhere equally, so it gets no band.
+
+### Changed
+
+- A copy or a variant goes directly below the roll it came from, so the rolls after it move down to make room, and each one takes the colour of its new place. Move up and Move down work the same way: the two rolls that trade places also trade colours. That is the rule the colours always followed, but it is the first time a roll can land in, or move through, the middle of the table.
+
 ## [2.3.0] - 2026-10-10
 
 ### Added
