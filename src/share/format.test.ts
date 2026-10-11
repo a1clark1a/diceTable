@@ -46,6 +46,17 @@ const sampleExpr: Expression = {
   id: 'expr-1',
   name: 'Longbow',
   parts: [{ id: 'part-1', count: 1, sides: 20 }],
+  flatModifier: 0,
+  mods: [{ op: 'add', value: 5 }],
+  rollMode: 'normal',
+  mode: 'sum',
+};
+
+/** sampleExpr as a link from before the chain wrote it: the modifier in flatModifier. */
+const legacySampleExpr = {
+  id: 'expr-1',
+  name: 'Longbow',
+  parts: [{ id: 'part-1', count: 1, sides: 20 }],
   flatModifier: 5,
   rollMode: 'normal',
   mode: 'sum',
@@ -57,7 +68,8 @@ describe('buildExportEnvelope', () => {
     expect(env.format).toBe(EXPORT_FORMAT_TAG);
     expect(env.exportVersion).toBe(EXPORT_VERSION);
     // The envelope deliberately carries no ids, so compare on everything else.
-    expect(stripIds(env.rolls)).toEqual(stripIds([sampleExpr]));
+    // A chain of one add travels as the modifier every version reads.
+    expect(stripIds(env.rolls)).toEqual(stripIds([legacySampleExpr]));
     expect((env.rolls[0] as unknown as Record<string, unknown>).id).toBeUndefined();
   });
 });
@@ -138,8 +150,8 @@ describe('export format — keepAcross rows', () => {
     keepAcross: { type: 'highest', n: 1 },
   };
 
-  it('is on export version 4', () => {
-    expect(EXPORT_VERSION).toBe(4);
+  it('is on export version 5', () => {
+    expect(EXPORT_VERSION).toBe(5);
   });
 
   it('round-trips the rule through JSON', () => {
@@ -151,12 +163,13 @@ describe('export format — keepAcross rows', () => {
   it('still imports links and files written before the rule existed', () => {
     for (const exportVersion of [1, 2]) {
       // An old payload still carries its ids, and they are kept: the importer
-      // only fills one in where there is none.
+      // only fills one in where there is none. Its modifier arrives as the
+      // first step of the chain.
       expect(
         validateExportPayload({
           format: EXPORT_FORMAT_TAG,
           exportVersion,
-          rolls: [sampleExpr],
+          rolls: [legacySampleExpr],
         }),
       ).toEqual([sampleExpr]);
     }

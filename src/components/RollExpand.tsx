@@ -13,6 +13,7 @@ import type { DicePart, Expression, ExpressionMode, RollMode } from '../types';
 import { CheckEditor } from './editor/CheckEditor';
 import { DicePartRow } from './editor/DicePartRow';
 import { KeepAcrossPanel } from './editor/KeepAcrossPanel';
+import { ModChainBlocked, ModChainEditor } from './editor/ModChainEditor';
 import { Panel } from './editor/controls';
 import { RowTools } from './editor/RowTools';
 import { NoteField } from './editor/NoteField';
@@ -130,14 +131,17 @@ export function RollExpand({ expression }: RollExpandProps) {
         </Box>
 
         {check ? (
-          <CheckEditor
-            expression={expression}
-            check={check}
-            updateExpression={updateExpression}
-            updatePart={updatePart}
-            addPart={addPart}
-            removePart={removePart}
-          />
+          <>
+            <CheckEditor
+              expression={expression}
+              check={check}
+              updateExpression={updateExpression}
+              updatePart={updatePart}
+              addPart={addPart}
+              removePart={removePart}
+            />
+            <ModChainBlocked />
+          </>
         ) : (
           <>
           <Panel label="Dice parts">
@@ -167,6 +171,13 @@ export function RollExpand({ expression }: RollExpandProps) {
           </Panel>
 
           <KeepAcrossPanel
+            expression={expression}
+            updateExpression={updateExpression}
+          />
+
+          {/* After the dice and any keep across them, before the roll mode:
+              the order the row computes in. */}
+          <ModChainEditor
             expression={expression}
             updateExpression={updateExpression}
           />

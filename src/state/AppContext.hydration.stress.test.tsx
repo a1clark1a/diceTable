@@ -87,9 +87,10 @@ describe('AppProvider hydration healing', () => {
         id: 'e0',
         name: 'Old sum',
         parts: [{ id: 'p0', count: 2, sides: 6 }],
-        flatModifier: 1,
+        flatModifier: 0,
         rollMode: 'normal',
         mode: 'sum',
+        mods: [{ op: 'add', value: 1 }],
         successThreshold: { direction: 'gte', value: 4 },
       },
     ]);
@@ -97,7 +98,7 @@ describe('AppProvider hydration healing', () => {
     const row = result.current.expressions[0]!;
     expect(row.successThreshold).toBeUndefined();
     expect(row.parts).toEqual([{ id: 'p0', count: 2, sides: 6 }]);
-    expect(row.flatModifier).toBe(1);
+    expect(row.mods).toEqual([{ op: 'add', value: 1 }]);
   });
 
   it('sheds a stray pool threshold stored on a check row', () => {

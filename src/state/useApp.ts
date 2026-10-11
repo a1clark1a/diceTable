@@ -8,6 +8,7 @@ import type {
   ExplodeRule,
   GridSort,
   KeepRule,
+  ModStep,
   RerollRule,
   RollMode,
   RollOffSort,
@@ -21,7 +22,9 @@ import type {
 import type { SweepTarget } from './sweep';
 
 export type ExpressionPatch = {
+  /** The check roll's modifier. Sum and pool rows edit `mods` instead. */
   flatModifier?: number;
+  mods?: ModStep[] | undefined;
   rollMode?: RollMode;
   mode?: ExpressionMode;
   successThreshold?: SuccessThreshold | undefined;

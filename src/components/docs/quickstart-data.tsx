@@ -126,7 +126,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 4,
     title: 'Expand a row to edit details',
     plain:
-      'Click the chevron on the right of any row to expand it. The top of the panel shows the formula, buttons to move the roll up or down the table, Duplicate and Variants (Step 7), and a short note for why the roll exists. Below that you can add more dice parts and set the roll mode: Normal, Advantage, or Disadvantage.',
+      'Click the chevron on the right of any row to expand it. The top of the panel shows the formula, buttons to move the roll up or down the table, Duplicate and Variants (Step 7), and a short note for why the roll exists. Below that you can add more dice parts, add modifier steps that add, subtract, multiply or divide the total in order, and set the roll mode: Normal, Advantage, or Disadvantage.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -136,12 +136,17 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           to make <strong>Variants</strong> of it (Step 7). Under the formula
           is a <strong>Note</strong>: a line for why the roll exists, like what
           you changed from the last version. It travels with the table when
-          you share it. Below that you can tweak two things:
+          you share it. Below that you can tweak three things:
         </Text>
         <List.Root pl={5}>
           <List.Item>
             <strong>Dice parts</strong>. Add more dice (e.g. a <Code>1d6</Code>{' '}
             sneak attack on top of a <Code>1d8</Code> weapon).
+          </List.Item>
+          <List.Item>
+            <strong>Modifier steps</strong>. What happens to the total after the
+            dice, in order: add, subtract, multiply or divide (rounds down), up
+            to three steps, like <Code>(2d6 + 3) × 2</Code>.
           </List.Item>
           <List.Item>
             <strong>Roll mode</strong>. Normal, Advantage (roll twice, take
@@ -233,7 +238,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 7,
     title: 'Compare rolls',
     plain:
-      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them. To compare versions of one roll, open it and press the Duplicate icon for a single copy, or Variants for a family that changes one value: the dice count, the die, how many to keep, the modifier, or a pool’s success number. Up to seven new rolls land right below the original, named for what changed, and fan out on the chart side by side.',
+      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them. To compare versions of one roll, open it and press the Duplicate icon for a single copy, or Variants for a family that changes one value: the dice count, the die, how many to keep, one modifier step, or a pool’s success number. Up to seven new rolls land right below the original, named for what changed, and fan out on the chart side by side.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -250,8 +255,8 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           To compare versions of one roll, open it and press the{' '}
           <strong>Duplicate</strong> icon for a single copy, or{' '}
           <strong>Variants</strong> for a family that changes one value: the
-          dice count, the die, how many to keep, the modifier, or a pool’s
-          success number. Up to seven new rolls land right below the original,
+          dice count, the die, how many to keep, one modifier step, or a
+          pool’s success number. Up to seven new rolls land right below the original,
           named for what changed (<Code>Longsword · d10</Code>), and fan out
           on the chart side by side. The message afterwards has an Undo.
         </Text>

@@ -58,17 +58,12 @@ import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { FlushedInput } from './FlushedInput';
+import { ModBox } from './editor/ModBox';
+import { singleModifier } from '../state/modChain';
 import { tapTarget } from './tapTarget';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
-
-function parseMod(raw: string): number {
-  const trimmed = raw.trim();
-  if (trimmed === '' || trimmed === '+' || trimmed === '-') return 0;
-  const n = Number.parseInt(trimmed.replace(/^\+/, ''), 10);
-  return Number.isFinite(n) ? n : 0;
-}
 
 function parseName(raw: string): string {
   const trimmed = raw.trim();
@@ -77,10 +72,6 @@ function parseName(raw: string): string {
 
 function formatString(s: string): string {
   return s;
-}
-
-function formatNumberValue(n: number): string {
-  return String(n);
 }
 
 export function RollsCards() {
@@ -270,9 +261,9 @@ const RollCard = memo(function RollCard({
     (name: string) => renameExpression(expr.id, name),
     [renameExpression, expr.id],
   );
-  const onModChange = useCallback(
-    (value: number) => updateExpression(expr.id, { flatModifier: value }),
-    [updateExpression, expr.id],
+  const onOpenChain = useCallback(
+    () => setExpandedId(expr.id),
+    [setExpandedId, expr.id],
   );
   const onModeChange = useCallback(
     (mode: ExpressionMode) => updateExpression(expr.id, { mode }),
@@ -288,12 +279,6 @@ const RollCard = memo(function RollCard({
     commit: onRename,
     parse: parseName,
     format: formatString,
-  });
-  const modBuf = useBufferedValue<number>({
-    committed: expr.flatModifier,
-    commit: onModChange,
-    parse: parseMod,
-    format: formatNumberValue,
   });
   return (
     <Box
@@ -423,26 +408,24 @@ const RollCard = memo(function RollCard({
           <HStack gap={1} align="center" ml="auto">
             <HelpTerm
               tip={tipForId(
-                isPool ? 'poolAutoSuccess' : isCheck ? 'checkModifier' : 'mod',
+                isPool
+                  ? singleModifier(expr.mods) === null
+                    ? 'modChainPool'
+                    : 'poolAutoSuccess'
+                  : isCheck
+                    ? 'checkModifier'
+                    : 'mod',
               )}
             >
               <Text as="span" fontSize="xs" color="fg.muted">
                 Mod
               </Text>
             </HelpTerm>
-            <FlushedInput
+            <ModBox
+              expr={expr}
               size="xs"
-              type="text"
-              inputMode="numeric"
-              value={modBuf.value}
-              onChange={(e) => modBuf.setValue(e.target.value)}
-              onBlur={modBuf.onBlur}
-              onKeyDown={modBuf.onKeyDown}
-              maxW="64px"
               h={tapTarget('32px')}
-              textAlign="end"
-              fontFamily="mono"
-              aria-label="Modifier"
+              onOpenChain={onOpenChain}
             />
           </HStack>
         </HStack>

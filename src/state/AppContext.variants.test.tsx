@@ -146,7 +146,7 @@ const longsword: Partial<Expression> = {
       reroll: { values: [1], mode: 'once' },
     },
   ],
-  flatModifier: 2,
+  mods: [{ op: 'add', value: 2 }],
   note: 'v2: d8, the d10 spiked too hard',
 };
 
@@ -252,7 +252,7 @@ describe('AppContext duplicateExpression', () => {
     const source = at(result, 1);
     const copy = at(result, 2);
     expect(copy.parts.map(withoutId)).toEqual(source.parts.map(withoutId));
-    expect(copy.flatModifier).toBe(2);
+    expect(copy.mods).toEqual([{ op: 'add', value: 2 }]);
     expect(copy.rollMode).toBe(source.rollMode);
     expect(copy.mode).toBe('sum');
   });
@@ -500,7 +500,7 @@ function seedAroundTwoDsix() {
   seedRows([row(0), twoDsix(), row(2)]);
 }
 
-const MODIFIER = { kind: 'modifier' } as const;
+const MODIFIER = { kind: 'modifier', step: 0 } as const;
 
 describe('AppContext sweepExpression', () => {
   it('inserts the family directly below the source, named by the value that changed', () => {
@@ -899,10 +899,10 @@ describe('AppContext note patch', () => {
     seedOne('keep me');
     const { result } = render();
     act(() => {
-      result.current.updateExpression('e0', { flatModifier: 3 });
+      result.current.updateExpression('e0', { mods: [{ op: 'add', value: 3 }] });
     });
     expect(at(result, 0).note).toBe('keep me');
-    expect(at(result, 0).flatModifier).toBe(3);
+    expect(at(result, 0).mods).toEqual([{ op: 'add', value: 3 }]);
   });
 
   it('keeps the note through a reload', () => {

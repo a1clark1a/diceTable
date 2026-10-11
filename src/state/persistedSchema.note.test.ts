@@ -11,9 +11,10 @@ function rawRow(extra: Record<string, unknown> = {}): Record<string, unknown> {
     id: 'expr-1',
     name: 'Longsword',
     parts: [{ id: 'part-1', count: 1, sides: 8 }],
-    flatModifier: 3,
+    flatModifier: 0,
     rollMode: 'normal',
     mode: 'sum',
+    mods: [{ op: 'add', value: 3 }],
     ...extra,
   };
 }
@@ -29,9 +30,10 @@ const payloadWithoutNotes: PersistedState = {
       id: 'expr-1',
       name: '4d6kh3 + 2',
       parts: [{ id: 'part-1', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }],
-      flatModifier: 2,
+      flatModifier: 0,
       rollMode: 'advantage',
       mode: 'sum',
+      mods: [{ op: 'add', value: 2 }],
     },
     {
       id: 'expr-2',

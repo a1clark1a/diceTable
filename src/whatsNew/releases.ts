@@ -13,6 +13,18 @@ export interface Release {
 // highlight, what they will see or can now do, no em-dashes.
 export const RELEASES: readonly Release[] = [
   {
+    version: '2.4.0',
+    date: '2026-10-11',
+    title: 'Modifier steps, Variants and recipe pages',
+    highlights: [
+      'Open a roll and use Modifier steps to add, subtract, multiply or divide its total in order, like doubling it and then adding 3.',
+      'Duplicate copies a roll just below it, and Variants makes a family of it that each try a different die, count or modifier.',
+      'Ten recipe pages answer common dice questions, like what 4d6 drop lowest averages, with the rolls ready to try in the table.',
+      'A roll can carry a short note about why it exists, and its shape now shades where most of its results land.',
+      'Rolls can move up and down the table, which sets the order the chart draws them in.',
+    ],
+  },
+  {
     version: '2.3.0',
     date: '2026-10-10',
     title: "Find a roll and What's new",

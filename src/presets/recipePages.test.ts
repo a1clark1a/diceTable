@@ -807,7 +807,7 @@ describe('recipe page numbers', () => {
 
 describe('recipe page comparisons', () => {
   it('advantage at +5 rounds to the same chance as a plain d20 with another +5', () => {
-    const plusTen: Expression = { ...rowOf(advantage, 'Normal'), flatModifier: 10 };
+    const plusTen: Expression = { ...rowOf(advantage, 'Normal'), mods: [{ op: 'add', value: 10 }] };
     const another = hitOn(advantage, plusTen, 15);
     expect(another).toBeCloseTo(16 / 20, 12);
     expect(Math.round(hitAt(advantage, 'Advantage', 15) * 100)).toBe(Math.round(another * 100));

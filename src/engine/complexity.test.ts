@@ -719,8 +719,8 @@ describe('supportWidth and the sum guard', () => {
     expect(supportWidth(keepRow)).toBe(16);
   });
 
-  it('leaves pool rows to the guard that already bounds them', () => {
-    expect(supportWidth({ ...sumRow(50, 10), mode: 'pool' })).toBe(0);
+  it('gives a pool row the width of its success count, 0 to the number of dice', () => {
+    expect(supportWidth({ ...sumRow(50, 10), mode: 'pool' })).toBe(51);
   });
 
   it('admits the rows people actually build', () => {

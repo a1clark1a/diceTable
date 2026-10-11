@@ -5,6 +5,8 @@ import type {
   EffectScale,
   Expression,
   KeepRule,
+  ModOp,
+  ModStep,
 } from '../types';
 
 // Shared with the JSX renderer so the plain-text and tooltip-carrying notations
@@ -54,6 +56,87 @@ export function modifierNotation(value: number): string {
   return '';
 }
 
+export const MOD_SYMBOLS: Record<ModOp, string> = {
+  add: '+',
+  sub: '−',
+  mul: '×',
+  div: '÷',
+};
+
+/** One step as it reads after a total: "+ 3", "× 2". */
+export function modStepText(step: ModStep): string {
+  return `${MOD_SYMBOLS[step.op]} ${step.value}`;
+}
+
+/** How a screen reader says one step: "times 2", "plus 3 automatic successes". */
+export function modStepAria(step: ModStep, pool: boolean): string {
+  switch (step.op) {
+    case 'add':
+      return pool ? `plus ${step.value} automatic successes` : `plus ${step.value}`;
+    case 'sub':
+      return pool ? `minus ${step.value} automatic successes` : `minus ${step.value}`;
+    case 'mul':
+      return `times ${step.value}`;
+    case 'div':
+      return `divided by ${step.value}, rounded down`;
+  }
+}
+
+/** The chain as the narrow Mod cell shows it: "+3 ×2 ÷3". */
+export function modsCompact(mods: readonly ModStep[]): string {
+  return mods.map((s) => `${MOD_SYMBOLS[s.op]}${s.value}`).join(' ');
+}
+
+export interface ChainLayout {
+  /** How many "(" go in front of the dice. */
+  opens: number;
+  /** Each step in order, and whether a ")" closes the group just before it. */
+  steps: { step: ModStep; closeBefore: boolean }[];
+}
+
+/**
+ * Where a sum row's chain needs brackets to read as it computes, left to
+ * right. Anyone reading `2d6 + 3 × 2` multiplies first, so a multiply or divide
+ * that follows anything added gets the total so far in brackets:
+ * `(2d6 + 3) × 2`. A body with words in it (`1d6 explode 6`) counts as added.
+ */
+export function chainLayout(body: string, mods: readonly ModStep[]): ChainLayout {
+  let opens = 0;
+  let added = /\s/.test(body);
+  const steps = mods.map((step) => {
+    const scales = step.op === 'mul' || step.op === 'div';
+    const closeBefore = scales && added;
+    if (closeBefore) opens++;
+    added = !scales;
+    return { step, closeBefore };
+  });
+  return { opens, steps };
+}
+
+/** A sum row's dice and chain as one line: `(2d6 + 3) × 2`. */
+export function sumChainNotation(body: string, mods: readonly ModStep[] | undefined): string {
+  if (mods === undefined || mods.length === 0) return body;
+  const { opens, steps } = chainLayout(body, mods);
+  let s = '('.repeat(opens) + body;
+  for (const { step, closeBefore } of steps) {
+    if (closeBefore) s += ')';
+    s += ` ${modStepText(step)}`;
+  }
+  return s;
+}
+
+/**
+ * A pool chain step as its own segment. Adding and subtracting change the
+ * success count directly, which the table has always called automatic
+ * successes; multiplying is not more successes rolled, so it says only × 2.
+ */
+export function poolStepText(step: ModStep): string {
+  if (step.op === 'add' || step.op === 'sub') {
+    return `${step.op === 'add' ? '+' : '−'}${step.value} auto`;
+  }
+  return modStepText(step);
+}
+
 function keepAcrossNotation(rule: KeepRule): string {
   return ` · keep ${rule.type} ${rule.n}`;
 }
@@ -90,14 +173,14 @@ export function expressionNotation(expr: Expression): string {
     if (threshold) {
       s += ` · count ${threshold.direction === 'gte' ? '≥' : '≤'}${threshold.value}`;
     }
-    if (expr.flatModifier !== 0) {
-      const sign = expr.flatModifier > 0 ? '+' : '−';
-      s += ` · ${sign}${Math.abs(expr.flatModifier)} auto`;
-    }
+    for (const step of expr.mods ?? []) s += ` · ${poolStepText(step)}`;
     return s;
   }
 
-  let s = body + modifierNotation(expr.flatModifier);
+  let s =
+    expr.mode === 'check'
+      ? body + modifierNotation(expr.flatModifier)
+      : sumChainNotation(body, expr.mods);
   if (expr.rollMode !== 'normal') {
     s += expr.rollMode === 'advantage' ? ' adv' : ' dis';
   }

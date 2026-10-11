@@ -56,6 +56,7 @@ import { HelpTerm } from './ui/help-term';
 import { tipForId } from '../docs/glossary';
 import { RulingSymbol } from './targetRuling';
 import { FlushedInput } from './FlushedInput';
+import { ModBox } from './editor/ModBox';
 import { InspectChart } from './inspect/InspectChart';
 import { InspectDistribution } from './inspect/InspectDistribution';
 import { InspectMean, InspectSigma } from './inspect/InspectStat';
@@ -142,13 +143,6 @@ function DeltaSubLabel({ tip, children }: { tip: string; children: ReactNode }) 
   );
 }
 
-function parseMod(raw: string): number {
-  const trimmed = raw.trim();
-  if (trimmed === '' || trimmed === '+' || trimmed === '-') return 0;
-  const n = Number.parseInt(trimmed.replace(/^\+/, ''), 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
 function parseName(raw: string): string {
   const trimmed = raw.trim();
   return trimmed.length > 0 ? trimmed : 'Untitled';
@@ -156,10 +150,6 @@ function parseName(raw: string): string {
 
 function formatString(s: string): string {
   return s;
-}
-
-function formatNumberValue(n: number): string {
-  return String(n);
 }
 
 export function RollsTable() {
@@ -470,9 +460,9 @@ const RollTableRow = memo(function RollTableRow({
     (name: string) => renameExpression(expr.id, name),
     [renameExpression, expr.id],
   );
-  const onModChange = useCallback(
-    (value: number) => updateExpression(expr.id, { flatModifier: value }),
-    [updateExpression, expr.id],
+  const onOpenChain = useCallback(
+    () => setExpandedId(expr.id),
+    [setExpandedId, expr.id],
   );
   const onModeChange = useCallback(
     (mode: ExpressionMode) => updateExpression(expr.id, { mode }),
@@ -488,12 +478,6 @@ const RollTableRow = memo(function RollTableRow({
     commit: onRename,
     parse: parseName,
     format: formatString,
-  });
-  const modBuf = useBufferedValue<number>({
-    committed: expr.flatModifier,
-    commit: onModChange,
-    parse: parseMod,
-    format: formatNumberValue,
   });
   return (
     <>
@@ -575,26 +559,17 @@ const RollTableRow = memo(function RollTableRow({
           </HStack>
         </Table.Cell>
         <Table.Cell textAlign="end">
-          <Tooltip
-            content={tipForId(isPool ? 'poolAutoSuccess' : 'checkModifier')}
-            disabled={!isPool && !isCheck}
-          >
-            <FlushedInput
-              size="sm"
-              h="32px"
-              type="text"
-              inputMode="numeric"
-              value={modBuf.value}
-              onChange={(e) => modBuf.setValue(e.target.value)}
-              onBlur={modBuf.onBlur}
-              onKeyDown={modBuf.onKeyDown}
-              maxW="64px"
-              textAlign="end"
-              fontFamily="mono"
-              aria-label="Modifier"
-              ml="auto"
-            />
-          </Tooltip>
+          <ModBox
+            expr={expr}
+            size="sm"
+            h="32px"
+            tip={
+              isPool || isCheck
+                ? tipForId(isPool ? 'poolAutoSuccess' : 'checkModifier')
+                : undefined
+            }
+            onOpenChain={onOpenChain}
+          />
         </Table.Cell>
         <Table.Cell
           textAlign="end"

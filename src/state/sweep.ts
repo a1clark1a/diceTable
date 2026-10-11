@@ -1,16 +1,21 @@
 import { expressionTooComplex } from '../engine/complexity';
 import { everyFaceExplodes, validatePart } from '../components/editor/validatePart';
-import type { DicePart, Expression } from '../types';
+import type { DicePart, Expression, ModStep } from '../types';
 import { applyPartPatch, sidesPatch } from './defaultPart';
+import { MOD_FACTOR_BOUNDS, modsForModifier, signedStep, signedValue } from './modChain';
 import { normalizeExpression } from './normalize';
 import { ROW_PALETTE_LIGHT } from '../components/chart/palette';
 
-/** The one value a sweep varies. Parts are addressed by id, as the editor does. */
+/**
+ * The one value a sweep varies. Parts are addressed by id, as the editor does;
+ * a chain step by its place in the chain. A row with no chain offers step 0 as
+ * a modifier of 0, which is what the Mod box shows for it.
+ */
 export type SweepTarget =
   | { kind: 'count'; partId: string }
   | { kind: 'sides'; partId: string }
   | { kind: 'keepN'; partId: string }
-  | { kind: 'modifier' }
+  | { kind: 'modifier'; step: number }
   | { kind: 'poolThreshold' };
 
 /**
@@ -28,6 +33,25 @@ export const SWEEP_BOUNDS: Record<SweepTarget['kind'], { min: number; max: numbe
   modifier: { min: -999, max: 999 },
   poolThreshold: { min: 1, max: 1000 },
 };
+
+/** The step a modifier target points at, or undefined for a row with no chain. */
+function targetStep(expr: Expression, target: { step: number }): ModStep | undefined {
+  return expr.mods?.[target.step];
+}
+
+function scales(step: ModStep | undefined): boolean {
+  return step?.op === 'mul' || step?.op === 'div';
+}
+
+export function sweepBounds(
+  expr: Expression,
+  target: SweepTarget,
+): { min: number; max: number } {
+  if (target.kind === 'modifier' && scales(targetStep(expr, target))) {
+    return MOD_FACTOR_BOUNDS;
+  }
+  return SWEEP_BOUNDS[target.kind];
+}
 
 export type SweepSkipReason =
   | 'source'
@@ -72,7 +96,8 @@ export function sweepTargets(expr: Expression): SweepTarget[] {
     targets.push({ kind: 'sides', partId: part.id });
     if (part.keep) targets.push({ kind: 'keepN', partId: part.id });
   }
-  targets.push({ kind: 'modifier' });
+  const steps = Math.max(1, expr.mods?.length ?? 0);
+  for (let step = 0; step < steps; step++) targets.push({ kind: 'modifier', step });
   if (expr.mode === 'pool' && expr.successThreshold) {
     targets.push({ kind: 'poolThreshold' });
   }
@@ -82,6 +107,7 @@ export function sweepTargets(expr: Expression): SweepTarget[] {
 export function sameSweepTarget(a: SweepTarget, b: SweepTarget): boolean {
   if (a.kind !== b.kind) return false;
   if ('partId' in a && 'partId' in b) return a.partId === b.partId;
+  if ('step' in a && 'step' in b) return a.step === b.step;
   return true;
 }
 
@@ -94,11 +120,32 @@ export function sweepSourceValue(expr: Expression, target: SweepTarget): number 
       return findPart(expr, target.partId)?.sides ?? null;
     case 'keepN':
       return findPart(expr, target.partId)?.keep?.n ?? null;
-    case 'modifier':
-      return expr.flatModifier;
+    case 'modifier': {
+      const step = targetStep(expr, target);
+      if (step === undefined) return target.step === 0 && expr.mods === undefined ? 0 : null;
+      return signedValue(step) ?? step.value;
+    }
     case 'poolThreshold':
       return expr.successThreshold?.value ?? null;
   }
+}
+
+function withStep(expr: Expression, index: number, value: number): Expression | null {
+  const mods = expr.mods;
+  const step = mods?.[index];
+  // A lone add or subtract, or no chain at all, is what the Mod box edits, and
+  // sweeping it to 0 leaves the row with no chain rather than a "+ 0".
+  if (mods === undefined || (mods.length === 1 && !scales(step))) {
+    if (index !== 0) return null;
+    const next: Expression = { ...expr };
+    const chain = modsForModifier(value);
+    if (chain) next.mods = chain;
+    else delete next.mods;
+    return next;
+  }
+  if (step === undefined) return null;
+  const changed = scales(step) ? { op: step.op, value } : signedStep(value);
+  return { ...expr, mods: mods.map((s, i) => (i === index ? changed : s)) };
 }
 
 function mapPart(
@@ -124,7 +171,7 @@ function withValue(expr: Expression, target: SweepTarget, value: number): Expres
         p.keep ? applyPartPatch(p, { keep: { ...p.keep, n: value } }) : null,
       );
     case 'modifier':
-      return { ...expr, flatModifier: value };
+      return withStep(expr, target.step, value);
     case 'poolThreshold':
       return expr.successThreshold
         ? { ...expr, successThreshold: { ...expr.successThreshold, value } }
@@ -201,6 +248,10 @@ export function sweepValueLabel(
       return `${keep?.type === 'lowest' ? 'kl' : 'kh'}${value}`;
     }
     case 'modifier': {
+      const step = targetStep(expr, target);
+      if (step !== undefined && scales(step)) {
+        return `${step.op === 'mul' ? '×' : '÷'}${value}`;
+      }
       const signed = value < 0 ? `−${Math.abs(value)}` : `+${value}`;
       return expr.mode === 'pool' ? `${signed} auto` : signed;
     }
@@ -225,7 +276,7 @@ export function planSweep(
   const variants: SweepVariant[] = [];
   const skipped: SweepPlan['skipped'] = [];
   const source = expr.mode === 'check' ? null : sweepSourceValue(expr, target);
-  const bounds = SWEEP_BOUNDS[target.kind];
+  const bounds = sweepBounds(expr, target);
   const cap = Math.min(MAX_SWEEP_VARIANTS, Math.max(0, room));
   const seen = new Set<number>();
 

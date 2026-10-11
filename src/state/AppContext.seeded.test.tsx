@@ -171,7 +171,7 @@ function editEverything(result: { current: AppContextValue }) {
   });
   const first = rowAt(result.current.expressions, 0).id;
   act(() => {
-    result.current.updateExpression(first, { flatModifier: 9 });
+    result.current.updateExpression(first, { mods: [{ op: 'add', value: 9 }] });
   });
   act(() => {
     result.current.duplicateExpression(first);
@@ -308,7 +308,7 @@ describe('SeededAppProvider targets', () => {
     const firstRow = rowAt(first.result.current.expressions, 0).id;
     const secondRow = rowAt(first.result.current.expressions, 1).id;
     act(() => {
-      first.result.current.updateExpression(firstRow, { flatModifier: 9 });
+      first.result.current.updateExpression(firstRow, { mods: [{ op: 'add', value: 9 }] });
     });
     act(() => {
       first.result.current.deleteExpression(secondRow);
@@ -519,7 +519,7 @@ describe('SeededAppProvider leaving the page', () => {
     const { result, unmount } = renderSeeded(seedFor(ADVANTAGE));
     const advantage = rowAt(result.current.expressions, 1).id;
     act(() => {
-      result.current.sweepExpression(advantage, { kind: 'modifier' }, [1, 2]);
+      result.current.sweepExpression(advantage, { kind: 'modifier', step: 0 }, [1, 2]);
     });
     const undo = toasts.find((t) => t.description === 'Just below Advantage.');
     if (undo?.id === undefined) throw new Error('the sweep raised no Undo toast');

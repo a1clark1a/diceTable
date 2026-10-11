@@ -59,7 +59,7 @@ function checkRow(): Expression {
 }
 
 const ROOMY = MAX_EXPRESSIONS;
-const MOD: SweepTarget = { kind: 'modifier' };
+const MOD: SweepTarget = { kind: 'modifier', step: 0 };
 
 function names(plan: SweepPlan): string[] {
   return plan.variants.map((v) => v.expr.name);
@@ -402,7 +402,7 @@ describe('planSweep — leaves the source alone', () => {
           explode: { onFaces: [6], depthCap: 2 },
         },
       ],
-      { flatModifier: 2, note: 'keep me' },
+      { mods: [{ op: 'add', value: 2 }], note: 'keep me' },
     );
     const snapshot = structuredClone(source);
     const targets: SweepTarget[] = [
@@ -522,7 +522,7 @@ describe('sweepSourceValue', () => {
       { id: 'a', count: 2, sides: 6, keep: { type: 'highest', n: 1 } },
       { id: 'b', count: 1, sides: 8 },
     ],
-    { flatModifier: -3 },
+    { mods: [{ op: 'sub', value: 3 }] },
   );
 
   it('reads the current count, die size and keep n of the addressed part', () => {
@@ -558,7 +558,7 @@ describe('sweepTargets', () => {
       { kind: 'keepN', partId: 'a' },
       { kind: 'count', partId: 'b' },
       { kind: 'sides', partId: 'b' },
-      { kind: 'modifier' },
+      { kind: 'modifier', step: 0 },
     ]);
   });
 
@@ -566,7 +566,7 @@ describe('sweepTargets', () => {
     expect(sweepTargets(poolRow())).toEqual([
       { kind: 'count', partId: 'pd' },
       { kind: 'sides', partId: 'pd' },
-      { kind: 'modifier' },
+      { kind: 'modifier', step: 0 },
       { kind: 'poolThreshold' },
     ]);
   });
@@ -592,7 +592,7 @@ describe('sameSweepTarget', () => {
   });
 
   it('matches row-wide targets by kind alone', () => {
-    expect(sameSweepTarget(MOD, { kind: 'modifier' })).toBe(true);
+    expect(sameSweepTarget(MOD, { kind: 'modifier', step: 0 })).toBe(true);
     expect(sameSweepTarget(MOD, { kind: 'poolThreshold' })).toBe(false);
   });
 });
