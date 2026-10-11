@@ -85,8 +85,8 @@ function HomeHero({ hasRows }: { hasRows: boolean }) {
   return (
     <>
       <RouteHead
-        title="DiceTable — Dice probability comparison for tabletop gaming"
-        description="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
+        title="DiceTable: Build, compare and balance dice rolls"
+        description="Build dice rolls for any tabletop game or your own homebrew. Compare them side by side, see the exact odds of every result, and balance them."
         path="/"
       />
       {/* srOnly rather than a conditional: the h1 stays mounted whatever the
@@ -95,7 +95,7 @@ function HomeHero({ hasRows }: { hasRows: boolean }) {
           flashes from one to the other. */}
       <Stack gap={1} srOnly={hasRows}>
         <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
-          Compare dice rolls side by side
+          Build, compare and balance dice rolls
         </Heading>
         <Text
           fontSize={{ base: 'xs', md: 'sm' }}
@@ -106,8 +106,8 @@ function HomeHero({ hasRows }: { hasRows: boolean }) {
           lineClamp={{ base: 2, md: 'none' }}
           css={{ textWrap: 'pretty' }}
         >
-          Build a table of named rolls, set a target number, and see the exact
-          probability for every result on one chart.
+          Make a table of rolls from any game or your own homebrew, then see
+          their exact odds on one chart.
         </Text>
       </Stack>
     </>

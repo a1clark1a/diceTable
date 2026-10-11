@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { MemoryRouter } from 'react-router-dom';
 import indexHtml from '../../index.html?raw';
 import bootJs from '../../public/boot.js?raw';
 import type { DicePart } from '../types';
@@ -20,11 +21,13 @@ const TablePage = (await import('./TablePage')).default;
 function renderPage() {
   return render(
     <ChakraProvider value={defaultSystem}>
-      <AppProvider>
-        <RollHistoryProvider>
-          <TablePage />
-        </RollHistoryProvider>
-      </AppProvider>
+      <MemoryRouter>
+        <AppProvider>
+          <RollHistoryProvider>
+            <TablePage />
+          </RollHistoryProvider>
+        </AppProvider>
+      </MemoryRouter>
     </ChakraProvider>,
   );
 }
@@ -113,7 +116,7 @@ describe('TablePage first-run empty state', () => {
   });
 });
 
-const HERO = 'Compare dice rolls side by side';
+const HERO = 'Build, compare and balance dice rolls';
 
 
 
@@ -412,6 +415,59 @@ describe('index.html before React mounts', () => {
   it('paints the same paragraph before mount that / renders after it', () => {
     renderPage();
     expect(screen.getByText(prebootText('p')).tagName).toBe('P');
+  });
+});
+
+describe('the homepage pitch', () => {
+  // The positioning is building and balancing rolls, for published and
+  // homebrew mechanics alike, with "compare" kept because people search it.
+  function servedMeta(selector: string): string {
+    return served.querySelector(selector)?.getAttribute('content') ?? '';
+  }
+  function servedJsonLdDescription(): string {
+    const block = served.querySelector('script[type="application/ld+json"]');
+    const data: unknown = JSON.parse(block?.textContent ?? '{}');
+    if (typeof data !== 'object' || data === null || !('description' in data)) return '';
+    return String(data.description);
+  }
+
+  it('says balance in the title, description, heading and JSON-LD', () => {
+    renderPage();
+    const strings = [
+      document.title,
+      servedMeta('meta[name="description"]'),
+      collapse(screen.getByRole('heading', { level: 1 }).textContent),
+      servedJsonLdDescription(),
+    ];
+    for (const s of strings) expect(s).toMatch(/\bbalanc(e|ing)\b/i);
+  });
+
+  it('says homebrew in the description and JSON-LD', () => {
+    expect(servedMeta('meta[name="description"]')).toMatch(/homebrew/i);
+    expect(servedJsonLdDescription()).toMatch(/homebrew/i);
+  });
+
+  it('uses no em-dash or en-dash anywhere in the pitch', () => {
+    renderPage();
+    const strings = [
+      document.title,
+      servedMeta('meta[name="description"]'),
+      servedMeta('meta[property="og:title"]'),
+      servedMeta('meta[property="og:description"]'),
+      collapse(screen.getByRole('heading', { level: 1 }).textContent),
+      servedJsonLdDescription(),
+      collapse(served.querySelector('title')?.textContent),
+    ];
+    for (const s of strings) expect(s).not.toMatch(/[–—]/);
+  });
+
+  it('gives link previews the same title and description the page renders', () => {
+    renderPage();
+    expect(collapse(served.querySelector('title')?.textContent)).toBe(document.title);
+    expect(servedMeta('meta[name="description"]')).toBe(
+      document.head.querySelector('meta[name="description"]')?.getAttribute('content'),
+    );
+    expect(servedMeta('meta[property="og:title"]')).toBe(document.title);
   });
 });
 

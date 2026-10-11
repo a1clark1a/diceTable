@@ -80,13 +80,16 @@ async function renderTablePage() {
   const { RollHistoryProvider } = await import('../../state/RollHistoryContext');
   const TablePage = (await import('../../pages/TablePage')).default;
   const { RECIPES } = await import('../../presets/recipes');
+  const { MemoryRouter } = await import('react-router-dom');
   render(
     <ChakraProvider value={defaultSystem}>
-      <AppProvider>
-        <RollHistoryProvider>
-          <TablePage />
-        </RollHistoryProvider>
-      </AppProvider>
+      <MemoryRouter>
+        <AppProvider>
+          <RollHistoryProvider>
+            <TablePage />
+          </RollHistoryProvider>
+        </AppProvider>
+      </MemoryRouter>
     </ChakraProvider>,
   );
   return { RECIPES };

@@ -3,7 +3,7 @@ import sitemapXml from '../../public/sitemap.xml?raw';
 import manifestJson from '../../docs/docs-manifest.json?raw';
 import { MAX_TARGETS, type Distribution, type Expression, type TargetRuling } from '../types';
 import { RECIPES } from './recipes';
-import { RECIPE_PAGES, findRecipePage, recipePath, type RecipePage } from './recipePages';
+import { RECIPE_PAGES, findRecipePage, recipePageLabel, recipePath, type RecipePage } from './recipePages';
 import { getRowData } from '../state/useDistributions';
 import { validateExpression } from '../state/persistedSchema';
 import { normalizeExpression } from '../state/normalize';
@@ -906,5 +906,13 @@ describe('recipe page lookup', () => {
 
   it('builds the route for a slug under /recipes/', () => {
     expect(recipePath('4d6-drop-lowest')).toBe('/recipes/4d6-drop-lowest');
+  });
+
+  it('labels a page by its title without the site name', () => {
+    expect(recipePageLabel(pageFor('exploding-dice'))).toBe('Exploding dice: average and odds');
+  });
+
+  it('labels every page without the site name', () => {
+    for (const p of RECIPE_PAGES) expect(recipePageLabel(p)).not.toMatch(/DiceTable/);
   });
 });

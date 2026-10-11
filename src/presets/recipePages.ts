@@ -263,6 +263,13 @@ export function recipePath(slug: string): string {
   return `/recipes/${slug}`;
 }
 
+const TITLE_SUFFIX = ' · DiceTable';
+
+/** The page's title without the site name, short enough to link to it by. */
+export function recipePageLabel(page: RecipePage): string {
+  return page.title.endsWith(TITLE_SUFFIX) ? page.title.slice(0, -TITLE_SUFFIX.length) : page.title;
+}
+
 export function findRecipePage(slug: string | undefined): RecipePage | undefined {
   return RECIPE_PAGES.find((p) => p.slug === slug);
 }

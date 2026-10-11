@@ -1,6 +1,6 @@
 # DiceTable
 
-> DiceTable is a free browser tool for comparing tabletop dice rolls by their exact probability. Build a table of named rolls, read the full distribution and summary stats for each, and overlay them on one chart to compare and balance them.
+> DiceTable is a free browser tool for building and balancing tabletop dice rolls, for existing game mechanics and homebrew ones alike. Build a table of named rolls, read the exact probability and summary stats for each, and overlay them on one chart to compare them.
 
 DiceTable is for tabletop and strategy gamers who want to understand and balance dice rolls without learning a scripting language or any statistics. It works with any system, because a roll is just a dice expression. Everything happens in a graphical table: there is no notation to memorize first and no math background required.
 
