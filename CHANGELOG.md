@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - A DiceTable link shared in a chat app or on social media now shows a short description under its title, instead of the title alone.
 - Every page now carries a single title once it has loaded, instead of its own title followed by the site's default one. Bing's site checker flagged the second title on every page.
+- The Find a roll recipe that compares 1d20, 3d6 and 2d6 is now called More dice, fewer extremes. Its old name, Same range, different shapes, was wrong: the three rolls cover different ranges.
 
 ## [2.3.0] - 2026-10-10
 

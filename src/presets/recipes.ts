@@ -112,7 +112,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
   preset(
     {
       slug: 'dice-shapes',
-      name: 'Same range, different shapes',
+      name: 'More dice, fewer extremes',
       family: 'totals',
       alsoCalled: ['1d20 vs 3d6', '2d6 vs 3d6', 'Bell curve', 'Swingy dice'],
       dice: '1d20, 3d6, 2d6',
