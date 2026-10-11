@@ -75,6 +75,13 @@ export function ModBox({ expr, size, h, tip, onOpenChain }: ModBoxProps) {
           fontFamily="mono"
           fontWeight="normal"
           justifyContent="flex-end"
+          // The flushed inputs around it carry this line, and without it a
+          // chain reads as static text rather than a cell that opens.
+          borderWidth="0"
+          borderBottomWidth="1px"
+          borderColor="border"
+          borderRadius="4px"
+          _hover={{ bg: 'bg.subtle' }}
           _focusVisible={flushedFocusRing}
           onClick={() => {
             focusModChain(expr.id);

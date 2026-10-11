@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Grid,
   HStack,
   IconButton,
   NativeSelect,
@@ -30,17 +31,20 @@ import { TapTip } from './TapTip';
 
 const OPS: readonly ModOp[] = ['add', 'sub', 'mul', 'div'];
 
-function opLabel(op: ModOp, pool: boolean): string {
-  switch (op) {
-    case 'add':
-      return pool ? '+ Add successes' : '+ Add';
-    case 'sub':
-      return pool ? '− Remove successes' : '− Subtract';
-    case 'mul':
-      return '× Multiply by';
-    case 'div':
-      return '÷ Divide by';
-  }
+const OP_LABELS: Record<ModOp, string> = {
+  add: '+ Add',
+  sub: '− Subtract',
+  mul: '× Multiply',
+  div: '÷ Divide',
+};
+
+// Said beside the number, where it reads as part of the step ("+ Add 2
+// successes", "÷ Divide 2 rounds down") and the operation picker stays short
+// enough to share a line with the order buttons on a phone.
+function stepHint(op: ModOp, pool: boolean): string | null {
+  if (op === 'div') return 'rounds down';
+  if (pool && (op === 'add' || op === 'sub')) return 'successes';
+  return null;
 }
 
 function amountWord(op: ModOp): string {
@@ -201,8 +205,17 @@ export function ModChainEditor({ expression, updateExpression }: ModChainEditorP
               role="group"
               aria-label={`Step ${n} of ${steps.length}: ${modStepAria(step, pool)}`}
             >
-              <HStack gap={2} align="center" flexWrap="wrap">
-                <NativeSelect.Root size="sm" w="auto">
+              {/* Two lines on a phone, operation and order on top and the
+                  number under them, since a 360px panel cannot hold all three
+                  side by side and wrapping one control at a time took three. */}
+              <Grid
+                templateColumns={{ base: 'minmax(0, 1fr) auto', md: 'auto 1fr auto' }}
+                templateAreas={{ base: '"op tools" "num num"', md: '"op num tools"' }}
+                columnGap={2}
+                rowGap={2}
+                alignItems="center"
+              >
+                <NativeSelect.Root size="sm" gridArea="op" w={{ base: 'full', md: '8.5rem' }}>
                   <NativeSelect.Field
                     ref={(el: HTMLSelectElement | null) => {
                       opRefs.current[index] = el;
@@ -210,7 +223,6 @@ export function ModChainEditor({ expression, updateExpression }: ModChainEditorP
                     aria-label={`Step ${n} operation`}
                     value={step.op}
                     h="40px"
-                    minW="9.5rem"
                     onChange={(e) => {
                       const op = OPS.find((o) => o === e.target.value);
                       if (op) changeOp(index, op);
@@ -218,31 +230,33 @@ export function ModChainEditor({ expression, updateExpression }: ModChainEditorP
                   >
                     {OPS.map((op) => (
                       <option key={op} value={op}>
-                        {opLabel(op, pool)}
+                        {OP_LABELS[op]}
                       </option>
                     ))}
                   </NativeSelect.Field>
                   <NativeSelect.Indicator />
                 </NativeSelect.Root>
-                <NumberStepper
-                  key={resets[index] ?? 0}
-                  value={step.value}
-                  min={scales ? MOD_FACTOR_BOUNDS.min : 0}
-                  // Adding has no ceiling: the Mod box and every saved table
-                  // can already hold more, and an add never widens a row.
-                  max={scales ? MOD_FACTOR_BOUNDS.max : undefined}
-                  passBelowMin={scales}
-                  invalid={refusal !== undefined}
-                  describedBy={refusal !== undefined ? refusalId : undefined}
-                  ariaLabel={`Step ${n} ${amountWord(step.op)}`}
-                  onCommit={(value) => changeValue(index, value)}
-                />
-                {step.op === 'div' && (
-                  <Text fontSize="xs" color="fg.muted">
-                    rounds down
-                  </Text>
-                )}
-                <HStack gap={1} ms="auto">
+                <HStack gridArea="num" gap={2}>
+                  <NumberStepper
+                    key={resets[index] ?? 0}
+                    value={step.value}
+                    min={scales ? MOD_FACTOR_BOUNDS.min : 0}
+                    // Adding has no ceiling: the Mod box and every saved table
+                    // can already hold more, and an add never widens a row.
+                    max={scales ? MOD_FACTOR_BOUNDS.max : undefined}
+                    passBelowMin={scales}
+                    invalid={refusal !== undefined}
+                    describedBy={refusal !== undefined ? refusalId : undefined}
+                    ariaLabel={`Step ${n} ${amountWord(step.op)}`}
+                    onCommit={(value) => changeValue(index, value)}
+                  />
+                  {stepHint(step.op, pool) !== null && (
+                    <Text fontSize="xs" color="fg.muted">
+                      {stepHint(step.op, pool)}
+                    </Text>
+                  )}
+                </HStack>
+                <HStack gridArea="tools" gap={1} justifySelf="end">
                   <StepButton
                     ref={(el) => {
                       upRefs.current[index] = el;
@@ -274,7 +288,7 @@ export function ModChainEditor({ expression, updateExpression }: ModChainEditorP
                     <Trash2 size={14} />
                   </StepButton>
                 </HStack>
-              </HStack>
+              </Grid>
               {refusal !== undefined && (
                 <Text id={refusalId} fontSize="xs" color="red.fg" mt={1}>
                   {refusalMessage(step, refusal)}

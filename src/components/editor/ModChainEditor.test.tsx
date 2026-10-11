@@ -409,27 +409,27 @@ describe('ModChainEditor refusing a multiplier of 0', () => {
 });
 
 describe('ModChainEditor on a pool row', () => {
-  it('labels an add step as adding successes', () => {
+  it('says an add step adds successes', () => {
     seedExpanded(poolRow([{ op: 'add', value: 2 }]));
     renderTable();
-    expect(screen.getByRole('combobox', { name: 'Step 1 operation' })).toHaveDisplayValue(
-      '+ Add successes',
-    );
-    expect(stepLabels()).toEqual(['Step 1 of 1: plus 2 automatic successes']);
+    const step = screen.getByRole('group', { name: 'Step 1 of 1: plus 2 automatic successes' });
+    expect(within(step).getByText('successes')).toBeInTheDocument();
   });
 
-  it('does not call a multiply or divide successes', () => {
+  it('does not call a multiply successes', () => {
+    seedExpanded(poolRow([{ op: 'mul', value: 2 }]));
+    renderTable();
+    const step = screen.getByRole('group', { name: 'Step 1 of 1: times 2' });
+    expect(within(step).queryByText('successes')).not.toBeInTheDocument();
+  });
+
+  it('offers the same four operations as a sum row', () => {
     seedExpanded(poolRow([{ op: 'add', value: 2 }]));
     renderTable();
     const options = within(screen.getByRole('combobox', { name: 'Step 1 operation' }))
       .getAllByRole('option')
       .map((o) => o.textContent);
-    expect(options).toEqual([
-      '+ Add successes',
-      '− Remove successes',
-      '× Multiply by',
-      '÷ Divide by',
-    ]);
+    expect(options).toEqual(['+ Add', '− Subtract', '× Multiply', '÷ Divide']);
   });
 });
 
