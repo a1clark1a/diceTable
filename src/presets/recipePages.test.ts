@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import sitemapXml from '../../public/sitemap.xml?raw';
+import llmsTxt from '../../public/llms.txt?raw';
 import manifestJson from '../../docs/docs-manifest.json?raw';
 import { MAX_TARGETS, type Distribution, type Expression, type TargetRuling } from '../types';
 import { RECIPES } from './recipes';
@@ -879,6 +880,22 @@ describe('recipe pages in the sitemap and the docs manifest', () => {
     for (const section of sections) {
       for (const dep of section.deps) expect(REPO_FILES.has(dep), `${section.id}: ${dep}`).toBe(true);
     }
+  });
+});
+
+describe('recipe pages in llms.txt', () => {
+  // A Windows checkout writes CRLF, and each answer has to end its line.
+  const llms = llmsTxt.replace(/\r\n/g, '\n');
+
+  it('gives each page its question, link and answer, word for word', () => {
+    for (const page of RECIPE_PAGES) {
+      expect(llms).toContain(`- [${page.heading}](${SITE}${recipePath(page.slug)}): ${page.intro}\n`);
+    }
+  });
+
+  it('links every recipe page once and no page that does not exist', () => {
+    const linked = [...llms.matchAll(/\(https:\/\/dice-table\.app\/recipes\/([^)]+)\)/g)].map((m) => m[1]);
+    expect(linked.sort()).toEqual(RECIPE_PAGES.map((p) => p.slug).sort());
   });
 });
 

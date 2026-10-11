@@ -316,6 +316,7 @@
       "label": "GEO/SEO · llms.txt (LLM-facing app summary)",
       "deps": [
         "public/llms.txt",
+        "src/presets/recipePages.ts",
         "src/engine/parts.ts",
         "src/engine/die.ts",
         "src/engine/expression.ts",

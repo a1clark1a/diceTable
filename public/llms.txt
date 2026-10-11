@@ -72,6 +72,21 @@ A table of rolls travels as a link, as raw JSON, or as a downloadable file. An I
 
 DiceTable runs entirely in your browser. Your rolls and settings are stored on your own device, and the site collects only anonymous page analytics, anonymous performance metrics, and anonymous crash reports. There are no accounts. A table of rolls can be shared as a link or exported as a JSON file and imported back; share-link data travels in the URL fragment and is never sent to a server.
 
+## Common dice questions
+
+Each of these questions has its own page on DiceTable. The page opens the rolls in a working table with the exact odds on the chart, and the answer below is the one the page gives.
+
+- [4d6 drop lowest: what’s the average, and how rare is an 18?](https://dice-table.app/recipes/4d6-drop-lowest): Rolling four d6 and keeping the best three averages about 12.24. The most common result is 13, and an 18 comes up about 1.6% of the time. It is the classic way to roll D&D ability scores.
+- [How much is advantage worth, and what does disadvantage cost?](https://dice-table.app/recipes/advantage-vs-disadvantage): Against a target of 15, a d20 plus 5 succeeds 55% of the time. Advantage rolls twice and keeps the higher, which lifts that to about 80%, about what another +5 would do. Disadvantage keeps the lower, which drops it to about 30%.
+- [Rerolling 1s and 2s on damage dice: how much does it add?](https://dice-table.app/recipes/great-weapon-fighting): Rerolling each 1 or 2 once lifts 2d6 + 3 damage from an average of 10 to about 11.33, about 1.33 more per hit. The new roll stands even if it is another 1 or 2, which is Great Weapon Fighting as the 2014 rules write it. The 2024 rules count 1s and 2s as 3s instead, for an average of 11, which this row does not do.
+- [Triple advantage: how much does a third d20 add?](https://dice-table.app/recipes/elven-accuracy): With +5, keeping the best of three d20s reaches 20 or more about 66% of the time, against 51% with plain advantage. A natural 20 comes up about 14% of the time, against about 10% with advantage. Elven Accuracy in D&D 5e works out the same: with advantage on a Dexterity, Intelligence, Wisdom or Charisma attack, you reroll the lower die once.
+- [How much do exploding dice add?](https://dice-table.app/recipes/exploding-dice): An exploding d6 averages about 4.2, against 3.5 for a plain d6. Every 6 rolls the die again and adds, so 1 roll in 6 ends above 6 and 1 roll in 36 ends above 12. A total of exactly 6 can never happen.
+- [Counting successes in a dice pool: how many will you get?](https://dice-table.app/recipes/counting-successes): Roll seven d10s, count every die showing 8 or more, and you average 2.1 successes. Each die succeeds 3 times in 10. You get at least one success about 92% of the time, at least two about 67%, and at least three about 35%.
+- [Critting on a 19 or 20: how much more damage?](https://dice-table.app/recipes/expanded-crit-range): Critting on a 19 or 20 instead of only a 20 doubles your chance of a crit, from 5% to 10%. With +5 against AC 15 and 1d8 + 3 damage, average damage per attack goes from 4.35 to about 4.6, counting misses as 0. Your chance to hit stays at 55%, because a 19 already hits.
+- [What’s my chance to hit against AC?](https://dice-table.app/recipes/chance-to-hit-vs-ac): With +5 against AC 15, a d20 attack hits 55% of the time, and 5% of attacks are critical hits on a natural 20. Counting misses as 0, a 1d8 + 3 weapon averages 4.35 damage per attack. Change the bonus, the AC or the damage dice and every number follows.
+- [Rolling a d6 and a d8 and keeping the higher: what do you get?](https://dice-table.app/recipes/keep-highest-mixed-dice): Rolling a d6 and a d8 and keeping the higher die averages about 5.23. The best result is still 8, but a 1 or 2 comes up only 1 time in 12, against 1 time in 4 on the d8 alone. Cairn uses this rule when you attack with two weapons at once.
+- [2d6 vs 3d6 vs 1d20: how do the odds compare?](https://dice-table.app/recipes/2d6-vs-3d6-vs-1d20): 1d20 and 3d6 both average 10.5, but they get there differently. Every result on a d20 is equally likely at 5%, while 3d6 piles up in the middle and rolls an 18 only 1 time in 216. 2d6 averages 7, which is also its most common result at 1 roll in 6.
+
 ## Links
 
 - [DiceTable](https://dice-table.app/): the app itself.
