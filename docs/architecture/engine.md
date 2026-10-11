@@ -52,7 +52,7 @@ The engine is a one-directional pipeline. Data flows from the user's `Expression
 
 ```mermaid
 flowchart TD
-  Expr["Expression<br/>parts[], flatModifier, rollMode"]
+  Expr["Expression<br/>parts[], mods[], rollMode"]
 
   subgraph Guard["complexity.ts"]
     Cx["expressionTooComplex?<br/>cost &gt; MAX_COMPLEXITY"]
@@ -68,9 +68,9 @@ flowchart TD
 
   subgraph Expr2["expression.ts — whole roll"]
     Conv["convolveMany(parts)"]
-    Shift["shift(flatModifier)"]
+    Chain["applyMods(mods)<br/>add · sub · mul · div"]
     Mode["applyRollMode<br/>advantage / disadvantage"]
-    Conv --> Shift --> Mode
+    Conv --> Chain --> Mode
   end
 
   Dist[("Distribution<br/>Map&lt;outcome, probability&gt;")]
@@ -97,7 +97,7 @@ Key points:
 
 - **`expressionDistribution` orchestrates the whole pipeline.** Consumers call it and get a finished `Distribution`. The per-part and per-primitive functions exist for it to call, and for tests.
 - **Every stage returns a fresh `Map`.** Inputs are never mutated. `shift` returns a new map even for offset 0 (`new Map(dist)`). This keeps the pipeline safe to compose and safe to cache by input identity.
-- **The complexity guard is the first gate.** It runs before any enumeration, so an over-large roll returns empty immediately instead of allocating a huge map.
+- **The complexity guard is the first gate.** It runs before any enumeration, so an over-large roll returns empty immediately instead of allocating a huge map. `supportWidth` prices a chain too: a multiply widens the span the dense consumers walk (`(W − 1) × M + 1`), and a divide never hides the convolution the dice still cost.
 
 ---
 
@@ -183,7 +183,8 @@ These are public for composition and heavily used in tests, but you rarely call 
 
 | File | Functions |
 | --- | --- |
-| [`distribution.ts`](../../src/engine/distribution.ts) | `emptyDistribution`, `uniformDistribution`, `totalMass`, `normalise`, `shift`, `convolve`, `convolveMany`, `sortedKeys` |
+| [`distribution.ts`](../../src/engine/distribution.ts) | `emptyDistribution`, `uniformDistribution`, `totalMass`, `normalise`, `shift`, `scale`, `divideFloor`, `halveFloor`, `clampAtZero`, `convolve`, `convolveMany`, `sortedKeys` |
+| [`mods.ts`](../../src/engine/mods.ts) | `applyMods`, `modsWidth` |
 | [`parts.ts`](../../src/engine/parts.ts) | `applyReroll`, `applyExplode`, `singleDieDistribution`, `partDistribution` |
 | [`expression.ts`](../../src/engine/expression.ts) | `applyRollMode`, `expressionDistribution` |
 | [`complexity.ts`](../../src/engine/complexity.ts) | `partComplexity`, `expressionComplexity`, `partTooComplex`, `expressionTooComplex`, `MAX_COMPLEXITY`, `COMPLEXITY_OVERFLOW` |
@@ -205,7 +206,7 @@ These are public for composition and heavily used in tests, but you rarely call 
    - With a **keep** rule, enumerate the multiset of `count` dice and keep the highest/lowest `n` (combinatorial, hence the complexity cost).
    - Without keep, **convolve** the single die with itself `count` times (rolling `count` dice and summing).
 4. **Combine parts** ([`convolveMany`](../../src/engine/distribution.ts)): convolve each part's distribution together, so `2d6 + 1d8` becomes the distribution of their sum.
-5. **Apply the flat modifier** ([`shift`](../../src/engine/distribution.ts)): slide every outcome by `flatModifier`. A `+2` shifts the whole curve right by 2; it does not change its shape.
+5. **Apply the modifier chain** ([`applyMods`](../../src/engine/mods.ts)): each step in order. Add and subtract slide the curve; multiply spreads the totals apart without adding any (the map keeps its size, the gaps grow); divide rounds down and merges neighbouring totals, summing their chances. Every step is monotone non-decreasing, which is the only reason step 6 can run after it. Pool rows run the chain on the success count and clamp at zero once, after the last step. Check rows have no chain: their `flatModifier` is the check roll's.
 6. **Apply roll mode** ([`applyRollMode`](../../src/engine/expression.ts)): for advantage, the probability of landing at or below each outcome is squared (you take the better of two independent rolls); disadvantage squares the upper tail instead.
 
 The result is the finished `Distribution` returned to the consumer. At every step, an empty intermediate short-circuits the rest and the whole call returns empty.
@@ -263,6 +264,8 @@ This section is for anyone, technical or not, who wants to understand the number
 **Add a second die by combining tables, not by rolling.** To find the chances for `2d6`, the engine pairs up every face of the first die with every face of the second, adds the two faces, and adds up the chances for each total. There are 36 equally likely pairs; six of them total 7, so a 7 has a 6-in-36 chance, while a 2 (only 1+1) has 1-in-36. This "combine two tables into the table of their sum" step is called convolution, and it is exact. The tool never simulates a single throw to get these odds. It counts every possibility once.
 
 **A flat bonus just slides the table.** Adding `+3` does not change the *shape* of the curve, only its position. Every outcome moves up by three. The chance of each result stays the same; the labels shift.
+
+**Multiplying spreads it out; dividing squeezes it.** ×2 relabels every result as double, so only even totals remain. ÷2 rounds down, so 6 and 7 both become 3 and their chances add.
 
 **Keep, reroll, and explode reshape the table before combining.** Keeping the highest of several dice, rerolling 1s, or letting a maximum face "explode" into another roll each rewrite the per-die table to reflect the new odds. Then the same combine-and-sum machinery runs on top.
 

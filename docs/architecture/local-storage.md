@@ -228,6 +228,10 @@ The envelope `version` field is the contract between past and future shapes. The
 
 A migrator is the right tool when **most users** would lose meaningful work on a bump (their named rolls). A reset (no migrator, `read()` returns `initialState`) is fine for early-development bumps where active users are few and explicit.
 
+### Schema 7: the modifier chain
+
+`SCHEMA_VERSION` 7 moved the sum and pool modifier from `flatModifier` into `mods`, a list of up to three steps. No migrator function is involved: `validateExpression` accepts versions 2 to 7 and moves an older row's non-zero `flatModifier` to the front of the chain (`withLegacyModifierMoved`, shared with the share decoder and `normalizeExpression`), so no saved number moves. A row holding both a non-zero `flatModifier` and steps is rejected, since nothing writes both. Multiply and divide must be whole numbers from 1 to 100; a step outside that rejects the row, and therefore the table, which is safe only because no table written before 7 can hold one. A check row's `mods` is dropped, not rejected. An older build sees version 7 as unknown and loads empty instead of drawing a chain as nothing.
+
 ---
 
 ## Guidelines for changes

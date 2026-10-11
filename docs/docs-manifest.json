@@ -14,8 +14,8 @@
     },
     {
       "id": "math.modifier",
-      "label": "The Math · §3 Modifier — distribution shift",
-      "deps": ["src/engine/distribution.ts", "src/engine/expression.ts", "src/docs/math.tsx"]
+      "label": "The Math · §3 Modifier steps — add, multiply, divide",
+      "deps": ["src/engine/distribution.ts", "src/engine/expression.ts", "src/engine/mods.ts", "src/docs/math.tsx"]
     },
     {
       "id": "math.keep",
@@ -51,6 +51,7 @@
         "src/engine/die.ts",
         "src/engine/expression.ts",
         "src/engine/distribution.ts",
+        "src/engine/mods.ts",
         "src/docs/math.tsx"
       ]
     },
@@ -142,9 +143,11 @@
     },
     {
       "id": "quickstart.expand",
-      "label": "Quickstart · Step 4 (Expand a row — dice parts and roll mode)",
+      "label": "Quickstart · Step 4 (Expand a row — dice parts, modifier steps and roll mode)",
       "deps": [
         "src/components/RollExpand.tsx",
+        "src/components/editor/ModChainEditor.tsx",
+        "src/state/modChain.ts",
         "src/components/editor/RowTools.tsx",
         "src/components/editor/SweepPanel.tsx",
         "src/components/editor/NoteField.tsx",
@@ -351,7 +354,9 @@
         "src/state/sweep.ts",
         "src/components/editor/SweepPanel.tsx",
         "src/components/editor/NoteField.tsx",
-        "src/components/chart/spreadBand.ts"
+        "src/components/chart/spreadBand.ts",
+        "src/engine/mods.ts",
+        "src/share/notation.ts"
       ]
     },
     {
