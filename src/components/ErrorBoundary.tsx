@@ -62,6 +62,9 @@ export class ErrorBoundary extends Component<Props, State> {
           p={{ base: 5, md: 7 }}
         >
           <Stack gap={4}>
+            {/* The page's own title unmounted with it, and RouteHead already
+                took index.html's fallback, so the tab would show a bare URL. */}
+            <title>Something went wrong · DiceTable</title>
             <Heading size="md">Something went wrong.</Heading>
             <Text fontSize="sm" color="fg.muted">
               The app hit an error it couldn&apos;t recover from. You can try

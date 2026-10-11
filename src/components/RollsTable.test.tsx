@@ -580,3 +580,89 @@ describe('RollsTable baseline pin round trip', () => {
   });
 });
 
+// One row carries a note and its sibling does not, so each assertion can check
+// both the marker's presence and its absence on the same table.
+const TABLE_NOTE = 'v2: d8, the d10 spiked too hard';
+
+function seedNotedRows() {
+  const state = {
+    version: 3,
+    expressions: [
+      {
+        id: 'sum1',
+        name: 'Sum row',
+        parts: [{ id: 'sp1', count: 2, sides: 6 }],
+        flatModifier: 0,
+        rollMode: 'normal',
+        mode: 'sum',
+        note: TABLE_NOTE,
+      },
+      {
+        id: 'sum2',
+        name: 'Bonus row',
+        parts: [{ id: 'sp2', count: 1, sides: 6 }],
+        flatModifier: 5,
+        rollMode: 'normal',
+        mode: 'sum',
+      },
+    ],
+    ui: {
+      expandedId: null,
+      chartView: 'pmf',
+      target: { values: [], ruling: 'gte' },
+      view: 'table',
+      poolTarget: 1,
+    },
+  };
+  window.localStorage.setItem(
+    'dicetable.v2',
+    JSON.stringify({ version: 2, value: state }),
+  );
+}
+
+describe('RollsTable row note marker', () => {
+  it('marks a row that has a note with the note as its accessible name', async () => {
+    seedNotedRows();
+    renderTable();
+    const marker = within(rowFor('Sum row')).getByLabelText(
+      `Note: ${TABLE_NOTE}`,
+    );
+    expect(marker).toHaveAccessibleName(`Note: ${TABLE_NOTE}`);
+  });
+
+  // A plain span may not carry a name at all; the img role is what lets screen
+  // readers announce the note when the marker takes focus.
+  it('gives the marker a role that can carry its name', async () => {
+    seedNotedRows();
+    renderTable();
+    expect(
+      within(rowFor('Sum row')).getByRole('img', { name: `Note: ${TABLE_NOTE}` }),
+    ).toBeInTheDocument();
+  });
+
+  // The note is only readable through the marker's tooltip, so a marker that
+  // cannot take focus would hide the note from keyboard users.
+  it('lets the note marker take keyboard focus', async () => {
+    seedNotedRows();
+    renderTable();
+    const marker = within(rowFor('Sum row')).getByLabelText(
+      `Note: ${TABLE_NOTE}`,
+    );
+    expect(marker).toHaveAttribute('tabindex', '0');
+    marker.focus();
+    expect(marker).toHaveFocus();
+  });
+
+  it('shows no marker on a row without a note', async () => {
+    seedNotedRows();
+    renderTable();
+    expect(within(rowFor('Bonus row')).queryByLabelText(/^Note:/)).toBeNull();
+  });
+
+  it('shows exactly one marker for a table with one noted row', async () => {
+    seedNotedRows();
+    renderTable();
+    expect(screen.getAllByLabelText(/^Note:/)).toHaveLength(1);
+  });
+});
+

@@ -7,6 +7,7 @@ import {
   hitProbability,
   max,
   mean,
+  middleRange,
   min,
   mode,
   percentile,
@@ -162,5 +163,59 @@ describe('stats — empty distribution', () => {
     expect(cdf(empty, 3)).toBe(0);
     expect(ccdf(empty, 3)).toBe(0);
     expect(percentile(empty, 0.5)).toBe(0);
+  });
+});
+
+describe('middleRange', () => {
+  // Running totals over 36: 3 reaches 3, 4 reaches 6 (past 10%); 9 reaches 30,
+  // 10 reaches 33 (past 90%).
+  it('spans 4 to 10 on 2d6 for the middle 80%', () => {
+    const d = partDistribution({ id: 'p', count: 2, sides: 6 });
+    expect(middleRange(d, 0.8)).toEqual([4, 10]);
+  });
+
+  // Each face is 5%. The running total at 2 is exactly 10%, which is all the
+  // band may leave below it, so 2 stays outside, as 19 and 20 do above.
+  it('spans 3 to 18 on 1d20, leaving 10% out on each side', () => {
+    expect(middleRange(uniformDistribution(20), 0.8)).toEqual([3, 18]);
+  });
+
+  it('sits symmetrically on a symmetric roll', () => {
+    expect(middleRange(uniformDistribution(10), 0.8)).toEqual([2, 9]);
+    const d = partDistribution({ id: 'p', count: 2, sides: 10 });
+    expect(middleRange(d, 0.8)).toEqual([6, 16]);
+  });
+
+  it('covers 30 of 36 results on 2d6, at least the share asked for', () => {
+    const d = partDistribution({ id: 'p', count: 2, sides: 6 });
+    const [lo, hi] = middleRange(d, 0.8);
+    let covered = 0;
+    for (const [k, p] of d) if (k >= lo && k <= hi) covered += p;
+    expect(covered).toBeCloseTo(30 / 36, 12);
+  });
+
+  it('spans every result when asked for all of them', () => {
+    expect(middleRange(uniformDistribution(6), 1)).toEqual([1, 6]);
+  });
+
+  it('narrows to the two middle faces of an even die when asked for none', () => {
+    expect(middleRange(uniformDistribution(6), 0)).toEqual([3, 4]);
+  });
+
+  it('narrows to the median of an odd one', () => {
+    expect(middleRange(uniformDistribution(5), 0)).toEqual([3, 3]);
+  });
+
+  it('clamps a share outside 0 to 1', () => {
+    expect(middleRange(uniformDistribution(6), 2)).toEqual([1, 6]);
+    expect(middleRange(uniformDistribution(6), -1)).toEqual([3, 4]);
+  });
+
+  it('returns [0, 0] for an empty distribution', () => {
+    expect(middleRange(new Map<number, number>(), 0.8)).toEqual([0, 0]);
+  });
+
+  it('returns the one value on both ends for a single-value distribution', () => {
+    expect(middleRange(new Map([[7, 1]]), 0.8)).toEqual([7, 7]);
   });
 });

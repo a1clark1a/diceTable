@@ -38,7 +38,7 @@ export function RowActions({ onFindRoll }: RowActionsProps) {
     <HStack gap={2} flexShrink={0}>
       {isDesktop && (
         <Tooltip
-          content={`Up to ${MAX_EXPRESSIONS} rolls. Delete a row to add another.`}
+          content={tipForId('rowCap')}
           disabled={!atCap}
         >
           <Button

@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../../state/AppContext';
 import { RowSparkline, Sparkline, ShapeHeaderLabel } from './Sparkline';
-import { uniformDistribution } from '../../engine/distribution';
+import { convolve, uniformDistribution } from '../../engine/distribution';
 import type { TargetState } from '../../types';
 
 const Plain = ({ children }: { children: React.ReactNode }) => (
@@ -246,7 +246,7 @@ describe('Sparkline pool ladder', () => {
         />
       </Plain>,
     );
-    const bars = container.querySelectorAll('rect[fill="#000"]');
+    const bars = container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])');
     expect(bars).toHaveLength(6);
     bars.forEach((b) => expect(b.getAttribute('fill-opacity')).toBe('0.55'));
     expect(container.querySelectorAll('path[fill-opacity]')).toHaveLength(0);
@@ -283,7 +283,7 @@ describe('Sparkline pool ladder', () => {
         <Sparkline dist={dist} color="#000" view="pmf" mode="pool" />
       </Plain>,
     );
-    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(2);
+    expect(container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])')).toHaveLength(2);
     expect(
       container.querySelectorAll('rect[fill="transparent"]'),
     ).toHaveLength(3);
@@ -309,10 +309,10 @@ describe('Sparkline pool ladder', () => {
       </Plain>,
     );
     expect(
-      container.querySelectorAll('rect[fill="#000"][fill-opacity="0.55"]'),
+      container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])[fill-opacity="0.55"]'),
     ).toHaveLength(2);
     expect(
-      container.querySelectorAll('rect[fill="#000"][fill-opacity="0.16"]'),
+      container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])[fill-opacity="0.16"]'),
     ).toHaveLength(2);
     expect(container.querySelector('path[fill-opacity="0.55"]')).toBeNull();
   });
@@ -328,7 +328,7 @@ describe('Sparkline pool ladder', () => {
         />
       </Plain>,
     );
-    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(0);
+    expect(container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])')).toHaveLength(0);
     expect(container.querySelector('path[fill="none"]')).not.toBeNull();
   });
 
@@ -346,7 +346,7 @@ describe('Sparkline pool ladder', () => {
         />
       </Plain>,
     );
-    expect(container.querySelectorAll('rect[fill="#000"]')).toHaveLength(6);
+    expect(container.querySelectorAll('rect[fill="#000"]:not([data-spread-band])')).toHaveLength(6);
   });
 });
 
@@ -550,5 +550,274 @@ describe('Sparkline bucketing', () => {
     const d = container.querySelector('path')?.getAttribute('d') ?? '';
     // One command per bucket, not one per result: 2,000 would be ~2,000.
     expect((d.match(/[ML]/g) ?? []).length).toBeLessThan(200);
+  });
+});
+
+describe('Sparkline spread band', () => {
+  // 2d6: running totals reach 6/36 at 4 (first past 10%) and 33/36 at 10
+  // (first past 90%), so the band covers results 4 to 10. With one bucket per
+  // result starting at 2, those are buckets 2 and 8 of 11.
+  const TWO_D6 = convolve(uniformDistribution(6), uniformDistribution(6));
+  const WIDTH = 80;
+  const STEP = WIDTH / 11;
+
+  function bandIn(container: HTMLElement): Element | null {
+    return container.querySelector('rect[data-spread-band]');
+  }
+
+  function bandBox(container: HTMLElement): { x: number; width: number } {
+    const band = bandIn(container);
+    if (band === null) throw new Error('no spread band drawn');
+    return {
+      x: Number(band.getAttribute('x')),
+      width: Number(band.getAttribute('width')),
+    };
+  }
+
+  it('draws a band for 2d6 in PMF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(bandIn(container)).not.toBeNull();
+  });
+
+  it('spans the buckets of 4 through 10 for 2d6 in PMF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="pmf" />
+      </Plain>,
+    );
+    const { x, width } = bandBox(container);
+    // Stepped view: from the left edge of bucket 2 to the right edge of bucket 8.
+    expect(x).toBeCloseTo(2 * STEP, 9);
+    expect(width).toBeCloseTo(7 * STEP, 9);
+  });
+
+  it('draws a band for 2d6 in CDF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="cdf" />
+      </Plain>,
+    );
+    expect(bandIn(container)).not.toBeNull();
+  });
+
+  // The cumulative curve stretches its 11 points edge to edge (10 gaps), so
+  // the band follows the curve's x: point 2 sits at 16, point 8 at 64.
+  it('spans the curve points of 4 through 10 for 2d6 in CDF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="cdf" />
+      </Plain>,
+    );
+    const { x, width } = bandBox(container);
+    expect(x).toBeCloseTo(16, 9);
+    expect(width).toBeCloseTo(48, 9);
+  });
+
+  it('draws the same band for 2d6 in CCDF view', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="ccdf" />
+      </Plain>,
+    );
+    const { x, width } = bandBox(container);
+    expect(x).toBeCloseTo(16, 9);
+    expect(width).toBeCloseTo(48, 9);
+  });
+
+  // The target view already shades what it is about; a second shaded region
+  // there would read as a second target.
+  it('draws no band in target view', () => {
+    const target: TargetState = { values: [7], ruling: 'gte' };
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="target" target={target} />
+      </Plain>,
+    );
+    expect(bandIn(container)).toBeNull();
+  });
+
+  it('draws the band when the target view has no values and falls back to PMF', () => {
+    const target: TargetState = { values: [], ruling: 'gte' };
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="target" target={target} />
+      </Plain>,
+    );
+    expect(bandIn(container)).not.toBeNull();
+  });
+
+  // 1d8: the first result past 10% is 1 (12.5%) and the first past 90% is 8,
+  // so a band would cover every result and say nothing.
+  it('draws no band for a flat 1d8', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(8)} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(bandIn(container)).toBeNull();
+  });
+
+  it('draws no band for a flat 1d8 in CDF view either', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(8)} color="#000" view="cdf" />
+      </Plain>,
+    );
+    expect(bandIn(container)).toBeNull();
+  });
+
+  // 1d20: running totals reach 10% exactly at 2 and 90% exactly at 18, so the
+  // band is 2 to 18, buckets 1 to 17 of 20 at 4 units each.
+  // Every face of a d20 is as likely as the next, so there is no middle where
+  // most results land; a band would only shade all but the two end faces.
+  it('draws no band for a flat 1d20', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={uniformDistribution(20)} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(bandIn(container)).toBeNull();
+  });
+
+  it('draws no band for a single fixed result', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={new Map([[5, 1]])} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(container.querySelector('svg')).not.toBeNull();
+    expect(bandIn(container)).toBeNull();
+  });
+
+  // Four coin-flip dice: 1, 4, 6, 4, 1 out of 16 successes at 0 to 4. The
+  // first count past 10% is 1 (5/16) and the first past 90% is 3 (15/16).
+  it('places a pool row band on its successes scale', () => {
+    const pool = new Map([
+      [0, 1 / 16],
+      [1, 4 / 16],
+      [2, 6 / 16],
+      [3, 4 / 16],
+      [4, 1 / 16],
+    ]);
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={pool} color="#000" view="pmf" mode="pool" />
+      </Plain>,
+    );
+    const { x, width } = bandBox(container);
+    expect(x).toBeCloseTo(16, 9);
+    expect(width).toBeCloseTo(48, 9);
+  });
+
+  // A check that misses half the time: the miss alone passes 10%, so the band
+  // starts at 0, and it ends at 4 where the running total first reaches 90%.
+  it('starts a check row band at 0 when it misses often', () => {
+    const check = new Map([
+      [0, 0.5],
+      [1, 0.1],
+      [2, 0.1],
+      [3, 0.1],
+      [4, 0.1],
+      [5, 0.1],
+    ]);
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={check} color="#000" view="pmf" mode="check" />
+      </Plain>,
+    );
+    const { x, width } = bandBox(container);
+    expect(x).toBe(0);
+    expect(width).toBeCloseTo(5 * (WIDTH / 6), 9);
+    // The cut-off miss bar still draws alongside the band.
+    expect(
+      container.querySelector('line[stroke-dasharray="1.5 1.5"]'),
+    ).not.toBeNull();
+  });
+
+  // 1d2000 sits in 40 buckets of 50. The band runs 200 to 1800, which falls in
+  // buckets 3 and 35, so it spans 3 × 2 to 36 × 2 units.
+  it('snaps the band to bucket edges on a wide row', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline
+          dist={convolve(uniformDistribution(1000), uniformDistribution(1000))}
+          color="#000"
+          view="pmf"
+        />
+      </Plain>,
+    );
+    // 2d1000 has 1,999 results in 40 buckets, two units each, so both edges
+    // of the band land on a bucket boundary rather than between them.
+    const { x, width } = bandBox(container);
+    expect(x % 2).toBeCloseTo(0, 9);
+    expect(width % 2).toBeCloseTo(0, 9);
+    expect(x).toBeGreaterThan(0);
+    expect(x + width).toBeLessThan(80);
+  });
+
+  it('fills the band with the row colour at low strength, full plot height', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#123456" view="pmf" height={24} />
+      </Plain>,
+    );
+    const band = bandIn(container);
+    expect(band).toHaveAttribute('fill', '#123456');
+    expect(band).toHaveAttribute('fill-opacity', '0.1');
+    expect(band).toHaveAttribute('y', '0');
+    expect(band).toHaveAttribute('height', '23.5');
+  });
+
+  // SVG paints in document order, so the band must come before the curve to
+  // sit under it rather than wash over the line.
+  it('paints the band beneath the curve and its fill', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="pmf" />
+      </Plain>,
+    );
+    const band = bandIn(container);
+    const area = container.querySelector('path[fill-opacity="0.16"]');
+    const stroke = container.querySelector('path[stroke="#000"]');
+    if (band === null || area === null || stroke === null) {
+      throw new Error('expected band, area and stroke to render');
+    }
+    expect(
+      band.compareDocumentPosition(area) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      band.compareDocumentPosition(stroke) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('paints the band beneath a cumulative curve', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="cdf" />
+      </Plain>,
+    );
+    const band = bandIn(container);
+    const curve = container.querySelector('path[fill="none"]');
+    if (band === null || curve === null) {
+      throw new Error('expected band and curve to render');
+    }
+    expect(
+      band.compareDocumentPosition(curve) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('leaves the hover zones untouched', () => {
+    const { container } = render(
+      <Plain>
+        <Sparkline dist={TWO_D6} color="#000" view="pmf" />
+      </Plain>,
+    );
+    expect(
+      container.querySelectorAll('rect[fill="transparent"]'),
+    ).toHaveLength(11);
   });
 });

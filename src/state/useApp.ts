@@ -8,6 +8,7 @@ import type {
   ExplodeRule,
   GridSort,
   KeepRule,
+  ModStep,
   RerollRule,
   RollMode,
   RollOffSort,
@@ -18,14 +19,18 @@ import type {
   TargetState,
   WorkshopView,
 } from '../types';
+import type { SweepTarget } from './sweep';
 
 export type ExpressionPatch = {
+  /** The check roll's modifier. Sum and pool rows edit `mods` instead. */
   flatModifier?: number;
+  mods?: ModStep[] | undefined;
   rollMode?: RollMode;
   mode?: ExpressionMode;
   successThreshold?: SuccessThreshold | undefined;
   keepAcross?: KeepRule | undefined;
   check?: CheckSpec | undefined;
+  note?: string | undefined;
 };
 
 export type PartPatch = {
@@ -65,6 +70,9 @@ export interface AppContextValue {
   setRollOffSort: (sort: RollOffSort) => void;
   addExpression: () => void;
   deleteExpression: (id: string) => void;
+  duplicateExpression: (id: string) => void;
+  moveExpression: (id: string, delta: -1 | 1) => void;
+  sweepExpression: (id: string, target: SweepTarget, values: readonly number[]) => void;
   renameExpression: (id: string, name: string) => void;
   updateExpression: (id: string, patch: ExpressionPatch) => void;
   setAllRollModes: (mode: RollMode) => void;

@@ -1,7 +1,10 @@
-import { Box, Button, Heading, Stack, Text } from '@chakra-ui/react';
+import { Box, Button, Heading, Link, SimpleGrid, Stack, Text } from '@chakra-ui/react';
 import { Plus, Search } from 'lucide-react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useApp } from '../../state/useApp';
 import { STARTER_PRESETS, STARTER_ROWS } from '../../presets/starterRolls';
+import { RECIPE_PAGES, recipePageLabel, recipePath } from '../../presets/recipePages';
+import { tapTarget } from '../tapTarget';
 import { PresetCardGrid } from './PresetCardGrid';
 
 interface StartExamplesPanelProps {
@@ -73,6 +76,44 @@ export function StartExamplesPanel({ onFindRoll }: StartExamplesPanelProps) {
           Start from a blank roll
         </Button>
       </Stack>
+      {/* The recipe pages answer searches, and nothing else links to them. An
+          empty table on / is what a first visit and a crawler both get, so this
+          is the one place a link here is seen by both. */}
+      <Box
+        as="nav"
+        aria-labelledby="common-questions"
+        // The card grid's column, so the list lines up with the cards above.
+        maxW="760px"
+        mx="auto"
+        mt={{ base: 6, md: 7 }}
+        pt={{ base: 5, md: 6 }}
+        borderTopWidth="1px"
+        borderColor="border.subtle"
+      >
+        <Heading id="common-questions" as="h3" size="sm" mb={2}>
+          Common dice questions
+        </Heading>
+        <SimpleGrid as="ul" columns={{ base: 1, md: 2 }} columnGap={6} listStyleType="none">
+          {RECIPE_PAGES.map((page) => (
+            <Box as="li" key={page.slug}>
+              <Link
+                asChild
+                colorPalette="blue"
+                color="colorPalette.fg"
+                fontSize="sm"
+                minH={tapTarget('32px')}
+                // A title that wraps on a phone fills its whole target, so the
+                // padding is what keeps it from touching the next link.
+                py={1}
+                display="flex"
+                alignItems="center"
+              >
+                <RouterLink to={recipePath(page.slug)}>{recipePageLabel(page)}</RouterLink>
+              </Link>
+            </Box>
+          ))}
+        </SimpleGrid>
+      </Box>
     </Box>
   );
 }

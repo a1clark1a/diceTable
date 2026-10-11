@@ -19,6 +19,7 @@ import type {
   RerollRule,
 } from '../../types';
 import type { PartPatch } from '../../state/useApp';
+import { STANDARD_DICE, sidesPatch } from '../../state/defaultPart';
 import { HelpTerm } from '../ui/help-term';
 import { tipForId } from '../../docs/glossary';
 import { validatePart } from './validatePart';
@@ -38,13 +39,6 @@ function defaultExplode(part: DicePart): ExplodeRule {
   const safeSides = Math.max(2, part.sides);
   return { onFaces: [safeSides], depthCap: 10 };
 }
-
-function clampFacesToSides(faces: number[], sides: number): number[] {
-  const limit = Number.isInteger(sides) && sides >= 2 ? sides : 0;
-  return faces.filter((f) => f >= 1 && f <= limit);
-}
-
-const STANDARD_DICE: readonly number[] = [4, 6, 8, 10, 12, 20, 100];
 
 interface KeepRuleEditorProps {
   keep: KeepRule;
@@ -179,19 +173,8 @@ export const DicePartRow = memo(function DicePartRow({
     [onChange],
   );
   const commitSides = useCallback(
-    (sides: number) => {
-      const patch: PartPatch = { sides };
-      if (part.reroll) {
-        const cleaned = clampFacesToSides(part.reroll.values, sides);
-        patch.reroll = { ...part.reroll, values: cleaned };
-      }
-      if (part.explode) {
-        const cleaned = clampFacesToSides(part.explode.onFaces, sides);
-        patch.explode = { ...part.explode, onFaces: cleaned };
-      }
-      onChange(patch);
-    },
-    [onChange, part.reroll, part.explode],
+    (sides: number) => onChange(sidesPatch(part, sides)),
+    [onChange, part],
   );
   const [customOpen, setCustomOpen] = useState(false);
   const sidesIsCustom = !STANDARD_DICE.includes(part.sides);

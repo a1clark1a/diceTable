@@ -14,8 +14,8 @@
     },
     {
       "id": "math.modifier",
-      "label": "The Math · §3 Modifier — distribution shift",
-      "deps": ["src/engine/distribution.ts", "src/engine/expression.ts", "src/docs/math.tsx"]
+      "label": "The Math · §3 Modifier steps — add, multiply, divide",
+      "deps": ["src/engine/distribution.ts", "src/engine/expression.ts", "src/engine/mods.ts", "src/docs/math.tsx"]
     },
     {
       "id": "math.keep",
@@ -51,6 +51,7 @@
         "src/engine/die.ts",
         "src/engine/expression.ts",
         "src/engine/distribution.ts",
+        "src/engine/mods.ts",
         "src/docs/math.tsx"
       ]
     },
@@ -133,16 +134,23 @@
         "src/components/chart/tooltipRows.ts",
         "src/components/chart/litSummary.ts",
         "src/components/chart/useSeriesFocus.ts",
+        "src/components/chart/spreadBand.ts",
         "src/components/inspect/InspectChart.tsx",
+        "src/components/inspect/InspectChartBody.tsx",
         "src/components/docs/Quickstart.tsx",
         "src/components/docs/quickstart-data.tsx"
       ]
     },
     {
       "id": "quickstart.expand",
-      "label": "Quickstart · Step 4 (Expand a row — dice parts and roll mode)",
+      "label": "Quickstart · Step 4 (Expand a row — dice parts, modifier steps and roll mode)",
       "deps": [
         "src/components/RollExpand.tsx",
+        "src/components/editor/ModChainEditor.tsx",
+        "src/state/modChain.ts",
+        "src/components/editor/RowTools.tsx",
+        "src/components/editor/SweepPanel.tsx",
+        "src/components/editor/NoteField.tsx",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/components/docs/Quickstart.tsx",
@@ -178,6 +186,9 @@
       "id": "quickstart.compare",
       "label": "Quickstart · Step 7 (Compare rolls)",
       "deps": [
+        "src/components/editor/RowTools.tsx",
+        "src/components/editor/SweepPanel.tsx",
+        "src/state/sweep.ts",
         "src/components/RollsTable.tsx",
         "src/components/RollsCards.tsx",
         "src/components/chart/OverlayChart.tsx",
@@ -280,6 +291,7 @@
         "src/components/chart/seriesEval.ts",
         "src/components/chart/ChartViewChips.tsx",
         "src/components/chart/useChartPanels.ts",
+        "src/components/chart/spreadBand.ts",
         "src/docs/glossary.ts"
       ]
     },
@@ -295,6 +307,9 @@
         "src/engine/compare.ts",
         "src/components/compare/RollOffView.tsx",
         "src/components/compare/HeadToHeadView.tsx",
+        "src/components/editor/RowTools.tsx",
+        "src/components/editor/SweepPanel.tsx",
+        "src/state/sweep.ts",
         "src/docs/glossary.ts"
       ]
     },
@@ -304,6 +319,7 @@
       "label": "GEO/SEO · llms.txt (LLM-facing app summary)",
       "deps": [
         "public/llms.txt",
+        "src/presets/recipePages.ts",
         "src/engine/parts.ts",
         "src/engine/die.ts",
         "src/engine/expression.ts",
@@ -334,7 +350,13 @@
         "src/engine/check.ts",
         "src/engine/keepAcross.ts",
         "src/telemetry/errorReporter.ts",
-        "src/components/docs/docs-tab.ts"
+        "src/components/docs/docs-tab.ts",
+        "src/state/sweep.ts",
+        "src/components/editor/SweepPanel.tsx",
+        "src/components/editor/NoteField.tsx",
+        "src/components/chart/spreadBand.ts",
+        "src/engine/mods.ts",
+        "src/share/notation.ts"
       ]
     },
     {
@@ -372,7 +394,10 @@
         "src/pages/PrivacyPage.tsx",
         "src/pages/NotFoundPage.tsx",
         "src/components/docs/docs-tab.ts",
-        "src/App.tsx"
+        "src/App.tsx",
+        "src/pages/RecipeRoute.tsx",
+        "src/presets/recipePages.ts",
+        "src/components/recipes/RecipeHero.tsx"
       ]
     },
     {
@@ -382,7 +407,201 @@
         "public/sitemap.xml",
         "src/components/docs/docs-tab.ts",
         "src/App.tsx",
-        "vercel.json"
+        "vercel.json",
+        "src/presets/recipePages.ts"
+      ]
+    },
+    {
+      "id": "seo.recipe.4d6-drop-lowest",
+      "label": "GEO/SEO · Recipe page /recipes/4d6-drop-lowest (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/starterRolls.ts",
+        "src/engine/parts.ts",
+        "src/engine/die.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.advantage-vs-disadvantage",
+      "label": "GEO/SEO · Recipe page /recipes/advantage-vs-disadvantage (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/roll.ts",
+        "src/engine/expression.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/RowTools.tsx",
+        "src/components/TargetToolbar.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.great-weapon-fighting",
+      "label": "GEO/SEO · Recipe page /recipes/great-weapon-fighting (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/die.ts",
+        "src/engine/parts.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.elven-accuracy",
+      "label": "GEO/SEO · Recipe page /recipes/elven-accuracy (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/parts.ts",
+        "src/engine/die.ts",
+        "src/engine/roll.ts",
+        "src/engine/expression.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/TargetToolbar.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.exploding-dice",
+      "label": "GEO/SEO · Recipe page /recipes/exploding-dice (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/die.ts",
+        "src/engine/parts.ts",
+        "src/engine/compare.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/RowTools.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.counting-successes",
+      "label": "GEO/SEO · Recipe page /recipes/counting-successes (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/starterRolls.ts",
+        "src/engine/parts.ts",
+        "src/engine/die.ts",
+        "src/engine/expression.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/PoolControls.tsx",
+        "src/components/TargetToolbar.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.expanded-crit-range",
+      "label": "GEO/SEO · Recipe page /recipes/expanded-crit-range (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/check.ts",
+        "src/engine/critEffect.ts",
+        "src/engine/roll.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/CheckEditor.tsx",
+        "src/components/editor/RowTools.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.chance-to-hit-vs-ac",
+      "label": "GEO/SEO · Recipe page /recipes/chance-to-hit-vs-ac (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/check.ts",
+        "src/engine/critEffect.ts",
+        "src/engine/roll.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/CheckEditor.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.keep-highest-mixed-dice",
+      "label": "GEO/SEO · Recipe page /recipes/keep-highest-mixed-dice (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/keepAcross.ts",
+        "src/engine/roll.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx",
+        "src/components/editor/KeepAcrossPanel.tsx"
+      ]
+    },
+    {
+      "id": "seo.recipe.2d6-vs-3d6-vs-1d20",
+      "label": "GEO/SEO · Recipe page /recipes/2d6-vs-3d6-vs-1d20 (heading, intro numbers, HowTo steps)",
+      "deps": [
+        "src/presets/recipePages.ts",
+        "src/components/seo/structuredData.ts",
+        "src/engine/stats.ts",
+        "src/presets/recipes.ts",
+        "src/engine/distribution.ts",
+        "src/engine/parts.ts",
+        "src/components/RollsTable.tsx",
+        "src/components/RollsCards.tsx",
+        "src/components/WorkshopToolbar.tsx",
+        "src/components/RollExpand.tsx",
+        "src/components/recipes/RecipeHero.tsx",
+        "src/components/editor/DicePartRow.tsx"
       ]
     }
   ]

@@ -368,15 +368,16 @@ describe('AppContext updateExpression mode switching', () => {
     });
   });
 
-  it('leaves roll mode and flat modifier unchanged when switching to pool', () => {
-    seedRows([sumRow({ rollMode: 'advantage', flatModifier: 2 })]);
+  it('leaves roll mode and the modifier chain unchanged when switching to pool', () => {
+    seedRows([sumRow({ rollMode: 'advantage', mods: [{ op: 'add', value: 2 }] })]);
     const { result } = renderHook(() => useApp(), { wrapper });
     act(() => {
       result.current.updateExpression('e0', { mode: 'pool' });
     });
     const row = result.current.expressions[0]!;
     expect(row.rollMode).toBe('advantage');
-    expect(row.flatModifier).toBe(2);
+    expect(row.mods).toEqual([{ op: 'add', value: 2 }]);
+    expect(row.flatModifier).toBe(0);
   });
 
   it('switching back to sum deletes the threshold and does not restore keep or explode', () => {
@@ -669,7 +670,7 @@ describe('AppContext keepAcross', () => {
       result.current.updateExpression(id, { keepAcross: { type: 'lowest', n: 2 } });
     });
     act(() => {
-      result.current.updateExpression(id, { flatModifier: 4 });
+      result.current.updateExpression(id, { mods: [{ op: 'add', value: 4 }] });
     });
     expect(result.current.expressions[0]!.keepAcross).toEqual({
       type: 'lowest',

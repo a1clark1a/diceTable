@@ -49,7 +49,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       dice: '4d3 − 8',
       why: 'A Fate die shows minus, blank or plus, which is a d3 minus 2. Four of them run from −4 to +4, with 0 the most likely.',
     },
-    [row('fate', 'Four Fate dice', { parts: [{ count: 4, sides: 3 }], flatModifier: -8 })],
+    [row('fate', 'Four Fate dice', { parts: [{ count: 4, sides: 3 }], mods: [{ op: 'sub', value: 8 }] })],
   ),
   preset(
     {
@@ -62,7 +62,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
     [
       row('gwf', 'Greatsword with GWF', {
         parts: [{ count: 2, sides: 6, reroll: { values: [1, 2], mode: 'once' } }],
-        flatModifier: 3,
+        mods: [{ op: 'add', value: 3 }],
       }),
     ],
   ),
@@ -112,7 +112,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
   preset(
     {
       slug: 'dice-shapes',
-      name: 'Same range, different shapes',
+      name: 'More dice, fewer extremes',
       family: 'totals',
       alsoCalled: ['1d20 vs 3d6', '2d6 vs 3d6', 'Bell curve', 'Swingy dice'],
       dice: '1d20, 3d6, 2d6',
@@ -126,6 +126,22 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
   ),
   preset(
     {
+      slug: 'exploding-dice',
+      name: 'Roll again on a 6 and add',
+      family: 'totals',
+      alsoCalled: ['Exploding dice', 'Open-ended dice'],
+      dice: '1d6 vs 1d6, 6s explode',
+      why: 'Every 6 rolls the die again and adds, as long as 6s keep coming. The average goes from 3.5 to 4.2, and a total of exactly 6 can no longer happen.',
+    },
+    [
+      row('plain-d6', 'Plain d6', { parts: [{ count: 1, sides: 6 }] }),
+      row('exploding-d6', 'Exploding d6', {
+        parts: [{ count: 1, sides: 6, explode: { onFaces: [6], depthCap: 10 } }],
+      }),
+    ],
+  ),
+  preset(
+    {
       slug: 'daggerheart-duality',
       family: 'totals',
       alsoCalled: ['Daggerheart', 'Duality dice', 'Hope and Fear'],
@@ -133,13 +149,13 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       why: 'The total of both dice plus your modifier. Doubles (1 in 12) always succeed, which these rows do not count, so against 12 at +2 the real chance is 77.8%, not the 75% the total shows.',
     },
     [
-      row('dh-plain', 'Duality dice +2', { parts: [{ count: 2, sides: 12 }], flatModifier: 2 }),
+      row('dh-plain', 'Duality dice +2', { parts: [{ count: 2, sides: 12 }], mods: [{ op: 'add', value: 2 }] }),
       row('dh-adv', 'With advantage', {
         parts: [
           { count: 2, sides: 12 },
           { count: 1, sides: 6 },
         ],
-        flatModifier: 2,
+        mods: [{ op: 'add', value: 2 }],
       }),
     ],
   ),
@@ -187,7 +203,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
     [
       row('blades-resist', 'Resistance stress', {
         parts: [{ count: 2, sides: 6, keep: { type: 'lowest', n: 1 } }],
-        flatModifier: -1,
+        mods: [{ op: 'sub', value: 1 }],
       }),
     ],
   ),
@@ -278,15 +294,15 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       why: 'Three versions of the same check, so you can see how far each one moves the odds.',
     },
     [
-      row('adv-normal', 'Normal', { parts: [{ count: 1, sides: 20 }], flatModifier: 5 }),
+      row('adv-normal', 'Normal', { parts: [{ count: 1, sides: 20 }], mods: [{ op: 'add', value: 5 }] }),
       row('adv-adv', 'Advantage', {
         parts: [{ count: 1, sides: 20 }],
-        flatModifier: 5,
+        mods: [{ op: 'add', value: 5 }],
         rollMode: 'advantage',
       }),
       row('adv-dis', 'Disadvantage', {
         parts: [{ count: 1, sides: 20 }],
-        flatModifier: 5,
+        mods: [{ op: 'add', value: 5 }],
         rollMode: 'disadvantage',
       }),
     ],
@@ -303,12 +319,12 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
     [
       row('elven-adv', 'Advantage', {
         parts: [{ count: 1, sides: 20 }],
-        flatModifier: 5,
+        mods: [{ op: 'add', value: 5 }],
         rollMode: 'advantage',
       }),
       row('elven', 'Elven Accuracy', {
         parts: [{ count: 3, sides: 20, keep: { type: 'highest', n: 1 } }],
-        flatModifier: 5,
+        mods: [{ op: 'add', value: 5 }],
       }),
     ],
   ),
@@ -324,7 +340,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
     [
       row('halfling', 'Halfling Lucky', {
         parts: [{ count: 1, sides: 20, reroll: { values: [1], mode: 'once' } }],
-        flatModifier: 5,
+        mods: [{ op: 'add', value: 5 }],
       }),
     ],
   ),
@@ -407,8 +423,8 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       why: 'The head-to-head view shows how often the attacker wins outright and how often they tie. In a D&D 5e (2014) contest a tie changes nothing.',
     },
     [
-      row('contest-a', 'Attacker +5', { parts: [{ count: 1, sides: 20 }], flatModifier: 5 }),
-      row('contest-d', 'Defender +3', { parts: [{ count: 1, sides: 20 }], flatModifier: 3 }),
+      row('contest-a', 'Attacker +5', { parts: [{ count: 1, sides: 20 }], mods: [{ op: 'add', value: 5 }] }),
+      row('contest-d', 'Defender +3', { parts: [{ count: 1, sides: 20 }], mods: [{ op: 'add', value: 3 }] }),
     ],
   ),
   preset(
@@ -421,7 +437,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       why: 'Compare the action row with the higher challenge die for a strong hit, and with the lower one for at least a weak hit. Ties do not count as beating. This holds up to +4, since the action score tops out at 10.',
     },
     [
-      row('iron-action', 'Action score +2', { parts: [{ count: 1, sides: 6 }], flatModifier: 2 }),
+      row('iron-action', 'Action score +2', { parts: [{ count: 1, sides: 6 }], mods: [{ op: 'add', value: 2 }] }),
       row('iron-high', 'Higher challenge die', {
         parts: [{ count: 2, sides: 10, keep: { type: 'highest', n: 1 } }],
       }),
@@ -448,7 +464,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       dice: '2d6 + 1',
       why: 'Set a target at 10 for a full success. A target at 7 shows any hit, so a partial success is the gap between the two.',
     },
-    [row('pbta', 'Move at +1', { parts: [{ count: 2, sides: 6 }], flatModifier: 1 })],
+    [row('pbta', 'Move at +1', { parts: [{ count: 2, sides: 6 }], mods: [{ op: 'add', value: 1 }] })],
   ),
   preset(
     {
@@ -501,7 +517,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       dice: '3d6 − 9',
       why: 'Margin is skill minus roll. 3d6 is symmetric, so this row has the same odds as the margin: 0 or more is a success.',
     },
-    [row('gurps', 'Margin at skill 12', { parts: [{ count: 3, sides: 6 }], flatModifier: -9 })],
+    [row('gurps', 'Margin at skill 12', { parts: [{ count: 3, sides: 6 }], mods: [{ op: 'sub', value: 9 }] })],
   ),
   preset(
     {

@@ -24,6 +24,14 @@ describe('filterRecipes: the plan acceptance queries', () => {
   it('finds roll-and-keep for "L5R"', () => {
     expect(slugs('L5R')).toEqual(['roll-and-keep']);
   });
+
+  it('finds the plain exploding dice recipe for "exploding"', () => {
+    expect(slugs('exploding')).toContain('exploding-dice');
+  });
+
+  it('finds the plain exploding dice recipe for "explode"', () => {
+    expect(slugs('explode')).toContain('exploding-dice');
+  });
 });
 
 describe('filterRecipes: how a query word matches', () => {

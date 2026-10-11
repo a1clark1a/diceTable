@@ -23,6 +23,11 @@ import {
 } from '../components/chart/effectiveView';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
+import { JsonLd } from '../components/seo/JsonLd';
+import { buildHowToLd } from '../components/seo/structuredData';
+import { RecipeHero } from '../components/recipes/RecipeHero';
+import { recipePath, type RecipePage } from '../presets/recipePages';
+import type { Expression } from '../types';
 import { useTableFits } from '../hooks/useBreakpoint';
 import { useApp } from '../state/useApp';
 
@@ -68,7 +73,48 @@ function CompareActions({ onFindRoll }: { onFindRoll: () => void }) {
   );
 }
 
-export default function TablePage() {
+interface TablePageProps {
+  /**
+   * Set on a recipe page, where the table in context holds the recipe's rows
+   * rather than the visitor's saved ones, and `onOpen` copies them across.
+   */
+  recipe?: { page: RecipePage; onOpen: (rows: Expression[]) => void };
+}
+
+function HomeHero({ hasRows }: { hasRows: boolean }) {
+  return (
+    <>
+      <RouteHead
+        title="DiceTable: Build, compare and balance dice rolls"
+        description="Build dice rolls for any tabletop game or your own homebrew. Compare them side by side, see the exact odds of every result, and balance them."
+        path="/"
+      />
+      {/* srOnly rather than a conditional: the h1 stays mounted whatever the
+          table holds, so / never loses its only heading. The copy must match
+          the preboot hero in index.html byte for byte, or the first paint
+          flashes from one to the other. */}
+      <Stack gap={1} srOnly={hasRows}>
+        <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
+          Build, compare and balance dice rolls
+        </Heading>
+        <Text
+          fontSize={{ base: 'xs', md: 'sm' }}
+          color="fg.muted"
+          maxW="620px"
+          // Two lines is the whole pitch on a phone; the rest is chrome
+          // standing between the reader and the first roll.
+          lineClamp={{ base: 2, md: 'none' }}
+          css={{ textWrap: 'pretty' }}
+        >
+          Make a table of rolls from any game or your own homebrew, then see
+          their exact odds on one chart.
+        </Text>
+      </Stack>
+    </>
+  );
+}
+
+export default function TablePage({ recipe }: TablePageProps) {
   const tableFits = useTableFits();
   const chartRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -100,7 +146,10 @@ export default function TablePage() {
           <Grid
             ref={gridRef}
             flex="1"
-            minH={0}
+            // A recipe page's heading sits above this grid and never scrolls
+            // away in the 2xl layout, so without a floor it would squeeze the
+            // table and chart to a sliver; with one, the page scrolls instead.
+            minH={recipe ? { base: 0, '2xl': '26rem' } : 0}
             gap={{ base: 4, '2xl': 0 }}
             alignItems="stretch"
             // Capping the table rather than letting it fill a 1fr track is what
@@ -268,30 +317,30 @@ export default function TablePage() {
 
   return (
     <Stack gap={{ base: 4, md: 6 }} flex="1" minH={0}>
-      <RouteHead
-        title="DiceTable — Dice probability comparison for tabletop gaming"
-        description="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
-        path="/"
-      />
-      {/* srOnly rather than a conditional: the h1 stays mounted whatever the
-          table holds, so / never loses its only heading. */}
-      <Stack gap={1} srOnly={expressions.length > 0}>
-        <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
-          Compare dice rolls side by side
-        </Heading>
-        <Text
-          fontSize={{ base: 'xs', md: 'sm' }}
-          color="fg.muted"
-          maxW="620px"
-          // Two lines is the whole pitch on a phone; the rest is chrome
-          // standing between the reader and the first roll.
-          lineClamp={{ base: 2, md: 'none' }}
-          css={{ textWrap: 'pretty' }}
-        >
-          Build a table of named rolls, set a target number, and see the exact
-          probability for every result on one chart.
-        </Text>
-      </Stack>
+      {recipe ? (
+        <>
+          <RouteHead
+            title={recipe.page.title}
+            description={recipe.page.description}
+            path={recipePath(recipe.page.slug)}
+          />
+          <JsonLd
+            data={buildHowToLd(
+              recipe.page.heading,
+              recipe.page.description,
+              recipe.page.steps,
+            )}
+          />
+          <RecipeHero
+            page={recipe.page}
+            onOpen={
+              expressions.length > 0 ? () => recipe.onOpen(expressions) : null
+            }
+          />
+        </>
+      ) : (
+        <HomeHero hasRows={expressions.length > 0} />
+      )}
       <WorkshopViewSwitcher
         views={registry}
         active={active.id}

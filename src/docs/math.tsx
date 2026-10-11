@@ -60,13 +60,17 @@ P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
   },
   {
     id: 'modifier',
-    title: '3 · Modifier: shifting the whole roll',
-    subtitle: '+M slides every result up by M (or down, if it’s negative)',
+    title: '3 · Modifier steps: add, multiply, divide',
+    subtitle: 'Steps run in order on the total, after the dice',
     plain: (
       <Text>
-        Adding a flat <Code>+M</Code> doesn’t change any of the chances. It
-        just relabels every result. The chart looks the same as before, just
-        slid sideways.
+        Adding <Code>+M</Code> doesn’t change any of the chances. It just
+        relabels every result, so the chart slides sideways. Multiplying by{' '}
+        <Code>×M</Code> relabels too, but it spreads the results apart: 2d6 × 10
+        can only land on 20, 30, … 120. Dividing by <Code>÷D</Code> rounds down,
+        so neighbouring results land on the same number and their chances add
+        up. Steps run in the order you list them, and advantage picks the
+        better roll after all of them.
       </Text>
     ),
     example: (
@@ -75,7 +79,9 @@ P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
         probability <Code>1/6</Code>. Same as 1d6 with each face relabeled.
       </Text>
     ),
-    snippet: `P_(X + M)(k) = P_X(k − M)`,
+    snippet: `P_(X + M)(k) = P_X(k − M)
+P_(X × M)(k) = P_X(k / M)             when M divides k, else 0
+P_(X ÷ D)(k) = Σ P_X(j)   over j with ⌊j / D⌋ = k`,
   },
   {
     id: 'keep',
@@ -224,9 +230,10 @@ explode(P, F, depth):
         distribution (after any rerolls), then builds the pool one die at a
         time: each new die either adds one success or adds nothing. Mixed
         pools like 2d6 + 3d8 build each part’s count the same way, then
-        combine them with the convolution from section 2. A modifier becomes
-        auto-successes that shift the final count, and any result that would
-        land below zero piles up at exactly zero.
+        combine them with the convolution from section 2. Modifier steps change
+        the final count: adding gives automatic successes. Any result that
+        would land below zero piles up at exactly zero, once, after the last
+        step.
       </Text>
     ),
     example: (
@@ -250,8 +257,8 @@ per die:  P_next(k) = P(k) · (1 − p) + P(k − 1) · p
 // identical dice collapse to the binomial formula
 P(k successes in N dice) = C(N, k) · p^k · (1 − p)^(N − k)
 
-// modifier M = auto-successes, clamped at zero
-P_final(k) = Σ P_pool(j)     over all j with max(0, j + M) = k`,
+// modifier steps run on the count, then clamp at zero
+P_final(k) = Σ P_chain(j)    over all j with max(0, j) = k`,
   },
   {
     id: 'compare',

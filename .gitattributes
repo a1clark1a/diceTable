@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Vitest writes snapshots with LF; a CRLF checkout makes every test run look like an edit.
+*.snap text eol=lf
