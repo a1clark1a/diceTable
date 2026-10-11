@@ -11,6 +11,7 @@ import { RollHistoryProvider } from './state/RollHistoryContext';
 import TablePage from './pages/TablePage';
 import NotFoundPage from './pages/NotFoundPage';
 import PrivacyPage from './pages/PrivacyPage';
+import RecipeRoute from './pages/RecipeRoute';
 
 const DocsPage = lazy(() => import('./pages/DocsPage'));
 
@@ -31,6 +32,9 @@ export default function App() {
         <AppProvider>
           <RollHistoryProvider>
             <Routes>
+              {/* Outside the shared layout: a recipe page wraps the shell in a
+                  table of its own, so it renders its own shell. */}
+              <Route path="recipes/:slug" element={<RecipeRoute />} />
               <Route element={<AppShell />}>
                 <Route index element={<TablePage />} />
                 <Route

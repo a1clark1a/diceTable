@@ -33,6 +33,11 @@
   } catch (_) {
     /* storage blocked: stay light */
   }
+  // A recipe page opens on its own heading, not the homepage pitch, so the
+  // pre-mount hero would paint copy that belongs to another page and swap it.
+  if (location.pathname.indexOf('/recipes/') === 0) {
+    document.documentElement.classList.add('recipe-route');
+  }
   try {
     var saved = localStorage.getItem('dicetable.v2');
     if (saved && JSON.parse(saved).value.expressions.length > 0) {

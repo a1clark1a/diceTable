@@ -14,6 +14,7 @@ This is the foundational reference for how DiceTable persists user data. Read th
 - **One envelope.** Stored as `{ version, value }`. The version bumps with breaking shape changes.
 - **One validator.** [`validatePersistedState`](../../src/state/persistedSchema.ts) is the only trusted way data crosses the boundary back into the app.
 - **One source of truth.** [`AppContext`](../../src/state/AppContext.tsx) is the single component that owns persisted state. Every other component reads from context, never from `localStorage` directly.
+- **Recipe pages never touch it.** A `/recipes/:slug` page renders inside `SeededAppProvider` (same file), which holds the recipe's rows in memory and runs the same actions, but neither reads nor writes `dicetable.v2`. Opening a link must never replace someone's table. The only path from a recipe page into the saved table is its **Open this in my table** button, which appends through the saved provider's `addExpressions` (de-duplicated names, the 100-row cap) and then navigates to `/`.
 - **Serverless. Single-device. Client-only.** No accounts, no sync, no migration server, no IndexedDB, no service worker. By design.
 
 ---
