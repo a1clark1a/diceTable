@@ -345,7 +345,7 @@ describe('RollsCards inspect modal target', () => {
 
 // One card carries a note and its sibling does not, so presence and absence
 // are checked on the same list.
-const CARD_NOTE = 'v2: d8, the d10 spiked too hard';
+const NOTED_ROW_TEXT = 'v2: d8, the d10 spiked too hard';
 
 function seedNotedCards() {
   const state = {
@@ -358,7 +358,7 @@ function seedNotedCards() {
         flatModifier: 0,
         rollMode: 'normal',
         mode: 'sum',
-        note: CARD_NOTE,
+        note: NOTED_ROW_TEXT,
       },
       {
         id: 'sum2',
@@ -390,28 +390,28 @@ describe('RollsCards row note', () => {
     seedNotedCards();
     renderCards();
     expect(
-      within(cardFor('Sum row')).getByText(CARD_NOTE),
+      within(cardFor('Sum row')).getByText(NOTED_ROW_TEXT),
     ).toBeInTheDocument();
   });
 
   it('prefixes the note with "Note:" for screen readers', async () => {
     seedNotedCards();
     renderCards();
-    const text = within(cardFor('Sum row')).getByText(CARD_NOTE);
-    expect(text).toHaveTextContent(`Note: ${CARD_NOTE}`);
+    const text = within(cardFor('Sum row')).getByText(NOTED_ROW_TEXT);
+    expect(text).toHaveTextContent(`Note: ${NOTED_ROW_TEXT}`);
   });
 
   it('shows no note on a card without one', async () => {
     seedNotedCards();
     renderCards();
     const card = cardFor('Bonus row');
-    expect(within(card).queryByText(CARD_NOTE)).toBeNull();
+    expect(within(card).queryByText(NOTED_ROW_TEXT)).toBeNull();
     expect(within(card).queryByText(/^Note:/)).toBeNull();
   });
 
   it('shows the note once across the list', async () => {
     seedNotedCards();
     renderCards();
-    expect(screen.getAllByText(CARD_NOTE)).toHaveLength(1);
+    expect(screen.getAllByText(NOTED_ROW_TEXT)).toHaveLength(1);
   });
 });
