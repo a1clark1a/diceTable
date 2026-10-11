@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
 import { normalizeExpression } from './normalize';
@@ -196,37 +205,29 @@ function isQuotaError(err: unknown): boolean {
   );
 }
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const quotaToastFired = useRef(false);
+type SetState = Dispatch<SetStateAction<PersistedState>>;
 
-  const onWriteError = useCallback((err: unknown) => {
-    if (!isQuotaError(err) || quotaToastFired.current) return;
-    quotaToastFired.current = true;
-    toaster.create({
-      type: 'error',
-      title: 'Browser storage is full',
-      description:
-        'Edits will stop saving until you free up space. Export your table from the Share menu to back it up.',
-      duration: 10000,
-    });
-  }, []);
-
-  const [state, setState] = useLocalStorage<PersistedState>(
-    STORAGE_KEY,
-    initialState,
-    {
-      version: ENVELOPE_VERSION,
-      validate: validateAndNormalize,
-      onWriteError,
-    },
-  );
-
+// Both providers below run every action through this one hook, so a table that
+// lives only in memory cannot drift from the saved one in what an edit does.
+function useAppValue(state: PersistedState, setState: SetState): AppContextValue {
   // For actions that must decide something before their update runs. Event
   // handlers fire after commit, so this is current by the time one reads it.
   const latest = useRef(state);
   useEffect(() => {
     latest.current = state;
   }, [state]);
+
+  // The toaster outlives this table: leaving a recipe page unmounts its table
+  // while the toast stays up on the next page, where its Undo could only report
+  // removing rows it can no longer reach.
+  const undoToasts = useRef(new Set<string>());
+  useEffect(() => {
+    const ids = undoToasts.current;
+    return () => {
+      for (const id of ids) toaster.remove(id);
+      ids.clear();
+    };
+  }, []);
 
   // Every row edit funnels through here, so normalizeExpression only has to be
   // right in one place for no mutation to be able to persist an invariant break.
@@ -530,16 +531,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
       // A phone can have the source's open editor between it and the new rows,
       // so the toast says where they went.
-      toaster.create({
+      const toastId = toaster.create({
         type: 'success',
         title: fresh.length === 1 ? 'Added 1 roll' : `Added ${fresh.length} rolls`,
         description: `Just below ${source.name}.`,
         duration: 8000,
         action: { label: 'Undo', onClick: undo },
       });
+      undoToasts.current.add(toastId);
     },
     [setState, removeExpressions],
   );
+
 
   const renameExpression = useCallback(
     (id: string, name: string) => {
@@ -767,5 +770,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  return value;
+}
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const quotaToastFired = useRef(false);
+
+  const onWriteError = useCallback((err: unknown) => {
+    if (!isQuotaError(err) || quotaToastFired.current) return;
+    quotaToastFired.current = true;
+    toaster.create({
+      type: 'error',
+      title: 'Browser storage is full',
+      description:
+        'Edits will stop saving until you free up space. Export your table from the Share menu to back it up.',
+      duration: 10000,
+    });
+  }, []);
+
+  const [state, setState] = useLocalStorage<PersistedState>(
+    STORAGE_KEY,
+    initialState,
+    {
+      version: ENVELOPE_VERSION,
+      validate: validateAndNormalize,
+      onWriteError,
+    },
+  );
+
+  const value = useAppValue(state, setState);
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+/** What a table that starts somewhere other than the saved one is seeded with. */
+export interface TableSeed {
+  rows: readonly Expression[];
+  target?: TargetState;
+  poolTargets?: readonly number[];
+}
+
+function seededState(seed: TableSeed): PersistedState {
+  return {
+    ...initialState,
+    expressions: insertExpressionsAt([], 0, seed.rows.map(freshCopy)).expressions,
+    ui: {
+      ...initialState.ui,
+      ...(seed.target ? { target: { ...seed.target, values: [...seed.target.values] } } : {}),
+      ...(seed.poolTargets ? { poolTargets: [...seed.poolTargets] } : {}),
+    },
+  };
+}
+
+/**
+ * A table that never touches localStorage, for a page that arrives with its
+ * own rows. Reading or writing the saved envelope here would replace the
+ * visitor's table just for opening a link, so edits live only as long as the
+ * page does, and the page decides when, if ever, rows cross into the saved one.
+ */
+export function SeededAppProvider({
+  seed,
+  children,
+}: {
+  seed: TableSeed;
+  children: ReactNode;
+}) {
+  const [state, setState] = useState(() => seededState(seed));
+  const value = useAppValue(state, setState);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -9,9 +9,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Default title for non-JS crawlers and the pre-mount paint. RouteHead
-         renders a per-route <title> at runtime; React 19 hoists it ahead of this
-         one, so document.title and Googlebot both see the route-correct title. -->
-    <title>DiceTable — Dice probability comparison for tabletop gaming</title>
+         renders a per-route <title> at runtime, and React 19 hoists it ahead of
+         this one; RouteHead then removes everything marked data-default, so the
+         live document carries exactly one title while the served HTML keeps
+         this fallback for crawlers that never run a script. -->
+    <title data-default>DiceTable: Build, compare and balance dice rolls</title>
     <meta name="theme-color" content="#f2f1ed" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#131519" media="(prefers-color-scheme: dark)" />
 
@@ -61,7 +63,9 @@
         letter-spacing: -0.025em;
       }
       html.has-rolls .preboot h1,
-      html.has-rolls .preboot p {
+      html.has-rolls .preboot p,
+      html.recipe-route .preboot h1,
+      html.recipe-route .preboot p {
         position: absolute;
         width: 1px;
         height: 1px;
@@ -104,8 +108,18 @@
       }
     </style>
 
-    <!-- Global OG/Twitter card art and type. Per-route og/twitter title, description,
-         and url are emitted by RouteHead so each route owns exactly one of each. -->
+    <!-- Link previews (Slack, Discord, X, iMessage and the rest) never run a
+         script, so this is all they ever read, for every URL on the site. The
+         card art, type and site name are global and stay. The title and
+         description below are the homepage's, as fallbacks: RouteHead renders a
+         route's own and removes these (data-default), so the live document
+         holds exactly one of each. -->
+    <meta name="description" content="Build dice rolls for any tabletop game or your own homebrew. Compare them side by side, see the exact odds of every result, and balance them." data-default />
+    <meta property="og:title" content="DiceTable: Build, compare and balance dice rolls" data-default />
+    <meta property="og:description" content="Build dice rolls for any tabletop game or your own homebrew. Compare them side by side, see the exact odds of every result, and balance them." data-default />
+    <meta name="twitter:title" content="DiceTable: Build, compare and balance dice rolls" data-default />
+    <meta name="twitter:description" content="Build dice rolls for any tabletop game or your own homebrew. Compare them side by side, see the exact odds of every result, and balance them." data-default />
+    <meta property="og:site_name" content="DiceTable" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://dice-table.app/og-image.png" />
     <meta property="og:image:width" content="1200" />
@@ -123,7 +137,7 @@
         "applicationCategory": "GameApplication",
         "operatingSystem": "Any",
         "browserRequirements": "Requires JavaScript",
-        "description": "Build a table of named dice rolls and compare them by exact probability, not simulation. Score rolls as sums, success pools or checks with effects, read mean, spread, range and hit chance, overlay PMF, CDF and CCDF curves, rank them by target, roll-off or head to head, and share as a link or image.",
+        "description": "Build and balance dice rolls for existing games and homebrew mechanics, and compare them by exact probability, not simulation. Score rolls as sums, success pools or checks with effects, read mean, spread, range and hit chance, overlay PMF, CDF and CCDF curves, rank them by target, roll-off or head to head, and share as a link or image.",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -147,10 +161,10 @@
          strings in sync with TablePage to avoid a content flash. -->
     <div id="root">
       <main class="preboot">
-        <h1>Compare dice rolls side by side</h1>
+        <h1>Build, compare and balance dice rolls</h1>
         <p>
-          Build a table of named rolls, set a target number, and see the exact
-          probability for every result on one chart.
+          Make a table of rolls from any game or your own homebrew, then see
+          their exact odds on one chart.
         </p>
       </main>
     </div>

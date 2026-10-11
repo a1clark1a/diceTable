@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useApp } from '../../state/useApp';
 import { RELEASES, type Release } from '../../whatsNew/releases';
 import { decideOnOpen, markSeen, readLastSeen } from '../../whatsNew/lastSeen';
 import { clearShareVisitMarker, shareVisitSource } from '../../share/autoload';
@@ -16,8 +15,11 @@ export interface WhatsNew {
   close: () => void;
 }
 
-export function useWhatsNew(): WhatsNew {
-  const { expressions } = useApp();
+/**
+ * `hasSavedTable` is about the visitor's own saved table, which is not always
+ * the table on screen: a recipe page shows rows of its own.
+ */
+export function useWhatsNew(hasSavedTable: boolean): WhatsNew {
   const current = __APP_VERSION__;
 
   // Decided once and without side effects: StrictMode runs this twice and keeps
@@ -29,7 +31,7 @@ export function useWhatsNew(): WhatsNew {
       read: readLastSeen(),
       current,
       releases: RELEASES,
-      hasSavedTable: expressions.length > 0,
+      hasSavedTable,
       shareVisit: source !== null,
     });
     return { decision, fromMarker: source === 'marker' };

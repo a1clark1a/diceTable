@@ -112,7 +112,7 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
   preset(
     {
       slug: 'dice-shapes',
-      name: 'Same range, different shapes',
+      name: 'More dice, fewer extremes',
       family: 'totals',
       alsoCalled: ['1d20 vs 3d6', '2d6 vs 3d6', 'Bell curve', 'Swingy dice'],
       dice: '1d20, 3d6, 2d6',
@@ -122,6 +122,22 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
       row('shape-d20', '1d20', { parts: [{ count: 1, sides: 20 }] }),
       row('shape-3d6', '3d6', { parts: [{ count: 3, sides: 6 }] }),
       row('shape-2d6', '2d6', { parts: [{ count: 2, sides: 6 }] }),
+    ],
+  ),
+  preset(
+    {
+      slug: 'exploding-dice',
+      name: 'Roll again on a 6 and add',
+      family: 'totals',
+      alsoCalled: ['Exploding dice', 'Open-ended dice'],
+      dice: '1d6 vs 1d6, 6s explode',
+      why: 'Every 6 rolls the die again and adds, as long as 6s keep coming. The average goes from 3.5 to 4.2, and a total of exactly 6 can no longer happen.',
+    },
+    [
+      row('plain-d6', 'Plain d6', { parts: [{ count: 1, sides: 6 }] }),
+      row('exploding-d6', 'Exploding d6', {
+        parts: [{ count: 1, sides: 6, explode: { onFaces: [6], depthCap: 10 } }],
+      }),
     ],
   ),
   preset(

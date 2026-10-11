@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { MemoryRouter } from 'react-router-dom';
 import { AppProvider } from '../../state/AppContext';
+import { RECIPE_PAGES, recipePageLabel } from '../../presets/recipePages';
 import { useApp } from '../../state/useApp';
 import type { SuccessThreshold } from '../../types';
 import { STARTER_PRESETS } from '../../presets/starterRolls';
@@ -38,10 +40,12 @@ function readState(): ProbedExpression[] {
 function renderPanel(onFindRoll: () => void = () => {}) {
   return render(
     <ChakraProvider value={defaultSystem}>
-      <AppProvider>
-        <StartExamplesPanel onFindRoll={onFindRoll} />
-        <StateProbe />
-      </AppProvider>
+      <MemoryRouter>
+        <AppProvider>
+          <StartExamplesPanel onFindRoll={onFindRoll} />
+          <StateProbe />
+        </AppProvider>
+      </MemoryRouter>
     </ChakraProvider>,
   );
 }
@@ -121,5 +125,31 @@ describe('StartExamplesPanel', () => {
     expect(state).toHaveLength(1);
     expect(state[0]!.name).toBe('New roll');
     expect(state[0]!.mode).toBe('sum');
+  });
+});
+
+describe('StartExamplesPanel common questions', () => {
+  function questionLinks() {
+    const nav = screen.getByRole('navigation', { name: 'Common dice questions' });
+    return within(nav).getAllByRole('link');
+  }
+
+  it('links every recipe page by its short title, in page order', () => {
+    renderPanel();
+    expect(questionLinks().map((a) => a.textContent)).toEqual(
+      RECIPE_PAGES.map(recipePageLabel),
+    );
+  });
+
+  it('points each link at its recipe URL', () => {
+    renderPanel();
+    expect(questionLinks().map((a) => a.getAttribute('href'))).toEqual(
+      RECIPE_PAGES.map((p) => `/recipes/${p.slug}`),
+    );
+  });
+
+  it('adds nothing to the table just by being shown', () => {
+    renderPanel();
+    expect(readState()).toHaveLength(0);
   });
 });

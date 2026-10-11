@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { Box, Button, Flex, HStack, Text } from '@chakra-ui/react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Navbar } from './Navbar';
@@ -7,9 +7,23 @@ import { useShareLinkAutoload } from '../share/useShareLinkAutoload';
 import { tapTarget } from '../tapTarget';
 import { useWhatsNew } from '../whatsNew/useWhatsNew';
 import { WhatsNewDialog } from '../whatsNew/WhatsNewDialog';
+import { useApp } from '../../state/useApp';
 
-export function AppShell() {
-  const whatsNew = useWhatsNew();
+interface AppShellProps {
+  /** The page, when the shell is rendered inside a route rather than as its layout. */
+  children?: ReactNode;
+  /**
+   * Whether the visitor's own saved table has rows, for a shell whose context
+   * holds some other table. What's new decides who counts as a returning
+   * visitor from this, and a page's demo rows must not make a first visit
+   * look like one.
+   */
+  ownTableHasRows?: boolean;
+}
+
+export function AppShell({ children, ownTableHasRows }: AppShellProps) {
+  const { expressions } = useApp();
+  const whatsNew = useWhatsNew(ownTableHasRows ?? expressions.length > 0);
   const whatsNewButtonRef = useRef<HTMLButtonElement>(null);
   useShareLinkAutoload();
   return (
@@ -29,7 +43,7 @@ export function AppShell() {
           px={3}
           py={{ base: 3, md: 4 }}
         >
-          <Outlet />
+          {children ?? <Outlet />}
         </Box>
       </Box>
       <Box

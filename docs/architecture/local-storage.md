@@ -14,6 +14,7 @@ This is the foundational reference for how DiceTable persists user data. Read th
 - **One envelope.** Stored as `{ version, value }`. The version bumps with breaking shape changes.
 - **One validator.** [`validatePersistedState`](../../src/state/persistedSchema.ts) is the only trusted way data crosses the boundary back into the app.
 - **One source of truth.** [`AppContext`](../../src/state/AppContext.tsx) is the single component that owns persisted state. Every other component reads from context, never from `localStorage` directly.
+- **Recipe pages never touch it.** A `/recipes/:slug` page renders inside `SeededAppProvider` (same file), which holds the recipe's rows in memory and runs the same actions, but neither reads nor writes `dicetable.v2`. Opening a link must never replace someone's table. The only path from a recipe page into the saved table is its **Open this in my table** button, which appends through the saved provider's `addExpressions` (de-duplicated names, the 100-row cap) and then navigates to `/`.
 - **Serverless. Single-device. Client-only.** No accounts, no sync, no migration server, no IndexedDB, no service worker. By design.
 
 ---
@@ -32,7 +33,7 @@ These exclusions are intentional. Don't add them without a real product reason a
 
 - **Not a database.** No queries, no indexes, no transactions. The whole state is read once, held in memory, and written back on every change.
 - **Not a sync layer.** No multi-device sync, no conflict resolution, no CRDTs, no last-write-wins between tabs.
-- **Not multi-tab safe.** Two tabs of DiceTable open at once will overwrite each other's writes. Not a current use case; flagged below.
+- **Not multi-tab safe.** Two tabs of DiceTable open at once will overwrite each other's writes. Not a current use case; flagged below. Recipe pages make it likelier: a recipe opened from search in a second tab holds the saved table as it was when that tab loaded, so **Open this in my table** there writes that copy plus the recipe's rows over edits made since in the first tab.
 - **Not encrypted.** Anyone with access to the browser profile can read it. Don't put secrets in here. Today's data (dice expressions) is non-sensitive — this is an explicit assumption, not an oversight.
 - **Not migration-by-AI.** A version bump requires a hand-written migrator or an intentional reset. We do not "best-effort merge" old shapes.
 - **Not IndexedDB.** Total state is small (kilobytes). Switching to IDB would buy capacity and async writes we do not need today.

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { MemoryRouter } from 'react-router-dom';
 import indexHtml from '../../index.html?raw';
 import bootJs from '../../public/boot.js?raw';
 import type { DicePart } from '../types';
@@ -20,11 +21,13 @@ const TablePage = (await import('./TablePage')).default;
 function renderPage() {
   return render(
     <ChakraProvider value={defaultSystem}>
-      <AppProvider>
-        <RollHistoryProvider>
-          <TablePage />
-        </RollHistoryProvider>
-      </AppProvider>
+      <MemoryRouter>
+        <AppProvider>
+          <RollHistoryProvider>
+            <TablePage />
+          </RollHistoryProvider>
+        </AppProvider>
+      </MemoryRouter>
     </ChakraProvider>,
   );
 }
@@ -113,7 +116,7 @@ describe('TablePage first-run empty state', () => {
   });
 });
 
-const HERO = 'Compare dice rolls side by side';
+const HERO = 'Build, compare and balance dice rolls';
 
 
 
@@ -372,5 +375,237 @@ describe('TablePage Target view on a phone', () => {
     for (const el of siblings) {
       expect(getComputedStyle(el).display).toBe('none');
     }
+  });
+});
+
+// index.html as the server sends it, parsed without running its scripts.
+const served = new DOMParser().parseFromString(indexHtml, 'text/html');
+
+function collapse(text: string | null | undefined): string {
+  return (text ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function firstOf<T>(items: T[]): T {
+  const [item] = items;
+  if (item === undefined) throw new Error('expected at least one match');
+  return item;
+}
+
+describe('index.html before React mounts', () => {
+  function prebootText(tag: 'h1' | 'p'): string {
+    const text = collapse(
+      served.querySelector(`#root .preboot ${tag}`)?.textContent,
+    );
+    expect(text).not.toBe('');
+    return text;
+  }
+
+  it('ships a single title marked data-default for RouteHead to replace', () => {
+    const titles = [...served.querySelectorAll('title')];
+    expect(titles).toHaveLength(1);
+    expect(firstOf(titles).hasAttribute('data-default')).toBe(true);
+  });
+
+  it('paints the same heading before mount that / renders after it', () => {
+    renderPage();
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(collapse(heading.textContent)).toBe(prebootText('h1'));
+  });
+
+  it('paints the same paragraph before mount that / renders after it', () => {
+    renderPage();
+    expect(screen.getByText(prebootText('p')).tagName).toBe('P');
+  });
+});
+
+describe('the homepage pitch', () => {
+  // The positioning is building and balancing rolls, for published and
+  // homebrew mechanics alike, with "compare" kept because people search it.
+  function servedMeta(selector: string): string {
+    return served.querySelector(selector)?.getAttribute('content') ?? '';
+  }
+  function servedJsonLdDescription(): string {
+    const block = served.querySelector('script[type="application/ld+json"]');
+    const data: unknown = JSON.parse(block?.textContent ?? '{}');
+    if (typeof data !== 'object' || data === null || !('description' in data)) return '';
+    return String(data.description);
+  }
+
+  it('says balance in the title, description, heading and JSON-LD', () => {
+    renderPage();
+    const strings = [
+      document.title,
+      servedMeta('meta[name="description"]'),
+      collapse(screen.getByRole('heading', { level: 1 }).textContent),
+      servedJsonLdDescription(),
+    ];
+    for (const s of strings) expect(s).toMatch(/\bbalanc(e|ing)\b/i);
+  });
+
+  it('says homebrew in the description and JSON-LD', () => {
+    expect(servedMeta('meta[name="description"]')).toMatch(/homebrew/i);
+    expect(servedJsonLdDescription()).toMatch(/homebrew/i);
+  });
+
+  it('uses no em-dash or en-dash anywhere in the pitch', () => {
+    renderPage();
+    const strings = [
+      document.title,
+      servedMeta('meta[name="description"]'),
+      servedMeta('meta[property="og:title"]'),
+      servedMeta('meta[property="og:description"]'),
+      collapse(screen.getByRole('heading', { level: 1 }).textContent),
+      servedJsonLdDescription(),
+      collapse(served.querySelector('title')?.textContent),
+    ];
+    for (const s of strings) expect(s).not.toMatch(/[–—]/);
+  });
+
+  it('gives link previews the same title and description the page renders', () => {
+    renderPage();
+    expect(collapse(served.querySelector('title')?.textContent)).toBe(document.title);
+    expect(servedMeta('meta[name="description"]')).toBe(
+      document.head.querySelector('meta[name="description"]')?.getAttribute('content'),
+    );
+    expect(servedMeta('meta[property="og:title"]')).toBe(document.title);
+  });
+});
+
+// boot.js reads exactly these four browser globals. Passing stand-ins runs it
+// as a fresh page load would, without touching the test's own location.
+function runBoot({
+  pathname,
+  storage = window.localStorage,
+  doc = document.implementation.createHTMLDocument(''),
+}: {
+  pathname: string;
+  storage?: Pick<Storage, 'getItem'>;
+  doc?: Document;
+}): DOMTokenList {
+  const boot = new Function(
+    'location',
+    'localStorage',
+    'window',
+    'document',
+    bootJs,
+  );
+  boot({ pathname }, storage, { matchMedia: () => ({ matches: false }) }, doc);
+  return doc.documentElement.classList;
+}
+
+const blockedStorage: Pick<Storage, 'getItem'> = {
+  getItem: () => {
+    throw new DOMException('The operation is insecure.', 'SecurityError');
+  },
+};
+
+describe('boot.js recipe-route class', () => {
+  it.each(['/', '/docs/quickstart', '/recipes', '/recipes-guide', '/docs/recipes/x'])(
+    'leaves %s unmarked',
+    (pathname) => {
+      expect(runBoot({ pathname }).contains('recipe-route')).toBe(false);
+    },
+  );
+
+  it('marks a recipe page', () => {
+    expect(
+      runBoot({ pathname: '/recipes/exploding-dice' }).contains('recipe-route'),
+    ).toBe(true);
+  });
+
+  it('still marks a recipe page when storage is blocked', () => {
+    // A private window can refuse storage; the hero would then flash the
+    // homepage pitch on the one route that never shows it.
+    expect(
+      runBoot({
+        pathname: '/recipes/exploding-dice',
+        storage: blockedStorage,
+      }).contains('recipe-route'),
+    ).toBe(true);
+  });
+});
+
+describe('boot.js has-rolls class', () => {
+  it('marks the next load once a roll has been added', () => {
+    renderPage();
+    fireEvent.click(
+      firstOf(screen.getAllByRole('button', { name: 'Use this roll' })),
+    );
+    // Leaving the page flushes the debounced save, as a reload would.
+    window.dispatchEvent(new Event('beforeunload'));
+    expect(runBoot({ pathname: '/' }).contains('has-rolls')).toBe(true);
+  });
+
+  it('leaves a first visit unmarked', () => {
+    expect(runBoot({ pathname: '/' }).contains('has-rolls')).toBe(false);
+  });
+
+  it('leaves a saved table with no rows unmarked', () => {
+    window.localStorage.setItem(
+      'dicetable.v2',
+      JSON.stringify({ version: 2, value: { version: 3, expressions: [] } }),
+    );
+    expect(runBoot({ pathname: '/' }).contains('has-rolls')).toBe(false);
+  });
+
+  it('leaves an unreadable save unmarked', () => {
+    window.localStorage.setItem('dicetable.v2', '{not json');
+    expect(runBoot({ pathname: '/' }).contains('has-rolls')).toBe(false);
+  });
+
+  it('leaves blocked storage unmarked', () => {
+    expect(
+      runBoot({ pathname: '/', storage: blockedStorage }).contains('has-rolls'),
+    ).toBe(false);
+  });
+});
+
+describe('preboot hero on the first paint', () => {
+  let style: HTMLStyleElement;
+  let root: HTMLDivElement;
+  let classBefore: string;
+
+  // The served <style> and #root markup go into the live document, because
+  // jsdom only resolves stylesheets for a document with a window.
+  beforeEach(() => {
+    classBefore = document.documentElement.className;
+    style = document.createElement('style');
+    style.textContent = served.querySelector('style')?.textContent ?? '';
+    document.head.append(style);
+    root = document.createElement('div');
+    root.innerHTML = served.getElementById('root')?.innerHTML ?? '';
+    document.body.append(root);
+  });
+
+  afterEach(() => {
+    style.remove();
+    root.remove();
+    document.documentElement.className = classBefore;
+  });
+
+  function clipped(tag: 'h1' | 'p'): boolean {
+    const el = root.querySelector(`.preboot ${tag}`);
+    expect(el).not.toBeNull();
+    if (el === null) return false;
+    const css = getComputedStyle(el);
+    return (
+      css.position === 'absolute' && css.width === '1px' && css.height === '1px'
+    );
+  }
+
+  it('hides the homepage heading on a recipe page', () => {
+    runBoot({ pathname: '/recipes/exploding-dice', doc: document });
+    expect(clipped('h1')).toBe(true);
+  });
+
+  it('hides the homepage paragraph on a recipe page', () => {
+    runBoot({ pathname: '/recipes/exploding-dice', doc: document });
+    expect(clipped('p')).toBe(true);
+  });
+
+  it('shows the hero on / for a first visit', () => {
+    runBoot({ pathname: '/', doc: document });
+    expect(clipped('h1')).toBe(false);
+    expect(clipped('p')).toBe(false);
   });
 });

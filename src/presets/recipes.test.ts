@@ -132,6 +132,26 @@ const PINS: Readonly<Record<string, Readonly<Record<string, RowPin>>>> = {
       ],
     },
   },
+  // Not in the audit either. Two exact derivations agree (a Fraction script
+  // and a BigInt one, neither importing the engine): a 6 explodes up to ten
+  // times, so the eleventh die's 6 is kept, and the mean falls short of the
+  // uncapped 21/5 by 21/5 * 6^-11. Every total from 7 needs a first 6, so
+  // P(>= 7) is the plain die's P(6), and exactly 6 is impossible.
+  'exploding-dice': {
+    'Plain d6': { mean: 7 / 2, min: 1, max: 6, odds: [{ exactly: 6, p: 1 / 6 }] },
+    'Exploding d6': {
+      mean: 507915877 / 120932352,
+      min: 1,
+      max: 66,
+      odds: [
+        { exactly: 6, p: 0 },
+        { atLeast: 7, p: 1 / 6 },
+        { atLeast: 10, p: 1 / 12 },
+        { atLeast: 13, p: 1 / 36 },
+        { exactly: 66, p: 1 / 362797056 },
+      ],
+    },
+  },
   'daggerheart-duality': {
     'Duality dice +2': { mean: 15, min: 4, max: 26, odds: [{ atLeast: 12, p: 3 / 4 }] },
     'With advantage': { mean: 37 / 2, min: 5, max: 32, odds: [{ atLeast: 12, p: 781 / 864 }] },
@@ -367,6 +387,15 @@ describe('library recipe numbers', () => {
     expect(1 - anyHit.win).toBeCloseTo(199 / 600, 12);
   });
 
+  it('an exploding d6 beats a plain one only by turning the 6-6 tie into a win', () => {
+    const versus = beatChance(
+      distOf('exploding-dice', 'Exploding d6'),
+      distOf('exploding-dice', 'Plain d6'),
+    );
+    expect(versus.win).toBeCloseTo(4 / 9, 12);
+    expect(versus.tie).toBeCloseTo(5 / 36, 12);
+  });
+
   it('Ironsworn ties with either challenge die one time in ten', () => {
     const action = distOf('ironsworn-action', 'Action score +2');
     expect(beatChance(action, distOf('ironsworn-action', 'Higher challenge die')).tie).toBeCloseTo(
@@ -453,9 +482,9 @@ function allPartIds(row: Expression): string[] {
 }
 
 describe('recipe library integrity', () => {
-  it('lists the eight starters first, then the 25 library recipes', () => {
+  it('lists the eight starters first, then the 26 library recipes', () => {
     expect(RECIPES.slice(0, STARTER_PRESETS.length)).toEqual(STARTER_PRESETS);
-    expect(LIBRARY).toHaveLength(25);
+    expect(LIBRARY).toHaveLength(26);
   });
 
   it('gives every recipe a unique kebab-case slug', () => {
