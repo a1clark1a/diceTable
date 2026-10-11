@@ -2,7 +2,7 @@
 
 > Status: Living doc. Update when the engine's public surface or math contract changes.
 > Owner: Clark
-> Last updated: 2026-06-06
+> Last updated: 2026-10-10
 
 This is the reference for how DiceTable turns a roll into numbers. `src/engine/**` is the math core: pure functions, no UI, no DOM. Read this before changing anything that touches `distribution.ts`, `parts.ts`, `expression.ts`, `stats.ts`, `complexity.ts`, or `sample.ts`, or before wiring a new consumer onto the engine from the React side.
 
@@ -152,6 +152,7 @@ min(dist): number             // lowest possible total
 max(dist): number             // highest possible total
 mode(dist): number[]          // most likely total(s); ties return all
 percentile(dist, p): number   // smallest outcome whose CDF ≥ p
+middleRange(dist, mass): [number, number] // [low, high] leaving at most (1 - mass) / 2 outside each side
 
 cdf(dist, k): number          // P(result ≤ k)
 ccdf(dist, k): number         // P(result ≥ k)
@@ -163,6 +164,8 @@ hitProbability(dist, target, ruling): number
 ```
 
 `hitProbability` is the one the table's "Hit %" column and the target chart use. `ruling` is a `TargetRuling` (`'gte' | 'gt' | 'lte' | 'lt' | 'eq'`) and selects which tail or point mass to sum. It returns 0 for an empty distribution or a non-finite target, so callers don't need to guard.
+
+`middleRange(dist, mass)` returns the span holding the middle `mass` of results. It leaves at most `(1 - mass) / 2` outside on each side, so on discrete dice it covers at least `mass` and usually more. The two ends are deliberately not both read from `percentile`. The low end is the first result whose running total passes the tail, so a symmetric roll gets a centred span: 3 to 18 on 1d20 at 0.8, where `percentile` for both ends would give 2 to 18. It returns `[0, 0]` for an empty distribution. The spread band on the charts reads it through [`spreadBand`](../../src/components/chart/spreadBand.ts), which lives in the chart layer, not the engine. It asks for the middle 80% and returns `null` for an empty or flat roll (every result equally likely, as on a plain single die with or without a modifier) or when the span would cover every result.
 
 [`rowStats.ts`](../../src/state/rowStats.ts) bundles `mean / min / max / mode / stddev` into a `RowStats` object with the `hasDist` guard already applied. That is the recommended shape for table and card rows.
 
@@ -269,6 +272,7 @@ This section is for anyone, technical or not, who wants to understand the number
 
 - The **average** is each outcome weighted by its chance (the "expected" roll).
 - The **spread** (the σ value) says how far results typically stray from that average. A wide, flat curve has a big spread; a tall, narrow one is consistent.
+- The **spread band** is the faint shading on the Shape sparkline, in the inspector, and on the comparison chart for the roll you single out. It marks where most results land: from the 10th percentile to the 90th, so at most a tenth of results fall below it and at most a tenth above. A flat roll, like one plain die with or without a modifier, lands anywhere equally and gets no band.
 - The **most likely** result is simply the tallest bar.
 - The **Hit %** for a target adds up the chances of every outcome that clears it. Set a target of 15 with a "≥" ruling and the tool sums the probability of every total of 15 or more.
 - The **chart** is the same table drawn three ways: each bar's height (PMF), the running total from the bottom (CDF), or from the top (CCDF).

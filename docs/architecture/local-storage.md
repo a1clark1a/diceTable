@@ -122,6 +122,7 @@ Every write wraps the current value in this envelope. Every read peels it back, 
 
 - Rejects if `version !== 2`.
 - Rejects if any expression or part fails its shape check (non-string id, non-integer count, unknown `rollMode`, malformed `keep` / `reroll` / `explode`, etc.).
+- Rejects if an expression's optional `note` is not a string, or is longer than `MAX_NOTE_LENGTH` (200, in [`types.ts`](../../src/types.ts)) once trimmed. A valid note is kept trimmed, and a blank one is dropped rather than rejected, so a row never carries an empty note.
 - **Forgives** missing or partial `ui` blobs by filling defaults — `ui` is a UX state cache, not data the user cares about preserving exactly. A wrong `chartView` falls back to `'pmf'`; a wrong `target.ruling` falls back to `'gte'`.
 
 The split is deliberate: **`expressions` is data, `ui` is preference.** Data is rejected on any malformedness. Preferences are repaired silently.
@@ -205,6 +206,7 @@ The envelope `version` field is the contract between past and future shapes. The
 - A required field is added, removed, or renamed in `Expression`, `DicePart`, `KeepRule`, `RerollRule`, `ExplodeRule`, or `PersistedState` itself.
 - A field's value semantics change (e.g. `flatModifier` switches from "additive" to "multiplicative").
 - An enum loses a value that was previously valid.
+- A limit the validator rejects past gets stricter, such as lowering `MAX_NOTE_LENGTH`. Without a migrator that shortens old notes, every saved table holding a longer note fails validation and loads empty.
 
 ### Don't bump the version when
 
