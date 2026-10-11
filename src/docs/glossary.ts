@@ -45,7 +45,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     alt: 'e.g. 4d6kh3+2',
     group: 'notation',
     plain:
-      'The whole formula for one roll: how many dice, what kind, any keep/reroll/explode rules, plus a flat modifier.',
+      'The whole formula for one roll: how many dice, what kind, any keep/reroll/explode rules, plus any modifier steps.',
   },
   {
     id: 'count-die',
@@ -57,10 +57,10 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
   {
     id: 'mod',
     term: 'Modifier',
-    alt: '+M / −M',
+    alt: '+M, −M, ×M, ÷M',
     group: 'notation',
     plain:
-      'A flat number added to every roll’s total. On rolls that count successes, it adds successes instead. On a check, it is added to the check roll before it meets the bar, and the effect carries its own modifier.',
+      'A number added to the roll’s total. Open the roll to add more steps, like ×2 or ÷2, applied in order. On rolls that count successes it changes the successes, and on a check it goes on the check roll.',
   },
   {
     id: 'keep',
@@ -449,6 +449,29 @@ const uiTips: Record<string, string> = {
     'Pool rolls compare here. The bottom axis counts successes, not totals.',
   poolAutoSuccess:
     'Added straight to the number of successes. It doesn’t change each die’s chance. A roll never goes below zero successes.',
+  modMultiply:
+    'Multiplies the result so far. The dice are not rolled again, so the results spread further apart.',
+  modDivide: 'Divides the result so far and rounds down, so 7 ÷ 2 is 3.',
+  modChainCell:
+    'What happens to the total after the dice, step by step from left to right. Click to open the roll and change the steps.',
+  modChainPoolCell:
+    'What happens to the number of successes, step by step from left to right. Click to open the roll and change the steps.',
+  modChain:
+    'What happens to the total after the dice, from the first step down. Order matters: +3 then ×2 is not ×2 then +3.',
+  modChainPool:
+    'What happens to the number of successes, from the first step down. A roll never ends below zero successes.',
+  modChainAdd: 'Add, subtract, multiply or divide the result. Up to three steps.',
+  modChainFull: 'Up to three steps. Remove one to add another.',
+  modChainCheckRow:
+    'Steps work on Sum and Pool rolls. On a check, the Mod goes on the check roll, and On a success can halve the effect.',
+  modStepUp: 'Do this step one place earlier.',
+  modStepUpFirst: 'This step already comes first.',
+  modStepDown: 'Do this step one place later.',
+  modStepDownLast: 'This step already comes last.',
+  modStepRemove: 'Remove this step.',
+  poolMultiply:
+    'Multiplies the number of successes so far. The dice are not rolled again.',
+  poolDivide: 'Divides the number of successes so far and rounds down, so 3 ÷ 2 is 1.',
   keepDisabledInPool:
     'Keep highest or lowest applies when dice add into a total. Switch this roll back to Sum to use it.',
   keepAcross:

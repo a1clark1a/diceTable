@@ -1,5 +1,6 @@
 import { isSingleDieCheck } from '../engine/critEffect';
 import type { CheckSpec, CritRule, DicePart, Expression } from '../types';
+import { canonicalMods, withLegacyModifierMoved } from './modChain';
 
 // The persisted-state validator rejects any row that breaks an invariant, and
 // one rejected row drops the user's whole saved table on the next load. Rather
@@ -72,8 +73,9 @@ function normalizeCheck(spec: CheckSpec, checkParts: readonly DicePart[]): Check
  * Repairs an expression so it holds every invariant the validator checks:
  * fields that only one mode reads never linger on another mode's row, a keep
  * across parts never coexists with a per-part keep (at the row or inside a
- * check's effect), and a critical never names a die or face the check cannot
- * show. Returns the input untouched when nothing needs repair.
+ * check's effect), a critical never names a die or face the check cannot
+ * show, and a sum or pool row's modifier lives in its chain. Returns the input
+ * untouched when nothing needs repair.
  */
 export function normalizeExpression(expr: Expression): Expression {
   const next: Expression = { ...expr };
@@ -123,6 +125,28 @@ export function normalizeExpression(expr: Expression): Expression {
       next.parts.some((p) => p.keep !== undefined)
     ) {
       next.parts = next.parts.map(stripKeep);
+      changed = true;
+    }
+  }
+
+  // A check row's Mod is its flatModifier, on the check roll, so a chain there
+  // is a rule nothing reads. Sum and pool rows are the other way round.
+  if (next.mode === 'check') {
+    if (next.mods !== undefined) {
+      delete next.mods;
+      changed = true;
+    }
+  } else if (next.flatModifier !== 0) {
+    const moved = withLegacyModifierMoved(next);
+    next.flatModifier = 0;
+    if (moved.mods) next.mods = moved.mods;
+    else delete next.mods;
+    changed = true;
+  } else if (next.mods !== undefined) {
+    const mods = canonicalMods(next.mods);
+    if (mods !== next.mods) {
+      if (mods) next.mods = mods;
+      else delete next.mods;
       changed = true;
     }
   }

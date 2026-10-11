@@ -32,7 +32,9 @@ function renderDiceText(expr: Expression, showRollMode = false) {
 
 describe('ExpressionDiceText sum mode', () => {
   it('renders the dice body and flat modifier with no pool separators', () => {
-    const { container } = renderDiceText(makeExpression({ flatModifier: 3 }));
+    const { container } = renderDiceText(
+      makeExpression({ mods: [{ op: 'add', value: 3 }] }),
+    );
     expect(container.textContent).toContain('2d6');
     expect(container.textContent).toContain('+ 3');
     expect(container.textContent).not.toContain('·');
@@ -79,7 +81,7 @@ describe('ExpressionDiceText pool mode', () => {
         parts: [{ id: 'p1', count: 7, sides: 10 }],
         mode: 'pool',
         successThreshold: { direction: 'gte', value: 8 },
-        flatModifier: 2,
+        mods: [{ op: 'add', value: 2 }],
       }),
     );
     expect(container.textContent).toContain('+2 auto');
@@ -94,7 +96,7 @@ describe('ExpressionDiceText pool mode', () => {
         parts: [{ id: 'p1', count: 7, sides: 10 }],
         mode: 'pool',
         successThreshold: { direction: 'gte', value: 8 },
-        flatModifier: -2,
+        mods: [{ op: 'sub', value: 2 }],
       }),
     );
     expect(container.textContent).toContain('−2 auto');
@@ -135,7 +137,7 @@ describe('ExpressionDiceText pool mode', () => {
         parts: [{ id: 'p1', count: 7, sides: 10 }],
         mode: 'pool',
         successThreshold: { direction: 'gte', value: 8 },
-        flatModifier: 2,
+        mods: [{ op: 'add', value: 2 }],
       }),
     );
     expect(container.textContent).not.toContain(' + 2');
@@ -213,7 +215,7 @@ describe('ExpressionDiceText keepAcross', () => {
     const { container } = renderDiceText(
       makeExpression({
         parts: twoParts,
-        flatModifier: 2,
+        mods: [{ op: 'add', value: 2 }],
         keepAcross: { type: 'highest', n: 1 },
       }),
     );

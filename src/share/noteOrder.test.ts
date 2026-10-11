@@ -9,7 +9,8 @@ function roll(i: number, extra: Partial<Expression> = {}): Expression {
     id: `expr-${i}`,
     name: `Roll ${i}`,
     parts: [{ id: `part-${i}`, count: 1 + (i % 4), sides: [4, 6, 8, 10, 12, 20][i % 6]! }],
-    flatModifier: i % 5,
+    flatModifier: 0,
+    ...(i % 5 === 0 ? {} : { mods: [{ op: 'add' as const, value: i % 5 }] }),
     rollMode: 'normal',
     mode: 'sum',
     ...extra,
@@ -138,7 +139,7 @@ describe('notes and row order through a share link', () => {
     if (!decoded.ok) return;
     decoded.rolls.forEach((r, i) => {
       const source = orderedTable[i]!;
-      expect(r.flatModifier).toBe(source.flatModifier);
+      expect(r.mods).toEqual(source.mods);
       expect(r.parts.map(({ count, sides }) => ({ count, sides }))).toEqual(
         source.parts.map(({ count, sides }) => ({ count, sides })),
       );

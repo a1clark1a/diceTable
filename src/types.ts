@@ -26,6 +26,21 @@ export interface DicePart {
 
 export type ExpressionMode = 'sum' | 'pool' | 'check';
 
+export type ModOp = 'add' | 'sub' | 'mul' | 'div';
+
+/**
+ * One operation on a row's total. Add and subtract carry a size, never a sign:
+ * the op says which way it goes. Multiply and divide take a whole number of at
+ * least 1, and divide rounds down.
+ */
+export interface ModStep {
+  op: ModOp;
+  value: number;
+}
+
+/** A chain is short and flat on purpose: a few steps on one total, nothing nested. */
+export const MAX_MODS = 3;
+
 export interface SuccessThreshold {
   direction: 'gte' | 'lte';
   value: number;
@@ -59,9 +74,18 @@ export interface Expression {
   id: string;
   name: string;
   parts: DicePart[];
+  /**
+   * The check roll's modifier, and only that. Sum and pool rows carry theirs as
+   * `mods` and keep this at 0.
+   */
   flatModifier: number;
   rollMode: RollMode;
   mode: ExpressionMode;
+  /**
+   * What happens to a sum or pool row's total after the dice, applied in order.
+   * Never on a check row, never empty: no steps means the field is absent.
+   */
+  mods?: ModStep[];
   successThreshold?: SuccessThreshold;
   /**
    * Keeps the best or worst n dice across every part instead of adding the parts
@@ -184,7 +208,7 @@ export interface TargetState {
 }
 
 export interface PersistedState {
-  version: 6;
+  version: 7;
   expressions: Expression[];
   ui: {
     expandedId: string | null;

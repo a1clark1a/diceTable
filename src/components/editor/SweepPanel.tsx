@@ -17,11 +17,11 @@ import { useApp } from '../../state/useApp';
 import { STANDARD_DICE } from '../../state/defaultPart';
 import {
   MAX_SWEEP_VARIANTS,
-  SWEEP_BOUNDS,
   largestSides,
   planSweep,
   rangeValues,
   sameSweepTarget,
+  sweepBounds,
   sweepSourceValue,
   sweepTargets,
   sweepValueLabel,
@@ -179,22 +179,26 @@ export function VariantsControl({ expr, total }: VariantsControlProps) {
 
 type Range = { from: number; to: number; step: number };
 
-function clampTo(kind: SweepTarget['kind'], v: number): number {
-  const { min, max } = SWEEP_BOUNDS[kind];
-  return Math.min(max, Math.max(min, v));
-}
-
 function findPart(expr: Expression, target: SweepTarget): DicePart | undefined {
   return 'partId' in target ? expr.parts.find((p) => p.id === target.partId) : undefined;
+}
+
+/** The chain step a modifier target points at, when it multiplies or divides. */
+function scalingOp(expr: Expression, target: SweepTarget): 'mul' | 'div' | null {
+  if (target.kind !== 'modifier') return null;
+  const op = expr.mods?.[target.step]?.op;
+  return op === 'mul' || op === 'div' ? op : null;
 }
 
 // Every first open already previews something real: a five-value window
 // around the current number, every legal keep, or the dice either side.
 function defaultRange(expr: Expression, target: SweepTarget): Range {
   const v = sweepSourceValue(expr, target) ?? 0;
+  const { min, max } = sweepBounds(expr, target);
+  const clamp = (n: number) => Math.min(max, Math.max(min, n));
   const window = (lo: number, hi: number): Range => {
-    const from = clampTo(target.kind, Math.max(lo, v - 2));
-    return { from, to: clampTo(target.kind, Math.min(hi, from + 4)), step: 1 };
+    const from = clamp(Math.max(lo, v - 2));
+    return { from, to: clamp(Math.min(hi, from + 4)), step: 1 };
   };
   switch (target.kind) {
     case 'keepN':
@@ -204,7 +208,7 @@ function defaultRange(expr: Expression, target: SweepTarget): Range {
     case 'count':
       return window(1, Infinity);
     case 'modifier':
-      return { from: v - 2, to: v + 2, step: 1 };
+      return scalingOp(expr, target) ? window(1, max) : { from: v - 2, to: v + 2, step: 1 };
     case 'sides':
       return { from: v, to: v, step: 1 };
   }
@@ -224,7 +228,9 @@ function defaultTarget(expr: Expression, targets: SweepTarget[]): SweepTarget | 
 }
 
 function targetKey(target: SweepTarget): string {
-  return 'partId' in target ? `${target.kind}:${target.partId}` : target.kind;
+  if ('partId' in target) return `${target.kind}:${target.partId}`;
+  if ('step' in target) return `${target.kind}:${target.step}`;
+  return target.kind;
 }
 
 /** Plain words for the chooser and the skip lines; row names keep the notation. */
@@ -240,8 +246,22 @@ function chipWord(expr: Expression, target: SweepTarget): string {
       return 'Die';
     case 'keepN':
       return 'Keep';
-    case 'modifier':
-      return expr.mode === 'pool' ? 'Auto-successes' : 'Modifier';
+    case 'modifier': {
+      const op = scalingOp(expr, target);
+      const word =
+        op !== null
+          ? op === 'mul'
+            ? 'Multiplier'
+            : 'Divisor'
+          : expr.mode === 'pool'
+            ? 'Auto-successes'
+            : 'Modifier';
+      // Two steps can share a word and a value, so a longer chain names the
+      // place each chip varies.
+      return (expr.mods?.length ?? 0) > 1
+        ? `Step ${target.step + 1} ${word.toLowerCase()}`
+        : word;
+    }
     case 'poolThreshold':
       return 'Success';
   }
@@ -251,7 +271,9 @@ function chipValue(expr: Expression, target: SweepTarget): string {
   const v = sweepSourceValue(expr, target) ?? 0;
   if (target.kind === 'count') return String(v);
   if (target.kind === 'keepN') return `${v} of ${findPart(expr, target)?.count ?? v}`;
-  if (target.kind === 'modifier') return v < 0 ? `−${Math.abs(v)}` : `+${v}`;
+  if (target.kind === 'modifier' && scalingOp(expr, target) === null) {
+    return v < 0 ? `−${Math.abs(v)}` : `+${v}`;
+  }
   return sweepValueLabel(expr, target, v);
 }
 
@@ -278,6 +300,7 @@ function skipSentence(
   target: SweepTarget,
   list: string,
   shown: number,
+  scaling: 'mul' | 'div' | null,
 ): string {
   switch (reason) {
     case 'source':
@@ -297,7 +320,10 @@ function skipSentence(
     case 'invalid':
       return `Skips ${list}: that roll can’t be built.`;
     case 'tooComplex':
-      return `Skips ${list}: too many dice to work out.`;
+      // A multiplier refused here kept the dice; it spread the results.
+      return scaling === 'mul'
+        ? `Skips ${list}: the results would spread too far apart to work out.`
+        : `Skips ${list}: too many dice to work out.`;
     case 'overLimit':
       return `Skips ${list}: up to ${MAX_SWEEP_VARIANTS} at a time.`;
     case 'noRoom':
@@ -357,13 +383,14 @@ function SweepForm({ expr, room, chooserRef, layout, onDone }: SweepFormProps) {
 
   const adds = plan.variants.length;
   const word = chipWord(expr, target);
+  const bounds = sweepBounds(expr, target);
   const sourceDie = findPart(expr, target)?.sides;
   const cleared = plan.variants.filter((v) => v.clearedFaces);
   const skipLines = SKIP_ORDER.flatMap((reason) => {
     const hits = plan.skipped.filter((s) => s.reason === reason);
     if (hits.length === 0) return [];
     const list = listTokens(hits.map((s) => plainToken(expr, target, s.value)));
-    return [skipSentence(reason, target, list, adds)];
+    return [skipSentence(reason, target, list, adds, scalingOp(expr, target))];
   });
   const skippedCount = plan.skipped.filter((s) => s.reason !== 'source').length;
 
@@ -492,7 +519,8 @@ function SweepForm({ expr, room, chooserRef, layout, onDone }: SweepFormProps) {
             label="From"
             ariaLabel={`${word} from`}
             value={range.from}
-            kind={target.kind}
+            min={bounds.min}
+            max={bounds.max}
             onCommit={(from) => setRange((r) => ({ ...r, from }))}
             onEnter={() => confirmRef.current?.focus()}
           />
@@ -500,7 +528,8 @@ function SweepForm({ expr, room, chooserRef, layout, onDone }: SweepFormProps) {
             label="To"
             ariaLabel={`${word} to`}
             value={range.to}
-            kind={target.kind}
+            min={bounds.min}
+            max={bounds.max}
             onCommit={(to) => setRange((r) => ({ ...r, to }))}
             onEnter={() => confirmRef.current?.focus()}
           />
@@ -618,9 +647,8 @@ interface RangeStepperProps {
   label: string;
   ariaLabel: string;
   value: number;
-  kind?: SweepTarget['kind'];
-  min?: number;
-  max?: number;
+  min: number;
+  max: number;
   onCommit: (value: number) => void;
   onEnter: () => void;
 }
@@ -629,13 +657,11 @@ function RangeStepper({
   label,
   ariaLabel,
   value,
-  kind,
   min,
   max,
   onCommit,
   onEnter,
 }: RangeStepperProps) {
-  const bounds = kind !== undefined ? SWEEP_BOUNDS[kind] : undefined;
   return (
     <Stack gap={1}>
       <Text fontSize="xs" color="fg.muted">
@@ -644,8 +670,8 @@ function RangeStepper({
       <NumberStepper
         value={value}
         onCommit={onCommit}
-        min={min ?? bounds?.min ?? 0}
-        max={max ?? bounds?.max ?? 0}
+        min={min}
+        max={max}
         ariaLabel={ariaLabel}
         onEnter={onEnter}
       />

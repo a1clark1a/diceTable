@@ -11,6 +11,7 @@ import {
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
 import { normalizeExpression } from './normalize';
+import { modsAsCheckModifier } from './modChain';
 import { applyPartPatch, defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
 import { planSweep, type SweepTarget } from './sweep';
@@ -557,21 +558,29 @@ function useAppValue(state: PersistedState, setState: SetState): AppContextValue
     (id: string, patch: ExpressionPatch) => {
       updateExpressionInList(id, (e) => {
         const next: Expression = { ...e };
-        if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
         // Switching modes only seeds what the new mode needs; the fields the
         // new mode cannot read (threshold, check, keepAcross, per-part rules)
         // are stripped by normalizeExpression on the way into the list. The
         // row's dice become the check roll, which is the least surprising place
         // for them: the Mod column keeps meaning "the modifier on the roll you
-        // make".
+        // make". A check's Mod is one number, so the chain hands over what it
+        // can; leaving a check, normalizeExpression moves that number back into
+        // the chain.
         if (patch.mode !== undefined && patch.mode !== e.mode) {
           next.mode = patch.mode;
           if (patch.mode === 'pool') {
             next.successThreshold = seedSuccessThreshold(e.parts);
           } else if (patch.mode === 'check') {
             next.check = e.check ?? seedCheckSpec(e.parts);
+            next.flatModifier = modsAsCheckModifier(e.mods);
+            delete next.mods;
           }
+        }
+        if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
+        if ('mods' in patch) {
+          if (patch.mods && patch.mods.length > 0) next.mods = patch.mods;
+          else delete next.mods;
         }
         if ('successThreshold' in patch) {
           if (patch.successThreshold) next.successThreshold = patch.successThreshold;
