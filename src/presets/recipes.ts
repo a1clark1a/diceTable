@@ -126,6 +126,22 @@ const LIBRARY_PRESETS: readonly StarterPreset[] = [
   ),
   preset(
     {
+      slug: 'exploding-dice',
+      name: 'Roll again on a 6 and add',
+      family: 'totals',
+      alsoCalled: ['Exploding dice', 'Open-ended dice'],
+      dice: '1d6 vs 1d6, 6s explode',
+      why: 'Every 6 rolls the die again and adds, as long as 6s keep coming. The average goes from 3.5 to 4.2, and a total of exactly 6 can no longer happen.',
+    },
+    [
+      row('plain-d6', 'Plain d6', { parts: [{ count: 1, sides: 6 }] }),
+      row('exploding-d6', 'Exploding d6', {
+        parts: [{ count: 1, sides: 6, explode: { onFaces: [6], depthCap: 10 } }],
+      }),
+    ],
+  ),
+  preset(
+    {
       slug: 'daggerheart-duality',
       family: 'totals',
       alsoCalled: ['Daggerheart', 'Duality dice', 'Hope and Fear'],
