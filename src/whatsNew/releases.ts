@@ -13,6 +13,16 @@ export interface Release {
 // highlight, what they will see or can now do, no em-dashes.
 export const RELEASES: readonly Release[] = [
   {
+    version: '2.4.1',
+    date: '2026-10-11',
+    title: 'Dice questions in the docs',
+    highlights: [
+      'The Docs have a new Dice questions page that lists every common dice question DiceTable answers, each with its short answer.',
+      'Each question opens its own page with the rolls already in a working table, even once your own table is full of rolls.',
+      'Every one of those pages links back to the whole list with More dice questions.',
+    ],
+  },
+  {
     version: '2.4.0',
     date: '2026-10-11',
     title: 'Modifier steps, Variants and recipe pages',
