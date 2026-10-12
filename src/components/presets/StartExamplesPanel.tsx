@@ -76,9 +76,9 @@ export function StartExamplesPanel({ onFindRoll }: StartExamplesPanelProps) {
           Start from a blank roll
         </Button>
       </Stack>
-      {/* The recipe pages answer searches, and nothing else links to them. An
-          empty table on / is what a first visit and a crawler both get, so this
-          is the one place a link here is seen by both. */}
+      {/* The recipe pages answer searches. An empty table on / is what a first
+          visit and a crawler both get, so a link here is seen by both; once a
+          table has rows, the Dice questions docs tab is the way back to them. */}
       <Box
         as="nav"
         aria-labelledby="common-questions"

@@ -500,7 +500,7 @@ const blockedStorage: Pick<Storage, 'getItem'> = {
 };
 
 describe('boot.js recipe-route class', () => {
-  it.each(['/', '/docs/quickstart', '/recipes', '/recipes-guide', '/docs/recipes/x'])(
+  it.each(['/', '/docs/quickstart', '/docs/questions', '/recipes', '/recipes-guide', '/docs/recipes/x'])(
     'leaves %s unmarked',
     (pathname) => {
       expect(runBoot({ pathname }).contains('recipe-route')).toBe(false);

@@ -315,6 +315,16 @@
     },
 
     {
+      "id": "questions.list",
+      "label": "Dice questions · each recipe page's question, link and one-line answer",
+      "deps": [
+        "src/components/docs/DiceQuestions.tsx",
+        "src/pages/DocsPage.tsx",
+        "src/presets/recipePages.ts"
+      ]
+    },
+
+    {
       "id": "seo.llms-txt",
       "label": "GEO/SEO · llms.txt (LLM-facing app summary)",
       "deps": [
@@ -379,6 +389,16 @@
       "label": "GEO/SEO · DefinedTermSet JSON-LD (docs glossary)",
       "deps": [
         "src/docs/glossary.ts",
+        "src/components/seo/structuredData.ts",
+        "src/components/seo/JsonLd.tsx",
+        "src/pages/DocsPage.tsx"
+      ]
+    },
+    {
+      "id": "seo.itemlist-jsonld",
+      "label": "GEO/SEO · ItemList JSON-LD (docs dice questions)",
+      "deps": [
+        "src/presets/recipePages.ts",
         "src/components/seo/structuredData.ts",
         "src/components/seo/JsonLd.tsx",
         "src/pages/DocsPage.tsx"

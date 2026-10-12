@@ -1,9 +1,10 @@
-export type DocsTab = 'quickstart' | 'glossary' | 'math';
+export type DocsTab = 'quickstart' | 'glossary' | 'math' | 'questions';
 
 const DOCS_TAB_VALUES: readonly DocsTab[] = [
   'quickstart',
   'glossary',
   'math',
+  'questions',
 ];
 
 export function isDocsTab(value: string | null): value is DocsTab {

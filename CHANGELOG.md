@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-10-11
+
+### Added
+
+- Dice questions: a new page in the Docs lists every common dice question DiceTable answers, such as what 4d6 drop lowest averages or how much advantage is worth, each with its short answer and a link to the page that opens its rolls in a working table. Until now that list only showed on an empty table, so once you had rolls of your own there was no way back to it. Each question's own page links back to the list with More dice questions, next to Build it yourself.
+
 ## [2.4.0] - 2026-10-11
 
 ### Added
@@ -302,7 +308,8 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/a1clark1a/diceTable/releases/tag/v2.4.1
 [2.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.4.0
 [2.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.3.0
 [2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
