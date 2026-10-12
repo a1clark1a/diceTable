@@ -21,6 +21,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://dice-table.app/docs/questions</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://dice-table.app/recipes/4d6-drop-lowest</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
