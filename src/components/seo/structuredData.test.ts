@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDefinedTermSetLd,
   buildHowToLd,
+  buildItemListLd,
   type DefinedTermInput,
   type HowToStepInput,
+  type ItemListInput,
 } from './structuredData';
 
 const steps: readonly HowToStepInput[] = [
@@ -110,5 +112,46 @@ describe('buildDefinedTermSetLd', () => {
   it('returns an empty term list when given no entries', () => {
     const ld = buildDefinedTermSetLd('Glossary', 'Terms.', SET_URL, []);
     expect(ld.hasDefinedTerm).toEqual([]);
+  });
+});
+
+const LIST_URL = 'https://dice-table.app/docs/questions';
+
+const items: readonly ItemListInput[] = [
+  { name: 'How much is advantage worth?', url: 'https://dice-table.app/recipes/advantage-vs-disadvantage' },
+  { name: 'How much do exploding dice add?', url: 'https://dice-table.app/recipes/exploding-dice' },
+];
+
+describe('buildItemListLd', () => {
+  it('tags the object as a schema.org ItemList identified by its URL', () => {
+    const ld = buildItemListLd('Questions', 'Every question.', LIST_URL, items);
+    expect(ld['@context']).toBe('https://schema.org');
+    expect(ld['@type']).toBe('ItemList');
+    expect(ld['@id']).toBe(LIST_URL);
+    expect(ld.name).toBe('Questions');
+    expect(ld.description).toBe('Every question.');
+  });
+
+  it('maps each item to a ListItem positioned from 1, keeping its name and url', () => {
+    const ld = buildItemListLd('Questions', 'Every question.', LIST_URL, items);
+    expect(ld.itemListElement).toEqual([
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'How much is advantage worth?',
+        url: 'https://dice-table.app/recipes/advantage-vs-disadvantage',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'How much do exploding dice add?',
+        url: 'https://dice-table.app/recipes/exploding-dice',
+      },
+    ]);
+  });
+
+  it('returns an empty list when given no items', () => {
+    const ld = buildItemListLd('Questions', 'Every question.', LIST_URL, []);
+    expect(ld.itemListElement).toEqual([]);
   });
 });
