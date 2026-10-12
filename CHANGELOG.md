@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Dice questions: a new page in the Docs lists every common dice question DiceTable answers, such as what 4d6 drop lowest averages or how much advantage is worth, each with its short answer and a link to the page that opens its rolls in a working table. Until now that list only showed on an empty table, so once you had rolls of your own there was no way back to it.
+- Dice questions: a new page in the Docs lists every common dice question DiceTable answers, such as what 4d6 drop lowest averages or how much advantage is worth, each with its short answer and a link to the page that opens its rolls in a working table. Until now that list only showed on an empty table, so once you had rolls of your own there was no way back to it. Each question's own page links back to the list with More dice questions, next to Build it yourself.
 
 ## [2.4.0] - 2026-10-11
 

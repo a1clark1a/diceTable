@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { MemoryRouter } from 'react-router-dom';
 import { RecipeHero } from './RecipeHero';
 import { RECIPE_PAGES, type RecipePage } from '../../presets/recipePages';
 
@@ -16,7 +17,9 @@ const OPEN = /open this in my table/i;
 function renderHero(onOpen: (() => void) | null) {
   return render(
     <ChakraProvider value={defaultSystem}>
-      <RecipeHero page={PAGE} onOpen={onOpen} />
+      <MemoryRouter>
+        <RecipeHero page={PAGE} onOpen={onOpen} />
+      </MemoryRouter>
     </ChakraProvider>,
   );
 }
@@ -62,6 +65,22 @@ describe('RecipeHero Open this in my table', () => {
     renderHero(onOpen);
     fireEvent.click(screen.getByRole('button', { name: OPEN }));
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('RecipeHero More dice questions', () => {
+  it('links to the Dice questions docs tab', () => {
+    renderHero(() => {});
+    expect(screen.getByRole('link', { name: 'More dice questions' })).toHaveAttribute(
+      'href',
+      '/docs/questions',
+    );
+  });
+
+  it('keeps the link while the table is empty and there is nothing to carry over', () => {
+    renderHero(null);
+    expect(screen.queryByRole('button', { name: OPEN })).toBeNull();
+    expect(screen.getByRole('link', { name: 'More dice questions' })).toBeInTheDocument();
   });
 });
 
