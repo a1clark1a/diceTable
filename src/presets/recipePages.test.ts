@@ -874,9 +874,9 @@ describe('recipe pages in the sitemap and the docs manifest', () => {
     );
   });
 
-  it('points every recipe section of the docs manifest at files that exist', () => {
-    const sections = manifestSections().filter((s) => s.id.startsWith(RECIPE_SECTION_PREFIX));
-    expect(sections.length).toBeGreaterThan(0);
+  it('points every section of the docs manifest at files that exist', () => {
+    const sections = manifestSections();
+    expect(sections.length).toBeGreaterThan(RECIPE_PAGES.length);
     for (const section of sections) {
       for (const dep of section.deps) expect(REPO_FILES.has(dep), `${section.id}: ${dep}`).toBe(true);
     }

@@ -74,7 +74,7 @@ DiceTable runs entirely in your browser. Your rolls and settings are stored on y
 
 ## Common dice questions
 
-Each of these questions has its own page on DiceTable. The page opens the rolls in a working table with the exact odds on the chart, and the answer below is the one the page gives.
+Each of these questions has its own page on DiceTable. The page opens the rolls in a working table with the exact odds on the chart, and the answer below is the one the page gives. The docs list all of them on one page, [Dice questions](https://dice-table.app/docs/questions).
 
 - [4d6 drop lowest: what’s the average, and how rare is an 18?](https://dice-table.app/recipes/4d6-drop-lowest): Rolling four d6 and keeping the best three averages about 12.24. The most common result is 13, and an 18 comes up about 1.6% of the time. It is the classic way to roll D&D ability scores.
 - [How much is advantage worth, and what does disadvantage cost?](https://dice-table.app/recipes/advantage-vs-disadvantage): Against a target of 15, a d20 plus 5 succeeds 55% of the time. Advantage rolls twice and keeps the higher, which lifts that to about 80%, about what another +5 would do. Disadvantage keeps the lower, which drops it to about 30%.
@@ -93,4 +93,5 @@ Each of these questions has its own page on DiceTable. The page opens the rolls 
 - [Quickstart](https://dice-table.app/docs/quickstart): a step-by-step walkthrough of building and comparing rolls.
 - [Glossary](https://dice-table.app/docs/glossary): every term DiceTable uses, defined in plain language.
 - [The Math](https://dice-table.app/docs/math): how the exact probabilities are computed (convolution, PMF, CDF, CCDF, and the stat formulas).
+- [Dice questions](https://dice-table.app/docs/questions): every common dice question above on one page, each with a short answer and a link to its own page.
 - [Privacy](https://dice-table.app/privacy): what the site does and does not collect.

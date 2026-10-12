@@ -7,12 +7,15 @@ const TabLink = chakra(NavLink);
 interface TabDef {
   value: DocsTab;
   label: string;
+  /** The segmented bar splits a 360px screen four ways, so a long label gets a shorter one there. */
+  phoneLabel?: string;
 }
 
 const TABS: readonly TabDef[] = [
   { value: 'quickstart', label: 'Quickstart' },
   { value: 'glossary', label: 'Glossary' },
   { value: 'math', label: 'The Math' },
+  { value: 'questions', label: 'Dice questions', phoneLabel: 'Questions' },
 ];
 
 export function DocsTabs() {
@@ -81,9 +84,13 @@ function MobileTabLink({ tab }: { tab: TabDef }) {
       variant={active ? 'solid' : 'ghost'}
       colorPalette={active ? 'blue' : 'gray'}
       flex="1"
+      // Four labels share a 360px screen, and the default padding leaves them
+      // too little room: the bar, and the page with it, scrolled sideways.
+      minW={0}
+      px={{ base: 1, sm: 3 }}
       minH="40px"
     >
-      <NavLink to={docsSectionPath(tab.value)}>{tab.label}</NavLink>
+      <NavLink to={docsSectionPath(tab.value)}>{tab.phoneLabel ?? tab.label}</NavLink>
     </Button>
   );
 }
