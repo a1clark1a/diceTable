@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Opening robots.txt, sitemap.xml or llms.txt in a browser that has used DiceTable before now shows the file, instead of the DiceTable app.
+
 ## [2.4.1] - 2026-10-11
 
 ### Added
