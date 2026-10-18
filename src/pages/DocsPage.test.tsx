@@ -20,6 +20,7 @@ function renderAt(initialEntry: string) {
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/docs/*" element={<DocsPage />} />
+          <Route path="/recipes/:slug" element={null} />
         </Routes>
         <LocationProbe />
       </MemoryRouter>
@@ -155,6 +156,14 @@ describe('DocsPage routing', () => {
     expect(
       screen.getByRole('heading', { name: 'Page not found' }),
     ).toBeInTheDocument();
+  });
+
+  it('opens a recipe page from a glossary link inside the app', () => {
+    renderAt('/docs/glossary');
+    // Only the Explode entry links to this page, so its heading names one link.
+    const page = findRecipePage('exploding-dice')!;
+    fireEvent.click(screen.getByRole('link', { name: page.heading }));
+    expect(currentPathname()).toBe('/recipes/exploding-dice');
   });
 });
 

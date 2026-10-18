@@ -323,6 +323,11 @@
         "src/presets/recipePages.ts"
       ]
     },
+    {
+      "id": "docs.recipe-links",
+      "label": "Glossary and The Math · See it worked out links to recipe pages",
+      "deps": ["src/presets/recipePages.ts", "src/docs/glossary.ts", "src/docs/math.tsx"]
+    },
 
     {
       "id": "seo.llms-txt",

@@ -9,6 +9,7 @@ import {
 } from '../../docs/glossary';
 import { RulingSymbol } from '../targetRuling';
 import { RULING_OPTIONS } from '../targetRulingMeta';
+import { RecipeLink } from './RecipeLink';
 
 function GlossaryAlt({ entry }: { entry: GlossaryEntry }) {
   if (entry.id === 'target-ruling') {
@@ -129,6 +130,7 @@ function GlossaryRow({ entry, isLast }: { entry: GlossaryEntry; isLast: boolean 
           </Box>
         )}
         {entry.id === 'target-ruling' && <RulingCommunityTerms />}
+        <RecipeLink slug={entry.recipePage} />
       </Stack>
     </Grid>
   );

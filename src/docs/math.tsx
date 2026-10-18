@@ -8,6 +8,8 @@ export interface MathOp {
   plain: ReactNode;
   example: ReactNode;
   snippet: string;
+  /** A RECIPE_PAGES slug (the :slug of /recipes/:slug), never a library recipe slug. */
+  recipePage?: string;
 }
 
 export const mathOps: readonly MathOp[] = [
@@ -57,6 +59,7 @@ P(X = k) = 0        otherwise`,
 
 // for N dice, convolve N−1 times
 P_total = P_die ⊛ P_die ⊛ … ⊛ P_die   (N copies)`,
+    recipePage: '2d6-vs-3d6-vs-1d20',
   },
   {
     id: 'modifier',
@@ -114,6 +117,7 @@ for each ordered outcome (r₁, r₂, …, r_N):
 // what gets run instead: count dice at each level, never an outcome
 sum of top K  =  Σ  min(K, C_t)        C_t = dice showing at least t
                 t≥1                    (see §10)`,
+    recipePage: '4d6-drop-lowest',
   },
   {
     id: 'advantage',
@@ -143,6 +147,7 @@ P_adv(X = k) = P_adv(X ≤ k) − P_adv(X ≤ k − 1)
 // disadvantage: min of two independent rolls
 P_dis(X ≥ k) = P(X ≥ k)²
 P_dis(X = k) = P_dis(X ≥ k) − P_dis(X ≥ k + 1)`,
+    recipePage: 'advantage-vs-disadvantage',
   },
   {
     id: 'reroll',
@@ -178,6 +183,7 @@ P_once(X = k) = (k ∉ R) · P(X = k)               // kept
 // reroll always: distribution restricted to the acceptable set
 P_always(X = k) = P(X = k) / P(X ∉ R)            for k ∉ R
 P_always(X = k) = 0                              for k ∈ R`,
+    recipePage: 'great-weapon-fighting',
   },
   {
     id: 'explode',
@@ -217,6 +223,7 @@ explode(P, F, depth):
     return P_keep ⊕ ( P_pop ⊛ P_next )   // P_pop sits at F, so ⊛ already shifts by F
 
 // ⊕ = pointwise sum, ⊛ = convolution`,
+    recipePage: 'exploding-dice',
   },
   {
     id: 'pool',
@@ -259,6 +266,7 @@ P(k successes in N dice) = C(N, k) · p^k · (1 − p)^(N − k)
 
 // modifier steps run on the count, then clamp at zero
 P_final(k) = Σ P_chain(j)    over all j with max(0, j) = k`,
+    recipePage: 'counting-successes',
   },
   {
     id: 'compare',
@@ -341,6 +349,7 @@ P(k of part p arrive) = C(remaining, k) · q^k · (1 − q)^(remaining − k)
                         q = P(die = t | die ≤ t)
 
 // keep lowest n of v  =  keep highest n of (maxFace + 1 − v), read back`,
+    recipePage: 'keep-highest-mixed-dice',
   },
   {
     id: 'check',
@@ -386,5 +395,6 @@ P_row = P(fail)    · scale(effect, onFailure)
 
 // advantage applies to the check roll, so it also raises the crit chance
 P(crit on 20, advantage) = 1 − (19/20)² = 0.0975`,
+    recipePage: 'chance-to-hit-vs-ac',
   },
 ];

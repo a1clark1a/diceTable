@@ -1,5 +1,6 @@
 import { Box, Code, Heading, Stack, Text } from "@chakra-ui/react";
 import { mathOps, type MathOp } from "../../docs/math";
+import { RecipeLink } from "./RecipeLink";
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -70,6 +71,7 @@ function MathOpCard({ op }: { op: MathOp }) {
             {op.snippet}
           </Box>
         </Box>
+        <RecipeLink slug={op.recipePage} />
       </Stack>
     </Box>
   );
@@ -98,7 +100,8 @@ export function TheMath() {
       >
         Each step below has the same layout: a short explanation, a small worked
         example with real numbers, and a formula snippet for anyone who wants to
-        read the math directly.
+        read the math directly. When a dice question puts a step to work, the
+        card ends with a link to that question’s page.
       </Box>
       <Stack gap={4}>
         {mathOps.map((op) => (
