@@ -25,7 +25,7 @@ function MathOpCard({ op }: { op: MathOp }) {
       borderRadius="lg"
       p={{ base: 4, md: 5 }}
     >
-      <Heading as="h3" size="sm" mb={1}>
+      <Heading as="h2" size="sm" mb={1}>
         {op.title}
       </Heading>
       <Text fontFamily="mono" fontSize="xs" color="fg.muted" mb={3}>

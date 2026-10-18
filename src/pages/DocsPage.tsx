@@ -4,11 +4,14 @@ import {
   Outlet,
   Route,
   Routes,
+  useLocation,
   useSearchParams,
 } from 'react-router-dom';
 import { DocsTabs } from '../components/docs/DocsTabs';
 import {
+  DOCS_TAB_LABELS,
   docsSectionPath,
+  docsTabForPath,
   isDocsTab,
   type DocsTab,
 } from '../components/docs/docs-tab';
@@ -55,16 +58,23 @@ const QUESTIONS_ITEMLIST_LD = buildItemListLd(
 );
 
 function DocsLayout() {
+  // Null only on /docs itself, for the frame before its redirect lands.
+  const tab = docsTabForPath(useLocation().pathname);
   return (
     <Stack gap={6} maxW="920px" mx="auto">
       <Stack gap={1}>
-        <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          textTransform="uppercase"
+          letterSpacing="wider"
+          color="fg.muted"
+        >
           Docs
-        </Heading>
-        <Text fontSize="md" color="fg.muted">
-          How to use DiceTable, what every term means, the math behind every
-          number, and answers to common dice questions.
         </Text>
+        <Heading as="h1" size={{ base: 'lg', md: 'xl' }} letterSpacing="tight">
+          {tab === null ? 'Docs' : DOCS_TAB_LABELS[tab]}
+        </Heading>
       </Stack>
 
       <DocsTabs />

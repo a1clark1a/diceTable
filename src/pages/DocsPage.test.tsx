@@ -306,7 +306,7 @@ describe('DocsPage indexability', () => {
 
 function questionLinks(): HTMLAnchorElement[] {
   return screen
-    .getAllByRole('heading', { level: 3 })
+    .getAllByRole('heading', { level: 2 })
     .map((h) => within(h).getByRole('link'))
     .filter((a): a is HTMLAnchorElement => a instanceof HTMLAnchorElement);
 }
@@ -343,5 +343,68 @@ describe('DocsPage dice questions list', () => {
       expect(item, page.slug).not.toBeNull();
       expect(within(item!).getByText(page.description)).toBeInTheDocument();
     }
+  });
+});
+
+function pageTitles(): string[] {
+  return screen
+    .getAllByRole('heading', { level: 1 })
+    .map((h) => h.textContent ?? '');
+}
+
+const SECTION_TITLES: readonly (readonly [string, string])[] = [
+  ['/docs/quickstart', 'Quickstart'],
+  ['/docs/glossary', 'Glossary'],
+  ['/docs/math', 'The Math'],
+  ['/docs/questions', 'Dice questions'],
+];
+
+describe('DocsPage headings', () => {
+  it.each(SECTION_TITLES)(
+    'titles %s "%s" under a Docs label that is not a heading',
+    (path, title) => {
+      renderAt(path);
+      expect(pageTitles()).toEqual([title]);
+      expect(screen.getByText('Docs')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Docs' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(SECTION_TITLES)('never skips a heading level on %s', (path) => {
+    renderAt(path);
+    const levels = [
+      ...document.body.querySelectorAll('h1, h2, h3, h4, h5, h6'),
+    ].map((h) => Number(h.tagName.slice(1)));
+    expect(levels[0]).toBe(1);
+    expect(levels.length).toBeGreaterThan(1);
+    const skips = levels.flatMap((level, i) => {
+      const previous = levels[i - 1];
+      return previous !== undefined && level > previous + 1
+        ? [`h${previous} then h${level}`]
+        : [];
+    });
+    expect(skips).toEqual([]);
+  });
+
+  it.each(['/docs/Glossary', '/docs/glossary/'])(
+    'titles %s by the section the router renders there',
+    (path) => {
+      renderAt(path);
+      expect(pageTitles()).toEqual(['Glossary']);
+      expect(screen.getByText('Dice expression')).toBeInTheDocument();
+    },
+  );
+
+  it('retitles the page when another section is opened', () => {
+    renderAt('/docs/quickstart');
+    fireEvent.click(screen.getAllByRole('link', { name: 'The Math' })[0]!);
+    expect(pageTitles()).toEqual(['The Math']);
+  });
+
+  it('leaves the docs title off the not-found page', () => {
+    renderAt('/docs/banana');
+    expect(pageTitles()).toEqual(['Page not found']);
   });
 });

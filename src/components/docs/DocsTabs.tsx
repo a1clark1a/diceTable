@@ -1,6 +1,6 @@
 import { Button, HStack, chakra } from '@chakra-ui/react';
 import { NavLink, useMatch } from 'react-router-dom';
-import { docsSectionPath, type DocsTab } from './docs-tab';
+import { DOCS_TAB_LABELS, docsSectionPath, type DocsTab } from './docs-tab';
 
 const TabLink = chakra(NavLink);
 
@@ -12,10 +12,14 @@ interface TabDef {
 }
 
 const TABS: readonly TabDef[] = [
-  { value: 'quickstart', label: 'Quickstart' },
-  { value: 'glossary', label: 'Glossary' },
-  { value: 'math', label: 'The Math' },
-  { value: 'questions', label: 'Dice questions', phoneLabel: 'Questions' },
+  { value: 'quickstart', label: DOCS_TAB_LABELS.quickstart },
+  { value: 'glossary', label: DOCS_TAB_LABELS.glossary },
+  { value: 'math', label: DOCS_TAB_LABELS.math },
+  {
+    value: 'questions',
+    label: DOCS_TAB_LABELS.questions,
+    phoneLabel: 'Questions',
+  },
 ];
 
 export function DocsTabs() {

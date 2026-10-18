@@ -31,7 +31,7 @@ function Step({ step, isLast }: { step: QuickstartStep; isLast: boolean }) {
     >
       <HStack gap={3} align="center" mb={2}>
         <StepNum n={step.n} />
-        <Heading as="h3" size="md">
+        <Heading as="h2" size="md">
           {step.title}
         </Heading>
       </HStack>

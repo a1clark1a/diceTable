@@ -26,7 +26,7 @@ export function DiceQuestions() {
             borderBottomWidth={idx === RECIPE_PAGES.length - 1 ? 0 : '1px'}
             borderColor="border.subtle"
           >
-            <Heading as="h3" size="md">
+            <Heading as="h2" size="md">
               <Link
                 asChild
                 colorPalette="blue"

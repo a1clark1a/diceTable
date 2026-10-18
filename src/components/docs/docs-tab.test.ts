@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import sitemapXml from '../../../public/sitemap.xml?raw';
 import llmsTxt from '../../../public/llms.txt?raw';
-import { docsSectionPath, isDocsTab, type DocsTab } from './docs-tab';
+import {
+  docsSectionPath,
+  docsTabForPath,
+  isDocsTab,
+  type DocsTab,
+} from './docs-tab';
 
 // A Record over the union fails the type-check the day a tab is added here and
 // not to the union, or to the union and not here, so the checks below always
@@ -32,6 +37,32 @@ describe('isDocsTab', () => {
 describe('docsSectionPath', () => {
   it('puts each section under /docs', () => {
     expect(docsSectionPath('questions')).toBe('/docs/questions');
+  });
+});
+
+describe('docsTabForPath', () => {
+  it('maps each section path to its own section', () => {
+    for (const tab of tabs()) {
+      expect(docsTabForPath(docsSectionPath(tab)), tab).toBe(tab);
+    }
+  });
+
+  it.each(['/docs/Glossary', '/docs/glossary/', '/DOCS/GLOSSARY'])(
+    'maps %s to the glossary, as the router does',
+    (path) => {
+      expect(docsTabForPath(path)).toBe('glossary');
+    },
+  );
+
+  it.each([
+    '/docs',
+    '/docs/',
+    '/docs/banana',
+    '/docs/questions/extra',
+    '/',
+    '/recipes/4d6-drop-lowest',
+  ])('maps %s to no section', (path) => {
+    expect(docsTabForPath(path)).toBeNull();
   });
 });
 

@@ -140,7 +140,7 @@ function GlossaryGroupBlock({ group }: { group: GlossaryGroup }) {
   return (
     <Stack gap={2}>
       <Heading
-        as="h3"
+        as="h2"
         size="xs"
         textTransform="uppercase"
         letterSpacing="wider"
