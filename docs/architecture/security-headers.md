@@ -1,7 +1,7 @@
 # Security Headers and CSP
 
 > Status: Living doc — update when [vercel.json](../../vercel.json) headers change.
-> Last updated: 2026-05-28
+> Last updated: 2026-10-10
 
 This is the reference for the HTTP security headers DiceTable ships in production. Read this before tightening, loosening, or removing any directive in [vercel.json](../../vercel.json). The CSP especially is a deliberate balance between strictness and the realities of a Chakra UI / Emotion app, and the reasoning belongs in one place.
 
@@ -118,7 +118,7 @@ The `'unsafe-inline'` grant is the last link in a chain whose earlier links are 
 
 The trigger for tightening is any feature that **renders user-controlled content as HTML**. Examples:
 
-- Markdown notes on rolls
+- Rendering roll notes as Markdown or HTML (today they are plain text, which React escapes wherever it renders them)
 - Embedded previews of external content
 - A comments or chat feature
 - An import format that accepts HTML fragments

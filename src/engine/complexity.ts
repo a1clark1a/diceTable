@@ -1,5 +1,6 @@
 import type { DicePart, Expression, KeepRule } from '../types';
 import { critApplies, critEffectParts } from './critEffect';
+import { modsWidth } from './mods';
 
 const DEFAULT_EXPLODE_CAP = 10;
 
@@ -211,8 +212,18 @@ export function partTooComplex(part: DicePart): boolean {
  */
 export function supportWidth(expr: Expression): number {
   // Counting successes is bounded by poolComplexity, which already squares the
-  // dice count, and its support is the dice count rather than a sum of faces.
-  if (expr.mode === 'pool') return 0;
+  // dice count, and its support is the dice count rather than a sum of faces,
+  // so on its own it is never wide. A chain that multiplies spreads it, though,
+  // and that spread is what the dense consumers below pay for.
+  if (expr.mode === 'pool') {
+    let dice = 0;
+    for (const part of expr.parts) {
+      if (!Number.isInteger(part.count) || part.count < 1) continue;
+      if (!Number.isInteger(part.sides) || part.sides < 2) continue;
+      dice += part.count;
+    }
+    return modsWidth(dice + 1, expr.mods);
+  }
 
   const widthOf = (parts: readonly DicePart[], keepAcross?: KeepRule): number => {
     let total = 0;
@@ -246,7 +257,14 @@ export function supportWidth(expr: Expression): number {
       width = Math.max(width, widthOf(critEffectParts(spec), spec.effect.keepAcross));
     }
   }
-  return width + 1;
+  if (expr.mode === 'check') return width + 1;
+  // The dice are convolved before the chain runs, so a divide that narrows the
+  // drawn row does not make the convolution any cheaper. A multiply does not
+  // make it dearer either: the map keeps its size and only the gaps grow. What
+  // a multiply widens is the span that hitSeries, the chart axis and the share
+  // image walk one integer at a time, so the row is as wide as the wider of
+  // the two.
+  return Math.max(width + 1, modsWidth(width + 1, expr.mods));
 }
 
 /**

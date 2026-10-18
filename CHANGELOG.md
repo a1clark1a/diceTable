@@ -6,6 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-10-11
+
+### Added
+
+- Dice questions: a new page in the Docs lists every common dice question DiceTable answers, such as what 4d6 drop lowest averages or how much advantage is worth, each with its short answer and a link to the page that opens its rolls in a working table. Until now that list only showed on an empty table, so once you had rolls of your own there was no way back to it. Each question's own page links back to the list with More dice questions, next to Build it yourself.
+
+## [2.4.0] - 2026-10-11
+
+### Added
+
+- Duplicate a roll: open a roll and press the Duplicate icon beside its formula, and a copy lands directly below it, named "Longsword (2)" and already open, ready to change one thing and compare. Rows can now be put in order too, with Move up and Move down in the same place. The order is what the chart draws first and which rolls head-to-head shows, so the roll you care about no longer has to be the one you added first.
+- Variants: open a roll and press Variants to make a whole family of it at once. Pick what to change (the number of dice, the die, how many to keep, the modifier, or a pool's success number), pick the range, and up to seven new rolls appear directly below, named for what changed ("Longsword · d10", "2d6 · +3"). Seven, because the chart has eight colours and the roll you started from keeps one, so every member of the family is drawn in its own colour and line. The chart fans them out side by side, so the balanced one is the one you can see rather than the one you work out. Before you confirm, the panel shows what it will add and says plainly what it is leaving out and why, such as keeping more dice than you roll, a die that never reaches the success number, or a roll too large to work out. The message afterwards has an Undo that removes exactly those rolls. Checks can't make variants yet; duplicate one and change it by hand.
+- Modifier steps: a roll's total can now go through up to three steps, in order: add, subtract, multiply or divide (dividing rounds down). Open a roll and use Modifier steps under the dice to say "double it, then add 3" or "roll it, then halve it", and move the steps earlier or later, since +3 then ×2 is not ×2 then +3. The table reads the steps in the Mod column (+3 ×2) and in the formula, where brackets show the order: (2d6 + 3) × 2. On a roll that counts successes the steps change the number of successes, and adding still means automatic successes. A single +2 still goes straight in the Mod box as before, and Variants can now try different values for any one step.
+- Notes on rolls: a short note under the formula, for why a roll exists or what changed from the last version. The table marks a roll that has one, a phone shows the note on the card, and notes travel with the table when you share it, export it or open it on another device.
+- Recipe pages: ten pages that each answer one common dice question, such as what 4d6 drop lowest averages, how much advantage is worth, or what Great Weapon Fighting adds to a greatsword. Each one is the real table with the rolls already in it, so you can read the chart, change a die and try a target right there. Nothing you do on a recipe page touches your own table. When you want to keep the rolls, Open this in my table adds them after the rolls you already have. An empty table lists all ten under Common dice questions, and each page has a Build it yourself list that walks through making the same rolls by hand.
+- A new recipe in Find a roll: Roll again on a 6 and add, a plain d6 next to an exploding one, for anyone wondering what exploding dice do to the average.
+- The shape of a roll now shows where most of its results land: a faint band of the roll's colour over the middle of its results, in the small shape beside each roll, in the chart you open from it, and in the comparison chart for whichever roll you point at or pick from the legend. A narrower band is a steadier roll. A flat roll like a single d8 lands anywhere equally, so it gets no band.
+
+### Changed
+
+- Links and files you share now use a newer format, so they open in this version of DiceTable or later. If an old copy of the app is still open in another tab, it asks you to reload instead of showing the wrong numbers. Older links and files still open as before.
+- A copy or a variant goes directly below the roll it came from, so the rolls after it move down to make room, and each one takes the colour of its new place. Move up and Move down work the same way: the two rolls that trade places also trade colours. That is the rule the colours always followed, but it is the first time a roll can land in, or move through, the middle of the table.
+- The homepage now says what DiceTable is for: building, comparing and balancing dice rolls, for the games you play and the homebrew you write.
+- The footer credits Clark Perfecto by name and links to the GitHub profile.
+
+### Fixed
+
+- A DiceTable link shared in a chat app or on social media now shows a short description under its title, instead of the title alone.
+- Every page now carries a single title once it has loaded, instead of its own title followed by the site's default one. Bing's site checker flagged the second title on every page.
+- The Find a roll recipe that compares 1d20, 3d6 and 2d6 is now called More dice, fewer extremes. Its old name, Same range, different shapes, was wrong: the three rolls cover different ranges.
+
+## [2.3.0] - 2026-10-10
+
+### Added
+
+- Find a roll: the Examples button is now a searchable library of ready-made rolls for the games people actually play. Type a game ("Blades", "Shadowrun", "L5R", "40k"), a rule ("advantage", "explode") or some dice ("3d6"), or narrow it with the chips for adding up, counting successes, best or worst of, head to head and beating a number. Each card says what the roll is also called, why it is built the way it is, and the average and range the row will show once you add it. Some recipes add two or three rows at once, so you can compare advantage with disadvantage, or a normal hit with a critical, side by side.
+- Every recipe was checked against the game's own rules before it went in, and where a recipe leaves something out it says so on the card: a Blades resistance roll does not count the critical that clears stress, and Daggerheart's total does not count doubles.
+- What's new: after an update, the app opens a short list of what changed since your last visit, one section per version with the newest on top, and then stays out of the way until the next one. The version number in the footer opens the same list whenever you like, going all the way back to the first release. A first visit never shows it, and opening a shared link holds it for your next visit, so a link always lands on the rolls it carries.
+
+### Changed
+
+- The Examples button is now called Find a roll, and on a phone it now shows as its own button, in the same place as on a bigger screen, instead of only inside the overflow menu, so you can find it without knowing it is there. An empty table offers it too, so the game recipes are there from your first visit. The dialog's "Load every example" is now "Load the starter set", and still adds the same eight rolls.
+- The privacy page now names everything the app keeps in your browser, including the version you last opened and your light or dark choice, and says plainly what the error screen's reset clears.
+
+### Fixed
+
+- On a phone, the Target view's Edit buttons for the target and the pool target no longer run off the right edge of the screen, and the page no longer scrolls sideways there.
+
 ## [2.2.0] - 2026-09-14
 
 ### Changed
@@ -260,7 +308,10 @@ Initial public release. Prior development history is preserved in the git commit
 - Versioned `localStorage` persistence with schema validation.
 - PWA with offline support.
 
-[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/a1clark1a/diceTable/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/a1clark1a/diceTable/releases/tag/v2.4.1
+[2.4.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.4.0
+[2.3.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.3.0
 [2.2.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.2.0
 [2.1.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.1.0
 [2.0.0]: https://github.com/a1clark1a/diceTable/releases/tag/v2.0.0

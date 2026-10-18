@@ -1,5 +1,7 @@
 import {
   MAX_EXPRESSIONS,
+  MAX_MODS,
+  MAX_NOTE_LENGTH,
   MAX_TARGETS,
   type ChartSurface,
   type ChartView,
@@ -14,6 +16,8 @@ import {
   type GridSort,
   type ExplodeRule,
   type KeepRule,
+  type ModOp,
+  type ModStep,
   type PersistedState,
   type RerollRule,
   type RollMode,
@@ -26,14 +30,19 @@ import {
   type WorkshopView,
 } from '../types';
 import { isSingleDieCheck } from '../engine/critEffect';
+import { modStepProblem, withLegacyModifierMoved } from './modChain';
 
 // The inner schema version, deliberately decoupled from the useLocalStorage
 // envelope version in AppContext. The envelope gate rejects any version it does
 // not recognise before validation ever runs, so bumping both together would wipe
 // every saved table instead of migrating it.
-export const SCHEMA_VERSION = 6;
+//
+// 7 moved the sum and pool modifier into `mods`. An older build would read a
+// chain as nothing and draw a confidently wrong curve, so it has to refuse the
+// envelope rather than load it.
+export const SCHEMA_VERSION = 7;
 
-const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4, 5, 6];
+const ACCEPTED_SCHEMA_VERSIONS: readonly number[] = [2, 3, 4, 5, 6, 7];
 
 const ROLL_MODES: readonly RollMode[] = ['normal', 'advantage', 'disadvantage'];
 const EXPRESSION_MODES: readonly ExpressionMode[] = ['sum', 'pool', 'check'];
@@ -49,6 +58,7 @@ const KEEP_TYPES: readonly KeepRule['type'][] = ['highest', 'lowest'];
 const REROLL_MODES: readonly RerollRule['mode'][] = ['once', 'always'];
 const EFFECT_SCALES: readonly EffectScale[] = ['none', 'half', 'full'];
 const CRIT_EFFECTS: readonly CritEffect[] = ['doubleDice', 'extraDie', 'maxPlusRoll'];
+const MOD_OPS: readonly ModOp[] = ['add', 'sub', 'mul', 'div'];
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -89,6 +99,25 @@ function validateExplode(v: unknown): ExplodeRule | null {
   if (!isIntArray(v.onFaces)) return null;
   if (!isInt(v.depthCap) || v.depthCap < 0) return null;
   return { onFaces: [...v.onFaces], depthCap: v.depthCap };
+}
+
+function validateModStep(v: unknown): ModStep | null {
+  if (!isRecord(v)) return null;
+  if (!isOneOf(v.op, MOD_OPS)) return null;
+  if (typeof v.value !== 'number') return null;
+  if (modStepProblem(v.op, v.value) !== null) return null;
+  return { op: v.op, value: v.value };
+}
+
+function validateMods(v: unknown): ModStep[] | null {
+  if (!Array.isArray(v) || v.length > MAX_MODS) return null;
+  const mods: ModStep[] = [];
+  for (const raw of v) {
+    const step = validateModStep(raw);
+    if (step === null) return null;
+    mods.push(step);
+  }
+  return mods;
 }
 
 function validateSuccessThreshold(v: unknown): SuccessThreshold | null {
@@ -258,7 +287,28 @@ export function validateExpression(v: unknown): Expression | null {
     return null;
   }
 
-  return expression;
+  // A note changes no number, so an older build that drops it loses nothing a
+  // chart shows; no schema or export bump is needed for it.
+  if (v.note !== undefined) {
+    if (typeof v.note !== 'string') return null;
+    const note = v.note.trim();
+    if (note.length > MAX_NOTE_LENGTH) return null;
+    if (note.length > 0) expression.note = note;
+  }
+
+  // A check row has no chain, and one left on it by hand changes nothing the
+  // row computes, so it is dropped rather than costing the whole table.
+  if (v.mods !== undefined && mode !== 'check') {
+    const mods = validateMods(v.mods);
+    if (mods === null) return null;
+    // Nothing writes both: rows saved before the chain have only the modifier,
+    // and rows saved since keep it at 0. Both at once is a hand edit, with no
+    // telling which the author meant to come first.
+    if (expression.flatModifier !== 0 && mods.length > 0) return null;
+    if (mods.length > 0) expression.mods = mods;
+  }
+
+  return withLegacyModifierMoved(expression);
 }
 
 function validateTarget(v: unknown): TargetState {

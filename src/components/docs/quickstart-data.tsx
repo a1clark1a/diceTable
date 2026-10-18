@@ -14,7 +14,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 1,
     title: 'Add your first roll',
     plain:
-      'Click + Add roll. A new row appears with the default 1d20. Click its name to rename it, for example "Attack roll". Prefer a head start? An empty table offers "Start with an example" with ready-made rolls, and the Examples button keeps the same rolls available once your table has rows.',
+      'Click + Add roll. A new row appears with the default 1d20. Click its name to rename it, for example "Attack roll". Prefer a head start? An empty table offers "Start with an example" with ready-made rolls, and the Find a roll button, there and above your rows, searches a library of ready-made rolls by game or by rule.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -24,8 +24,8 @@ export const quickstartSteps: readonly QuickstartStep[] = [
         <Text>
           Prefer a head start? An empty table offers{' '}
           <strong>Start with an example</strong> with ready-made rolls, and the{' '}
-          <strong>Examples</strong> button keeps the same rolls available once
-          your table has rows.
+          <strong>Find a roll</strong> button, there and above your rows,
+          searches a library of ready-made rolls by game or by rule.
         </Text>
         <Text color="fg.muted" fontSize="sm">
           The colored swatch on the left of each row matches that row’s color
@@ -77,7 +77,7 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 3,
     title: 'Read the chart',
     plain:
-      'The comparison chart overlays your rolls on one set of axes, beside the table when the screen is wide enough and below it when it is not. Each chart carries its own view buttons in its header, next to the title: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. The Shape sparkline in each row keeps its own view setting. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
+      'The comparison chart overlays your rolls on one set of axes, beside the table when the screen is wide enough and below it when it is not. Each chart carries its own view buttons in its header, next to the title: PMF shows how often each exact total comes up, CDF shows the chance of at most N, CCDF shows the chance of at least N, and TARGET shows a hit-rate bar per row once a target is set. The Shape sparkline in each row keeps its own view setting. A faint band of the roll’s colour shades where most of its results land, on the sparkline, in the inspector, and on the chart for a roll you single out; a narrower band is a steadier roll. A check roll that misses often would pile that chance onto one bar, so on PMF that bar is cut off and labelled with the real number.',
     body: (
       <Stack gap={2}>
         <Text>
@@ -107,6 +107,13 @@ export const quickstartSteps: readonly QuickstartStep[] = [
           setting, so it can show a different view from the chart. Click it (or
           the Mean / σ values) to open a larger inspector.
         </Text>
+        <Text>
+          A faint band of the roll’s colour shades where most of its results
+          land: on the sparkline, in the inspector, and on the chart for a roll
+          you single out from the legend. A narrower band is a steadier roll.
+          A plain single die, like 1d20 without advantage, lands anywhere
+          equally, so it has no band.
+        </Text>
         <Text color="fg.muted" fontSize="sm">
           A check roll that misses often would pile all of that chance onto one
           bar and flatten everything else. On PMF that bar is cut off and
@@ -119,17 +126,27 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 4,
     title: 'Expand a row to edit details',
     plain:
-      'Click the chevron on the right of any row to expand it. From there you can add more dice parts and set the roll mode: Normal, Advantage, or Disadvantage.',
+      'Click the chevron on the right of any row to expand it. The top of the panel shows the formula, buttons to move the roll up or down the table, Duplicate and Variants (Step 7), and a short note for why the roll exists. Below that you can add more dice parts, add modifier steps that add, subtract, multiply or divide the total in order, and set the roll mode: Normal, Advantage, or Disadvantage.',
     body: (
       <Stack gap={2}>
         <Text>
-          Click the chevron on the right of any row to expand it. The
-          expanded panel lets you tweak two things:
+          Click the chevron on the right of any row to expand it. The top of
+          the panel shows the roll’s formula, with buttons beside it to move
+          the roll up or down the table, to <strong>Duplicate</strong> it and
+          to make <strong>Variants</strong> of it (Step 7). Under the formula
+          is a <strong>Note</strong>: a line for why the roll exists, like what
+          you changed from the last version. It travels with the table when
+          you share it. Below that you can tweak three things:
         </Text>
         <List.Root pl={5}>
           <List.Item>
             <strong>Dice parts</strong>. Add more dice (e.g. a <Code>1d6</Code>{' '}
             sneak attack on top of a <Code>1d8</Code> weapon).
+          </List.Item>
+          <List.Item>
+            <strong>Modifier steps</strong>. What happens to the total after the
+            dice, in order: add, subtract, multiply or divide (rounds down), up
+            to three steps, like <Code>(2d6 + 3) × 2</Code>.
           </List.Item>
           <List.Item>
             <strong>Roll mode</strong>. Normal, Advantage (roll twice, take
@@ -221,18 +238,29 @@ export const quickstartSteps: readonly QuickstartStep[] = [
     n: 7,
     title: 'Compare rolls',
     plain:
-      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them.',
+      'Add more rows. Each appears in the chart with its own color, matching its swatch in the table. Click, tap or press a name in the legend to single that roll out and keep it singled out; press it again, press Escape, or tap the chart to go back. Past twenty rolls the chart draws twenty at a time and names the range it is showing, with arrows to reach the rest. Enlarge it on a wide screen and it draws every roll at once instead, faintly, so picking a name shows you where that roll sits among all of them. To compare versions of one roll, open it and press the Duplicate icon for a single copy, or Variants for a family that changes one value: the dice count, the die, how many to keep, one modifier step, or a pool’s success number. Up to seven new rolls land right below the original, named for what changed, and fan out on the chart side by side.',
     body: (
-      <Text>
-        Add more rows. Each appears in the chart with its own color, matching
-        the swatch in the table. Click, tap or press a name in the chart
-        legend to single that roll out and keep it singled out; press it again,
-        press Escape, or tap the chart to go back. Past twenty rolls the chart
-        draws twenty at a time and names the range it is showing, with arrows
-        to reach the rest. Enlarge it on a wide screen and it draws every roll
-        at once instead, faintly, so picking a name shows you where that roll
-        sits among all of them.
-      </Text>
+      <Stack gap={2}>
+        <Text>
+          Add more rows. Each appears in the chart with its own color, matching
+          the swatch in the table. Click, tap or press a name in the chart
+          legend to single that roll out and keep it singled out; press it
+          again, press Escape, or tap the chart to go back. Past twenty rolls
+          the chart draws twenty at a time and names the range it is showing,
+          with arrows to reach the rest. Enlarge it on a wide screen and it
+          draws every roll at once instead, faintly, so picking a name shows
+          you where that roll sits among all of them.
+        </Text>
+        <Text>
+          To compare versions of one roll, open it and press the{' '}
+          <strong>Duplicate</strong> icon for a single copy, or{' '}
+          <strong>Variants</strong> for a family that changes one value: the
+          dice count, the die, how many to keep, one modifier step, or a
+          pool’s success number. Up to seven new rolls land right below the original,
+          named for what changed (<Code>Longsword · d10</Code>), and fan out
+          on the chart side by side. The message afterwards has an Undo.
+        </Text>
+      </Stack>
     ),
   },
   {

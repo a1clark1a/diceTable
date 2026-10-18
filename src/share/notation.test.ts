@@ -148,11 +148,11 @@ describe('modifierNotation', () => {
 
 describe('expressionNotation for sum rows', () => {
   it('adds a positive modifier to the dice', () => {
-    expect(expressionNotation(expr({ flatModifier: 3 }))).toBe('2d6 + 3');
+    expect(expressionNotation(expr({ mods: [{ op: 'add', value: 3 }] }))).toBe('2d6 + 3');
   });
 
   it('subtracts a negative modifier from the dice', () => {
-    expect(expressionNotation(expr({ flatModifier: -2 }))).toBe('2d6 − 2');
+    expect(expressionNotation(expr({ mods: [{ op: 'sub', value: 2 }] }))).toBe('2d6 − 2');
   });
 
   it('leaves a zero modifier off entirely', () => {
@@ -160,7 +160,7 @@ describe('expressionNotation for sum rows', () => {
   });
 
   it('joins several parts with a plus before the modifier', () => {
-    const e = expr({ parts: [part(1, 8), part(2, 4)], flatModifier: 1 });
+    const e = expr({ parts: [part(1, 8), part(2, 4)], mods: [{ op: 'add', value: 1 }] });
     expect(expressionNotation(e)).toBe('1d8 + 2d4 + 1');
   });
 
@@ -177,7 +177,7 @@ describe('expressionNotation for sum rows', () => {
   });
 
   it('still shows the modifier on a row with no dice', () => {
-    expect(expressionNotation(expr({ parts: [], flatModifier: 2 }))).toBe('(no parts) + 2');
+    expect(expressionNotation(expr({ parts: [], mods: [{ op: 'add', value: 2 }] }))).toBe('(no parts) + 2');
   });
 
   it('marks an advantage row with adv', () => {
@@ -189,7 +189,7 @@ describe('expressionNotation for sum rows', () => {
   });
 
   it('puts the roll mode after the modifier', () => {
-    const e = expr({ flatModifier: 4, rollMode: 'advantage' });
+    const e = expr({ mods: [{ op: 'add', value: 4 }], rollMode: 'advantage' });
     expect(expressionNotation(e)).toBe('2d6 + 4 adv');
   });
 
@@ -247,11 +247,11 @@ describe('expressionNotation for pool rows', () => {
   });
 
   it('names added automatic successes', () => {
-    expect(expressionNotation(pool({ flatModifier: 2 }))).toBe('8d6 · count ≥5 · +2 auto');
+    expect(expressionNotation(pool({ mods: [{ op: 'add', value: 2 }] }))).toBe('8d6 · count ≥5 · +2 auto');
   });
 
   it('names removed automatic successes without a doubled sign', () => {
-    expect(expressionNotation(pool({ flatModifier: -1 }))).toBe('8d6 · count ≥5 · −1 auto');
+    expect(expressionNotation(pool({ mods: [{ op: 'sub', value: 1 }] }))).toBe('8d6 · count ≥5 · −1 auto');
   });
 
   it('leaves the automatic successes out when the modifier is zero', () => {

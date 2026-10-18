@@ -5,6 +5,7 @@ import {
   Stack,
 } from '@chakra-ui/react';
 import { toaster } from './toaster-store';
+import { tapTarget } from '../tapTarget';
 
 export function Toaster() {
   return (
@@ -19,6 +20,9 @@ export function Toaster() {
                 <Toast.Description>{t.description}</Toast.Description>
               )}
             </Stack>
+            {t.action !== undefined && (
+              <Toast.ActionTrigger h={tapTarget('28px')}>{t.action.label}</Toast.ActionTrigger>
+            )}
             {t.closable && <Toast.CloseTrigger />}
           </Toast.Root>
         )}

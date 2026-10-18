@@ -112,6 +112,36 @@ export function percentile(dist: Distribution, p: number): number {
   return keys[keys.length - 1] ?? 0;
 }
 
+/**
+ * The span holding the middle `mass` of results, leaving at most
+ * (1 - mass) / 2 outside on each side. On discrete dice it covers at least
+ * `mass` and usually more.
+ *
+ * The two ends are not mirror images of `percentile`: the low end is the first
+ * result whose running total passes the tail, the high end the first whose
+ * running total reaches 1 - tail. Taking both from `percentile` keeps a face
+ * that lands exactly on the tail at the bottom and drops its twin at the top,
+ * which slides the span of a symmetric roll like 1d20 toward low results.
+ */
+export function middleRange(dist: Distribution, mass: number): [number, number] {
+  if (dist.size === 0) return [0, 0];
+  const tail = (1 - Math.min(1, Math.max(0, mass))) / 2;
+  const keys = sortedKeys(dist);
+  let low = keys[keys.length - 1] ?? 0;
+  let cum = 0;
+  for (const k of keys) {
+    cum += dist.get(k) ?? 0;
+    if (cum > tail + 1e-12) {
+      low = k;
+      break;
+    }
+  }
+  const high = percentile(dist, 1 - tail);
+  // Asking for almost no mass on an even die leaves the two middle faces in
+  // the wrong order; the span between them is the honest answer.
+  return low <= high ? [low, high] : [high, low];
+}
+
 // hitProbability(dist, v, ruling) for every integer v in [min..max], computed
 // in one cumulative pass instead of one full-distribution scan per point.
 export function hitSeries(

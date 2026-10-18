@@ -8,7 +8,11 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   // .design-sync and ds-bundle* are gitignored local-only tooling artifacts;
   // ignoring them keeps local `eslint .` in line with what CI checks out.
-  globalIgnores(['dist', 'dev-dist', '.design-sync', 'ds-bundle', 'ds-bundle-work']),
+  // .claude holds agent worktrees, whole repo copies with their own
+  // eslint.config.js. Linting one from here hands typescript-eslint a second
+  // tsconfig root, and it then fails every TypeScript file in the run, ours
+  // included.
+  globalIgnores(['dist', 'dev-dist', '.design-sync', 'ds-bundle', 'ds-bundle-work', '.claude']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -11,12 +11,11 @@ import {
   Menu,
   Portal,
 } from '@chakra-ui/react';
-import { Check, Dices, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Check, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
 import { useApp } from '../state/useApp';
 import {
   MAX_EXPRESSIONS,
 } from '../types';
-import { ExamplesDialog } from './presets/ExamplesDialog';
 import { ClearAllDialog } from './ClearAllDialog';
 import { ScrollButtons } from './ScrollButtons';
 import { ChartViewChips } from './chart/ChartViewChips';
@@ -34,9 +33,10 @@ interface WorkshopToolbarProps {
   // Only the table view owns a chart, so its absence is what hides the
   // chart-view chips and the jump-to-chart button on the other views.
   chartRef?: RefObject<HTMLDivElement | null>;
+  onFindRoll: () => void;
 }
 
-export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
+export function WorkshopToolbar({ chartRef, onFindRoll }: WorkshopToolbarProps) {
   const {
     expressions,
     setAllRollModes,
@@ -44,7 +44,6 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
     chartViews,
     target,
   } = useApp();
-  const [examplesOpen, setExamplesOpen] = useState(false);
   const [clearOpen, setClearOpen] = useState(false);
 
   const showChartView = chartRef !== undefined;
@@ -159,13 +158,17 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
                   </Menu.Item>
                   {hasRows && (
                     <>
+                      {/* The labelled button sits above the rows and scrolls
+                          away with them. This copy reaches it from deep in a
+                          long list without making the bar wrap to a second
+                          line. */}
                       <Menu.Item
-                        value="examples"
+                        value="find"
                         minH="40px"
-                        onClick={() => setExamplesOpen(true)}
+                        onClick={onFindRoll}
                       >
-                        <Dices size={14} />
-                        Example rolls
+                        <Search size={14} />
+                        Find a roll
                       </Menu.Item>
                       <Menu.Item
                         value="clear"
@@ -184,7 +187,6 @@ export function WorkshopToolbar({ chartRef }: WorkshopToolbarProps) {
           </Menu.Root>
         </HStack>
       </Flex>
-      <ExamplesDialog open={examplesOpen} onOpenChange={setExamplesOpen} />
       <ClearAllDialog open={clearOpen} onOpenChange={setClearOpen} />
     </Box>
   );
