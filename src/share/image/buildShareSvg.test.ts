@@ -38,9 +38,10 @@ function sumRow(n: number): Expression {
     id: `sum-${n}`,
     name: `Roll ${n}`,
     parts: [{ id: `part-${n}`, count: 2, sides: 6 }],
-    flatModifier: n,
+    flatModifier: 0,
     rollMode: 'normal',
     mode: 'sum',
+    ...(n === 0 ? {} : { mods: [{ op: n < 0 ? 'sub' : 'add', value: Math.abs(n) }] }),
   };
 }
 

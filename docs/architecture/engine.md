@@ -2,7 +2,7 @@
 
 > Status: Living doc. Update when the engine's public surface or math contract changes.
 > Owner: Clark
-> Last updated: 2026-06-06
+> Last updated: 2026-10-10
 
 This is the reference for how DiceTable turns a roll into numbers. `src/engine/**` is the math core: pure functions, no UI, no DOM. Read this before changing anything that touches `distribution.ts`, `parts.ts`, `expression.ts`, `stats.ts`, `complexity.ts`, or `sample.ts`, or before wiring a new consumer onto the engine from the React side.
 
@@ -52,7 +52,7 @@ The engine is a one-directional pipeline. Data flows from the user's `Expression
 
 ```mermaid
 flowchart TD
-  Expr["Expression<br/>parts[], flatModifier, rollMode"]
+  Expr["Expression<br/>parts[], mods[], rollMode"]
 
   subgraph Guard["complexity.ts"]
     Cx["expressionTooComplex?<br/>cost &gt; MAX_COMPLEXITY"]
@@ -68,9 +68,9 @@ flowchart TD
 
   subgraph Expr2["expression.ts — whole roll"]
     Conv["convolveMany(parts)"]
-    Shift["shift(flatModifier)"]
+    Chain["applyMods(mods)<br/>add · sub · mul · div"]
     Mode["applyRollMode<br/>advantage / disadvantage"]
-    Conv --> Shift --> Mode
+    Conv --> Chain --> Mode
   end
 
   Dist[("Distribution<br/>Map&lt;outcome, probability&gt;")]
@@ -97,7 +97,7 @@ Key points:
 
 - **`expressionDistribution` orchestrates the whole pipeline.** Consumers call it and get a finished `Distribution`. The per-part and per-primitive functions exist for it to call, and for tests.
 - **Every stage returns a fresh `Map`.** Inputs are never mutated. `shift` returns a new map even for offset 0 (`new Map(dist)`). This keeps the pipeline safe to compose and safe to cache by input identity.
-- **The complexity guard is the first gate.** It runs before any enumeration, so an over-large roll returns empty immediately instead of allocating a huge map.
+- **The complexity guard is the first gate.** It runs before any enumeration, so an over-large roll returns empty immediately instead of allocating a huge map. `supportWidth` prices a chain too: a multiply widens the span the dense consumers walk (`(W − 1) × M + 1`), and a divide never hides the convolution the dice still cost.
 
 ---
 
@@ -152,6 +152,7 @@ min(dist): number             // lowest possible total
 max(dist): number             // highest possible total
 mode(dist): number[]          // most likely total(s); ties return all
 percentile(dist, p): number   // smallest outcome whose CDF ≥ p
+middleRange(dist, mass): [number, number] // [low, high] leaving at most (1 - mass) / 2 outside each side
 
 cdf(dist, k): number          // P(result ≤ k)
 ccdf(dist, k): number         // P(result ≥ k)
@@ -163,6 +164,8 @@ hitProbability(dist, target, ruling): number
 ```
 
 `hitProbability` is the one the table's "Hit %" column and the target chart use. `ruling` is a `TargetRuling` (`'gte' | 'gt' | 'lte' | 'lt' | 'eq'`) and selects which tail or point mass to sum. It returns 0 for an empty distribution or a non-finite target, so callers don't need to guard.
+
+`middleRange(dist, mass)` returns the span holding the middle `mass` of results. It leaves at most `(1 - mass) / 2` outside on each side, so on discrete dice it covers at least `mass` and usually more. The two ends are deliberately not both read from `percentile`. The low end is the first result whose running total passes the tail, so a symmetric roll gets a centred span: 3 to 18 on 1d20 at 0.8, where `percentile` for both ends would give 2 to 18. It returns `[0, 0]` for an empty distribution. The spread band on the charts reads it through [`spreadBand`](../../src/components/chart/spreadBand.ts), which lives in the chart layer, not the engine. It asks for the middle 80% and returns `null` for an empty or flat roll (every result equally likely, as on a plain single die with or without a plus or minus) or when the span would cover every result.
 
 [`rowStats.ts`](../../src/state/rowStats.ts) bundles `mean / min / max / mode / stddev` into a `RowStats` object with the `hasDist` guard already applied. That is the recommended shape for table and card rows.
 
@@ -180,7 +183,8 @@ These are public for composition and heavily used in tests, but you rarely call 
 
 | File | Functions |
 | --- | --- |
-| [`distribution.ts`](../../src/engine/distribution.ts) | `emptyDistribution`, `uniformDistribution`, `totalMass`, `normalise`, `shift`, `convolve`, `convolveMany`, `sortedKeys` |
+| [`distribution.ts`](../../src/engine/distribution.ts) | `emptyDistribution`, `uniformDistribution`, `totalMass`, `normalise`, `shift`, `scale`, `divideFloor`, `halveFloor`, `clampAtZero`, `convolve`, `convolveMany`, `sortedKeys` |
+| [`mods.ts`](../../src/engine/mods.ts) | `applyMods`, `modsWidth` |
 | [`parts.ts`](../../src/engine/parts.ts) | `applyReroll`, `applyExplode`, `singleDieDistribution`, `partDistribution` |
 | [`expression.ts`](../../src/engine/expression.ts) | `applyRollMode`, `expressionDistribution` |
 | [`complexity.ts`](../../src/engine/complexity.ts) | `partComplexity`, `expressionComplexity`, `partTooComplex`, `expressionTooComplex`, `MAX_COMPLEXITY`, `COMPLEXITY_OVERFLOW` |
@@ -202,7 +206,7 @@ These are public for composition and heavily used in tests, but you rarely call 
    - With a **keep** rule, enumerate the multiset of `count` dice and keep the highest/lowest `n` (combinatorial, hence the complexity cost).
    - Without keep, **convolve** the single die with itself `count` times (rolling `count` dice and summing).
 4. **Combine parts** ([`convolveMany`](../../src/engine/distribution.ts)): convolve each part's distribution together, so `2d6 + 1d8` becomes the distribution of their sum.
-5. **Apply the flat modifier** ([`shift`](../../src/engine/distribution.ts)): slide every outcome by `flatModifier`. A `+2` shifts the whole curve right by 2; it does not change its shape.
+5. **Apply the modifier chain** ([`applyMods`](../../src/engine/mods.ts)): each step in order. Add and subtract slide the curve; multiply spreads the totals apart without adding any (the map keeps its size, the gaps grow); divide rounds down and merges neighbouring totals, summing their chances. Every step is monotone non-decreasing, which is the only reason step 6 can run after it. Pool rows run the chain on the success count and clamp at zero once, after the last step. Check rows have no chain: their `flatModifier` is the check roll's.
 6. **Apply roll mode** ([`applyRollMode`](../../src/engine/expression.ts)): for advantage, the probability of landing at or below each outcome is squared (you take the better of two independent rolls); disadvantage squares the upper tail instead.
 
 The result is the finished `Distribution` returned to the consumer. At every step, an empty intermediate short-circuits the rest and the whole call returns empty.
@@ -261,6 +265,8 @@ This section is for anyone, technical or not, who wants to understand the number
 
 **A flat bonus just slides the table.** Adding `+3` does not change the *shape* of the curve, only its position. Every outcome moves up by three. The chance of each result stays the same; the labels shift.
 
+**Multiplying spreads it out; dividing squeezes it.** ×2 relabels every result as double, so only even totals remain. ÷2 rounds down, so 6 and 7 both become 3 and their chances add.
+
 **Keep, reroll, and explode reshape the table before combining.** Keeping the highest of several dice, rerolling 1s, or letting a maximum face "explode" into another roll each rewrite the per-die table to reflect the new odds. Then the same combine-and-sum machinery runs on top.
 
 **Advantage and disadvantage are "best/worst of two".** With advantage, you roll twice and take the higher result, which pushes the odds toward bigger totals. The engine captures that by squaring the running "chance of landing at or below this value", which is exactly the math of taking the better of two independent rolls. Disadvantage does the mirror image.
@@ -269,6 +275,7 @@ This section is for anyone, technical or not, who wants to understand the number
 
 - The **average** is each outcome weighted by its chance (the "expected" roll).
 - The **spread** (the σ value) says how far results typically stray from that average. A wide, flat curve has a big spread; a tall, narrow one is consistent.
+- The **spread band** is the faint shading on the Shape sparkline, in the inspector, and on the comparison chart for the roll you single out. It marks where most results land: from the 10th percentile to the 90th, so at most a tenth of results fall below it and at most a tenth above. A flat roll, like one plain die with or without a plus or minus, lands anywhere equally and gets no band.
 - The **most likely** result is simply the tallest bar.
 - The **Hit %** for a target adds up the chances of every outcome that clears it. Set a target of 15 with a "≥" ruling and the tool sums the probability of every total of 15 or more.
 - The **chart** is the same table drawn three ways: each bar's height (PMF), the running total from the bottom (CDF), or from the top (CCDF).

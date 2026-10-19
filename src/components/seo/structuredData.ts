@@ -90,3 +90,45 @@ export function buildDefinedTermSetLd(
     })),
   };
 }
+
+export interface ItemListInput {
+  name: string;
+  url: string;
+}
+
+interface ListItemLd {
+  '@type': 'ListItem';
+  position: number;
+  name: string;
+  url: string;
+}
+
+export interface ItemListLd {
+  '@context': 'https://schema.org';
+  '@type': 'ItemList';
+  '@id': string;
+  name: string;
+  description: string;
+  itemListElement: readonly ListItemLd[];
+}
+
+export function buildItemListLd(
+  name: string,
+  description: string,
+  url: string,
+  items: readonly ItemListInput[],
+): ItemListLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    '@id': url,
+    name,
+    description,
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  };
+}

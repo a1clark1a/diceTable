@@ -1,9 +1,20 @@
-import { useCallback, useMemo, useRef, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { SCHEMA_VERSION, validatePersistedState } from './persistedSchema';
 import { normalizeExpression } from './normalize';
+import { modsAsCheckModifier } from './modChain';
 import { applyPartPatch, defaultPart, newId } from './defaultPart';
 import { renameCollisions } from '../share/rename';
+import { planSweep, type SweepTarget } from './sweep';
 import { toaster } from '../components/share/toaster-store';
 import {
   AppContext,
@@ -14,6 +25,7 @@ import {
 } from './useApp';
 import {
   MAX_EXPRESSIONS,
+  MAX_NOTE_LENGTH,
   MAX_TARGETS,
   type ChartSurface,
   type ChartView,
@@ -115,6 +127,42 @@ function reIdExpression(expr: Expression): Expression {
   return next;
 }
 
+// Every row that enters the table as a copy of another passes through here
+// before insertExpressionsAt. It is a separate step so a caller that needs the
+// new ids before the update runs, like the sweep's Undo, can mint them first.
+function freshCopy(expr: Expression): Expression {
+  return normalizeExpression(reIdExpression(expr));
+}
+
+// Import, duplicate and sweep all land rows through here, so the name
+// de-duplication and the row cap cannot drift apart between them. Rows arrive
+// as fresh copies; rows past the cap are dropped, and callers compare the
+// lengths to say so.
+function insertExpressionsAt(
+  existing: Expression[],
+  index: number,
+  fresh: Expression[],
+): { expressions: Expression[]; inserted: Expression[] } {
+  const room = Math.max(0, MAX_EXPRESSIONS - existing.length);
+  const inserted = renameCollisions(existing, fresh.slice(0, room));
+  return {
+    expressions: [
+      ...existing.slice(0, index),
+      ...inserted,
+      ...existing.slice(index),
+    ],
+    inserted,
+  };
+}
+
+function capReachedToast() {
+  toaster.create({
+    type: 'info',
+    title: `Up to ${MAX_EXPRESSIONS} rolls`,
+    description: 'Delete a row to add another.',
+  });
+}
+
 // "Better than half" on the row's first die: 4+ on a d6, 6+ on a d10, 11+ on a
 // d20. Lands near real dice-pool systems without being tuned to any one of them.
 function seedSuccessThreshold(parts: DicePart[]): SuccessThreshold {
@@ -158,30 +206,29 @@ function isQuotaError(err: unknown): boolean {
   );
 }
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const quotaToastFired = useRef(false);
+type SetState = Dispatch<SetStateAction<PersistedState>>;
 
-  const onWriteError = useCallback((err: unknown) => {
-    if (!isQuotaError(err) || quotaToastFired.current) return;
-    quotaToastFired.current = true;
-    toaster.create({
-      type: 'error',
-      title: 'Browser storage is full',
-      description:
-        'Edits will stop saving until you free up space. Export your table from the Share menu to back it up.',
-      duration: 10000,
-    });
+// Both providers below run every action through this one hook, so a table that
+// lives only in memory cannot drift from the saved one in what an edit does.
+function useAppValue(state: PersistedState, setState: SetState): AppContextValue {
+  // For actions that must decide something before their update runs. Event
+  // handlers fire after commit, so this is current by the time one reads it.
+  const latest = useRef(state);
+  useEffect(() => {
+    latest.current = state;
+  }, [state]);
+
+  // The toaster outlives this table: leaving a recipe page unmounts its table
+  // while the toast stays up on the next page, where its Undo could only report
+  // removing rows it can no longer reach.
+  const undoToasts = useRef(new Set<string>());
+  useEffect(() => {
+    const ids = undoToasts.current;
+    return () => {
+      for (const id of ids) toaster.remove(id);
+      ids.clear();
+    };
   }, []);
-
-  const [state, setState] = useLocalStorage<PersistedState>(
-    STORAGE_KEY,
-    initialState,
-    {
-      version: ENVELOPE_VERSION,
-      validate: validateAndNormalize,
-      onWriteError,
-    },
-  );
 
   // Every row edit funnels through here, so normalizeExpression only has to be
   // right in one place for no mutation to be able to persist an invariant break.
@@ -355,11 +402,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addExpression = useCallback(() => {
     setState((prev) => {
       if (prev.expressions.length >= MAX_EXPRESSIONS) {
-        toaster.create({
-          type: 'info',
-          title: `Up to ${MAX_EXPRESSIONS} rolls`,
-          description: 'Delete a row to add another.',
-        });
+        capReachedToast();
         return prev;
       }
       const created = defaultExpression(nextDefaultName(prev.expressions));
@@ -389,6 +432,119 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setState],
   );
 
+  // The copy lands directly below its source so the variant sits beside what
+  // it is compared with. The baseline stays where it was: the source is still
+  // the roll the user pinned.
+  const duplicateExpression = useCallback(
+    (id: string) => {
+      setState((prev) => {
+        const index = prev.expressions.findIndex((e) => e.id === id);
+        const source = prev.expressions[index];
+        if (source === undefined) return prev;
+        if (prev.expressions.length >= MAX_EXPRESSIONS) {
+          capReachedToast();
+          return prev;
+        }
+        const { expressions, inserted } = insertExpressionsAt(
+          prev.expressions,
+          index + 1,
+          [freshCopy(source)],
+        );
+        const copy = inserted[0];
+        if (copy === undefined) return prev;
+        return {
+          ...prev,
+          expressions,
+          ui: { ...prev.ui, expandedId: copy.id },
+        };
+      });
+    },
+    [setState],
+  );
+
+  // A swap, so every row keeps its object identity and no distribution is
+  // recomputed; only the palette slots of the two rows trade places.
+  const moveExpression = useCallback(
+    (id: string, delta: -1 | 1) => {
+      setState((prev) => {
+        const from = prev.expressions.findIndex((e) => e.id === id);
+        const to = from + delta;
+        const moving = prev.expressions[from];
+        const other = prev.expressions[to];
+        if (from < 0 || moving === undefined || other === undefined) return prev;
+        const expressions = prev.expressions.slice();
+        expressions[from] = other;
+        expressions[to] = moving;
+        return { ...prev, expressions };
+      });
+    },
+    [setState],
+  );
+
+  const removeExpressions = useCallback(
+    (ids: ReadonlySet<string>) => {
+      setState((prev) => {
+        const remaining = prev.expressions.filter((e) => !ids.has(e.id));
+        if (remaining.length === prev.expressions.length) return prev;
+        const { expandedId, baselineId } = prev.ui;
+        return {
+          ...prev,
+          expressions: remaining,
+          ui: {
+            ...prev.ui,
+            expandedId: expandedId !== null && ids.has(expandedId) ? null : expandedId,
+            baselineId: baselineId !== null && ids.has(baselineId) ? null : baselineId,
+          },
+        };
+      });
+    },
+    [setState],
+  );
+
+  // The variants are planned and re-id'd before the update rather than inside
+  // it, because the Undo on the toast has to name exactly the rows it made, and
+  // an updater can run more than once or later than this call.
+  const sweepExpression = useCallback(
+    (id: string, target: SweepTarget, values: readonly number[]) => {
+      const current = latest.current;
+      const source = current.expressions.find((e) => e.id === id);
+      if (source === undefined) return;
+      const room = MAX_EXPRESSIONS - current.expressions.length;
+      const fresh = planSweep(source, target, values, room).variants.map((v) =>
+        freshCopy(v.expr),
+      );
+      if (fresh.length === 0) return;
+      setState((prev) => {
+        const index = prev.expressions.findIndex((e) => e.id === id);
+        if (index < 0) return prev;
+        const { expressions } = insertExpressionsAt(prev.expressions, index + 1, fresh);
+        return { ...prev, expressions };
+      });
+      const created = new Set(fresh.map((e) => e.id));
+      const undo = () => {
+        const present = latest.current.expressions.filter((e) => created.has(e.id)).length;
+        if (present === 0) return;
+        removeExpressions(created);
+        toaster.create({
+          type: 'info',
+          title: present === 1 ? 'Removed 1 roll' : `Removed ${present} rolls`,
+        });
+      };
+      // A phone can have the source's open editor between it and the new rows,
+      // so the toast says where they went.
+      const toastId = toaster.create({
+        type: 'success',
+        title: fresh.length === 1 ? 'Added 1 roll' : `Added ${fresh.length} rolls`,
+        description: `Just below ${source.name}.`,
+        duration: 8000,
+        action: { label: 'Undo', onClick: undo },
+      });
+      undoToasts.current.add(toastId);
+    },
+    [setState, removeExpressions],
+  );
+
+
   const renameExpression = useCallback(
     (id: string, name: string) => {
       const trimmed = name.trim();
@@ -402,21 +558,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (id: string, patch: ExpressionPatch) => {
       updateExpressionInList(id, (e) => {
         const next: Expression = { ...e };
-        if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
         if (patch.rollMode !== undefined) next.rollMode = patch.rollMode;
         // Switching modes only seeds what the new mode needs; the fields the
         // new mode cannot read (threshold, check, keepAcross, per-part rules)
         // are stripped by normalizeExpression on the way into the list. The
         // row's dice become the check roll, which is the least surprising place
         // for them: the Mod column keeps meaning "the modifier on the roll you
-        // make".
+        // make". A check's Mod is one number, so the chain hands over what it
+        // can; leaving a check, normalizeExpression moves that number back into
+        // the chain.
         if (patch.mode !== undefined && patch.mode !== e.mode) {
           next.mode = patch.mode;
           if (patch.mode === 'pool') {
             next.successThreshold = seedSuccessThreshold(e.parts);
           } else if (patch.mode === 'check') {
             next.check = e.check ?? seedCheckSpec(e.parts);
+            next.flatModifier = modsAsCheckModifier(e.mods);
+            delete next.mods;
           }
+        }
+        if (patch.flatModifier !== undefined) next.flatModifier = patch.flatModifier;
+        if ('mods' in patch) {
+          if (patch.mods && patch.mods.length > 0) next.mods = patch.mods;
+          else delete next.mods;
         }
         if ('successThreshold' in patch) {
           if (patch.successThreshold) next.successThreshold = patch.successThreshold;
@@ -429,6 +593,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if ('check' in patch) {
           if (patch.check) next.check = patch.check;
           else delete next.check;
+        }
+        if ('note' in patch) {
+          // Cut, then trimmed again, so a cut that lands on a space or between
+          // the two halves of an emoji stores what a reload would read back.
+          const note = (patch.note ?? '')
+            .trim()
+            .slice(0, MAX_NOTE_LENGTH)
+            .replace(/[\uD800-\uDBFF]$/, '')
+            .trimEnd();
+          if (note.length > 0) next.note = note;
+          else delete next.note;
         }
         return next;
       });
@@ -517,19 +692,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           });
           return prev;
         }
-        const accepted = incoming.slice(0, room);
-        const renamed = renameCollisions(prev.expressions, accepted);
-        const fresh = renamed.map((e) => normalizeExpression(reIdExpression(e)));
+        const { expressions, inserted } = insertExpressionsAt(
+          prev.expressions,
+          prev.expressions.length,
+          incoming.slice(0, room).map(freshCopy),
+        );
         if (incoming.length > room) {
           toaster.create({
             type: 'info',
-            title: `Added ${accepted.length} of ${incoming.length} rolls`,
+            title: `Added ${inserted.length} of ${incoming.length} rolls`,
             description: `Table is now full at ${MAX_EXPRESSIONS}.`,
           });
         }
         return {
           ...prev,
-          expressions: [...prev.expressions, ...fresh],
+          expressions,
           ui: { ...prev.ui, expandedId: null },
         };
       });
@@ -562,6 +739,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPoolTargets,
       addExpression,
       deleteExpression,
+      duplicateExpression,
+      moveExpression,
+      sweepExpression,
       renameExpression,
       updateExpression,
       setAllRollModes,
@@ -585,6 +765,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setPoolTargets,
       addExpression,
       deleteExpression,
+      duplicateExpression,
+      moveExpression,
+      sweepExpression,
       renameExpression,
       updateExpression,
       setAllRollModes,
@@ -596,5 +779,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  return value;
+}
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const quotaToastFired = useRef(false);
+
+  const onWriteError = useCallback((err: unknown) => {
+    if (!isQuotaError(err) || quotaToastFired.current) return;
+    quotaToastFired.current = true;
+    toaster.create({
+      type: 'error',
+      title: 'Browser storage is full',
+      description:
+        'Edits will stop saving until you free up space. Export your table from the Share menu to back it up.',
+      duration: 10000,
+    });
+  }, []);
+
+  const [state, setState] = useLocalStorage<PersistedState>(
+    STORAGE_KEY,
+    initialState,
+    {
+      version: ENVELOPE_VERSION,
+      validate: validateAndNormalize,
+      onWriteError,
+    },
+  );
+
+  const value = useAppValue(state, setState);
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+/** What a table that starts somewhere other than the saved one is seeded with. */
+export interface TableSeed {
+  rows: readonly Expression[];
+  target?: TargetState;
+  poolTargets?: readonly number[];
+}
+
+function seededState(seed: TableSeed): PersistedState {
+  return {
+    ...initialState,
+    expressions: insertExpressionsAt([], 0, seed.rows.map(freshCopy)).expressions,
+    ui: {
+      ...initialState.ui,
+      ...(seed.target ? { target: { ...seed.target, values: [...seed.target.values] } } : {}),
+      ...(seed.poolTargets ? { poolTargets: [...seed.poolTargets] } : {}),
+    },
+  };
+}
+
+/**
+ * A table that never touches localStorage, for a page that arrives with its
+ * own rows. Reading or writing the saved envelope here would replace the
+ * visitor's table just for opening a link, so edits live only as long as the
+ * page does, and the page decides when, if ever, rows cross into the saved one.
+ */
+export function SeededAppProvider({
+  seed,
+  children,
+}: {
+  seed: TableSeed;
+  children: ReactNode;
+}) {
+  const [state, setState] = useState(() => seededState(seed));
+  const value = useAppValue(state, setState);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

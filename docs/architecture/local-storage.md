@@ -2,7 +2,7 @@
 
 > Status: Living doc — update when the persistence contract changes.
 > Owner: Clark
-> Last updated: 2026-05-07
+> Last updated: 2026-10-10
 
 This is the foundational reference for how DiceTable persists user data. Read this before changing anything that touches `localStorage`, `useLocalStorage`, `persistedSchema`, or the shape of `PersistedState`. Every persistence change is a compatibility decision — this doc exists so those decisions stay deliberate.
 
@@ -10,10 +10,11 @@ This is the foundational reference for how DiceTable persists user data. Read th
 
 ## TL;DR
 
-- **One key.** All app state lives under a single `localStorage` key: `dicetable.v2`.
+- **One key for the table.** Everything the user authored, plus their view preferences, lives under a single `localStorage` key: `dicetable.v2`. Two small app-wide values sit outside it on purpose; see [Other keys](#other-keys).
 - **One envelope.** Stored as `{ version, value }`. The version bumps with breaking shape changes.
 - **One validator.** [`validatePersistedState`](../../src/state/persistedSchema.ts) is the only trusted way data crosses the boundary back into the app.
 - **One source of truth.** [`AppContext`](../../src/state/AppContext.tsx) is the single component that owns persisted state. Every other component reads from context, never from `localStorage` directly.
+- **Recipe pages never touch it.** A `/recipes/:slug` page renders inside `SeededAppProvider` (same file), which holds the recipe's rows in memory and runs the same actions, but neither reads nor writes `dicetable.v2`. Opening a link must never replace someone's table. The only path from a recipe page into the saved table is its **Open this in my table** button, which appends through the saved provider's `addExpressions` (de-duplicated names, the 100-row cap) and then navigates to `/`.
 - **Serverless. Single-device. Client-only.** No accounts, no sync, no migration server, no IndexedDB, no service worker. By design.
 
 ---
@@ -32,7 +33,7 @@ These exclusions are intentional. Don't add them without a real product reason a
 
 - **Not a database.** No queries, no indexes, no transactions. The whole state is read once, held in memory, and written back on every change.
 - **Not a sync layer.** No multi-device sync, no conflict resolution, no CRDTs, no last-write-wins between tabs.
-- **Not multi-tab safe.** Two tabs of DiceTable open at once will overwrite each other's writes. Not a current use case; flagged below.
+- **Not multi-tab safe.** Two tabs of DiceTable open at once will overwrite each other's writes. Not a current use case; flagged below. Recipe pages make it likelier: a recipe opened from search in a second tab holds the saved table as it was when that tab loaded, so **Open this in my table** there writes that copy plus the recipe's rows over edits made since in the first tab.
 - **Not encrypted.** Anyone with access to the browser profile can read it. Don't put secrets in here. Today's data (dice expressions) is non-sensitive — this is an explicit assumption, not an oversight.
 - **Not migration-by-AI.** A version bump requires a hand-written migrator or an intentional reset. We do not "best-effort merge" old shapes.
 - **Not IndexedDB.** Total state is small (kilobytes). Switching to IDB would buy capacity and async writes we do not need today.
@@ -122,6 +123,7 @@ Every write wraps the current value in this envelope. Every read peels it back, 
 
 - Rejects if `version !== 2`.
 - Rejects if any expression or part fails its shape check (non-string id, non-integer count, unknown `rollMode`, malformed `keep` / `reroll` / `explode`, etc.).
+- Rejects if an expression's optional `note` is not a string, or is longer than `MAX_NOTE_LENGTH` (200, in [`types.ts`](../../src/types.ts)) once trimmed. A valid note is kept trimmed, and a blank one is dropped rather than rejected, so a row never carries an empty note.
 - **Forgives** missing or partial `ui` blobs by filling defaults — `ui` is a UX state cache, not data the user cares about preserving exactly. A wrong `chartView` falls back to `'pmf'`; a wrong `target.ruling` falls back to `'gte'`.
 
 The split is deliberate: **`expressions` is data, `ui` is preference.** Data is rejected on any malformedness. Preferences are repaired silently.
@@ -146,6 +148,18 @@ interface PersistedState {
 ```
 
 `Expression` and `DicePart` are defined in [`types.ts`](../../src/types.ts). Optional fields on parts (`keep`, `reroll`, `explode`) are persisted with the `'key' in patch` semantics — present means "set this", absent means "no rule". Don't persist `undefined`-valued keys; either include them with a value or omit them.
+
+### Other keys
+
+Nothing here is table data, so none of it goes through the envelope, the validator or `AppContext`, and none of it travels in an export or share link (those carry only `Expression[]`).
+
+| Key | Storage | Owner | Contract |
+| --- | --- | --- | --- |
+| `theme` | localStorage | next-themes, via [`color-mode.tsx`](../../src/components/ui/color-mode.tsx) | `'light'` / `'dark'`, written only when the user toggles. Read before paint by `public/boot.js`. |
+| `dicetable.lastSeenVersion` | localStorage | [`src/whatsNew/lastSeen.ts`](../../src/whatsNew/lastSeen.ts) | A plain `X.Y.Z` string: the newest version whose What's new the user has closed. Anything else reads as missing. Never moves backwards. Survives **Reset saved data**, which is intended: it is not the user's data, and clearing it would only replay a dialog. A shape change gets a new key rather than an envelope. |
+| `dicetable.shareVisit` | sessionStorage | [`src/share/autoload.ts`](../../src/share/autoload.ts) | A millisecond timestamp written when a share link is opened, read for 30 s. It lets a build loaded by the service worker's update reload know the visit came from a link, after the old build already stripped the URL fragment. |
+
+Each is read and written inside `try/catch`, and blocked storage degrades to "behave as if absent" (What's new then never auto-opens, since it could never remember being closed).
 
 ### The error boundary
 
@@ -193,6 +207,7 @@ The envelope `version` field is the contract between past and future shapes. The
 - A required field is added, removed, or renamed in `Expression`, `DicePart`, `KeepRule`, `RerollRule`, `ExplodeRule`, or `PersistedState` itself.
 - A field's value semantics change (e.g. `flatModifier` switches from "additive" to "multiplicative").
 - An enum loses a value that was previously valid.
+- A limit the validator rejects past gets stricter, such as lowering `MAX_NOTE_LENGTH`. Without a migrator that shortens old notes, every saved table holding a longer note fails validation and loads empty.
 
 ### Don't bump the version when
 
@@ -213,6 +228,10 @@ The envelope `version` field is the contract between past and future shapes. The
 
 A migrator is the right tool when **most users** would lose meaningful work on a bump (their named rolls). A reset (no migrator, `read()` returns `initialState`) is fine for early-development bumps where active users are few and explicit.
 
+### Schema 7: the modifier chain
+
+`SCHEMA_VERSION` 7 moved the sum and pool modifier from `flatModifier` into `mods`, a list of up to three steps. No migrator function is involved: `validateExpression` accepts versions 2 to 7 and moves an older row's non-zero `flatModifier` to the front of the chain (`withLegacyModifierMoved`, shared with the share decoder and `normalizeExpression`), so no saved number moves. A row holding both a non-zero `flatModifier` and steps is rejected, since nothing writes both. Multiply and divide must be whole numbers from 1 to 100; a step outside that rejects the row, and therefore the table, which is safe only because no table written before 7 can hold one. A check row's `mods` is dropped, not rejected. An older build sees version 7 as unknown and loads empty instead of drawing a chain as nothing.
+
 ---
 
 ## Guidelines for changes
@@ -221,11 +240,11 @@ A migrator is the right tool when **most users** would lose meaningful work on a
 
 - **If it's data** (something the user authored and would notice losing): add it to `types.ts`, extend `validatePersistedState` to enforce its shape, decide whether old payloads need a migrator (optional with default ⇒ no, required ⇒ yes), and update tests.
 - **If it's UI preference** (chart toggle, expanded row, last-used target): add it to the `ui` block, give it a sensible default in `validateUi`. No version bump.
-- **Never add it loose.** Don't write a sibling key to `localStorage`. The whole app state lives under one envelope; a second key creates a second migration timeline.
+- **Never add it loose.** Don't write table data or a table preference to a sibling key. The table lives under one envelope; a second key creates a second migration timeline. The only exceptions are app-wide values that are not the user's data and must outlive a reset, listed under [Other keys](#other-keys) with their own contracts.
 
 ### Adding a new action
 
-Add the callback to `AppContext.tsx` using the functional `setState` form. Don't read `localStorage` directly from a component; the hook is the only authorized reader, and `AppContext` is the only authorized owner.
+Add the callback to `AppContext.tsx` using the functional `setState` form. Don't read `localStorage` directly from a component; for `dicetable.v2` the hook is the only authorized reader, and `AppContext` is the only authorized owner.
 
 ### Reading the current value outside React
 
@@ -305,3 +324,4 @@ These are reasonable directions if a real need shows up. Not roadmap commitments
 | ID generation                       | [`src/state/defaultPart.ts`](../../src/state/defaultPart.ts) (`newId`)            |
 | Recovery UI                         | [`src/components/ErrorBoundary.tsx`](../../src/components/ErrorBoundary.tsx)      |
 | Boundary wiring                     | [`src/App.tsx`](../../src/App.tsx)                                                |
+| Last-seen version (What's new)      | [`src/whatsNew/lastSeen.ts`](../../src/whatsNew/lastSeen.ts)                      |

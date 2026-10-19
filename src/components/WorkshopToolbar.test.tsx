@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { AppProvider } from '../state/AppContext';
 import { useApp } from '../state/useApp';
 import { WorkshopToolbar } from './WorkshopToolbar';
+import { ExamplesDialog } from './presets/ExamplesDialog';
 import type { ChartView, ExpressionMode, RollMode } from '../types';
 
 const Providers = ({ children }: { children: React.ReactNode }) => (
@@ -21,11 +22,19 @@ function RowCount() {
 
 // The table view is the only one that owns a chart, so the harness mirrors
 // that split: with a ref for the chart-view chips, without one for the rest.
+// The page owns the library dialog, so the harness stands in for it too.
 function Harness({ withChart = true }: { withChart?: boolean }) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const openLibrary = () => setLibraryOpen(true);
   return (
     <>
-      {withChart ? <WorkshopToolbar chartRef={chartRef} /> : <WorkshopToolbar />}
+      {withChart ? (
+        <WorkshopToolbar chartRef={chartRef} onFindRoll={openLibrary} />
+      ) : (
+        <WorkshopToolbar onFindRoll={openLibrary} />
+      )}
+      <ExamplesDialog open={libraryOpen} onOpenChange={setLibraryOpen} />
       <div ref={chartRef} data-testid="chart" />
       <RowCount />
     </>
@@ -178,11 +187,14 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
       screen.getByRole('button', { name: 'Jump to chart' }),
     ).toBeInTheDocument();
 
-    // Everything else is behind the overflow, not on the bar.
+    // Roll mode, Add roll and Clear sit behind the overflow, not on the bar.
+    // Find a roll's labelled button belongs to the list header instead: on the
+    // bar it would push a phone's toolbar onto a second line.
     for (const name of ['Normal', 'Advantage', 'Disadvantage']) {
       expect(screen.queryByRole('button', { name })).toBeNull();
     }
     expect(screen.queryByRole('button', { name: /add roll/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Find a roll' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Clear all' })).toBeNull();
     expect(
       screen.getByRole('button', { name: 'Table actions' }),
@@ -210,7 +222,7 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
       screen.getByRole('menuitem', { name: /add roll/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitem', { name: /example rolls/i }),
+      screen.getByRole('menuitem', { name: /find a roll/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitem', { name: /clear all rolls/i }),
@@ -264,6 +276,34 @@ describe('WorkshopToolbar below the desktop breakpoint', () => {
     expect(
       screen.getByRole('button', { name: 'Clear 2 rolls' }),
     ).toBeInTheDocument();
+  });
+
+  it('opens the roll library from the overflow menu', async () => {
+    mockViewport(false);
+    seedRows(['normal', 'normal']);
+    renderToolbar();
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table actions' }));
+    selectMenuItem(
+      await screen.findByRole('menuitem', { name: 'Find a roll' }),
+    );
+
+    await screen.findByRole('dialog');
+    expect(
+      screen.getByRole('heading', { name: 'Find a roll' }),
+    ).toBeInTheDocument();
+  });
+
+  it('leaves Find a roll out of the menu on an empty table', async () => {
+    mockViewport(false);
+    seedRows([]);
+    renderToolbar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Table actions' }));
+    await screen.findByRole('menuitem', { name: /add roll/i });
+
+    expect(screen.queryByRole('menuitem', { name: /find a roll/i })).toBeNull();
   });
 
   it('hides the roll-mode group and destructive items on an empty table', async () => {

@@ -37,35 +37,54 @@ export function shift(dist: Distribution, offset: number): Distribution {
   if (!Number.isFinite(offset)) return emptyDistribution();
   if (offset === 0) return new Map(dist);
   const result = new Map<number, number>();
+  // Past 2^53 neighbouring totals round onto one double, so two keys can land
+  // on the same value; adding keeps the mass that overwriting would drop.
   for (const [k, p] of dist) {
-    result.set(k + offset, p);
+    const key = k + offset;
+    result.set(key, (result.get(key) ?? 0) + p);
   }
   return result;
 }
 
 // Success counts have a floor: a penalty bigger than the successes rolled leaves
 // zero, not a negative count. Every key below the floor collapses onto 0, so the
-// mass has to accumulate rather than overwrite the way plain `shift` does.
-export function shiftClampedAtZero(dist: Distribution, offset: number): Distribution {
-  if (!Number.isFinite(offset)) return emptyDistribution();
-  if (offset === 0) return new Map(dist);
+// mass accumulates.
+export function clampAtZero(dist: Distribution): Distribution {
   const result = new Map<number, number>();
   for (const [k, p] of dist) {
-    const shifted = Math.max(0, k + offset);
-    result.set(shifted, (result.get(shifted) ?? 0) + p);
+    const clamped = Math.max(0, k);
+    result.set(clamped, (result.get(clamped) ?? 0) + p);
   }
   return result;
 }
 
-// Half damage rounds down, and two outcomes one apart round onto the same
-// value, so the mass has to accumulate the way shiftClampedAtZero does.
-export function halveFloor(dist: Distribution): Distribution {
+// Multiplying spreads the totals apart without creating any, so the map keeps
+// its size and only the gaps between keys grow.
+export function scale(dist: Distribution, factor: number): Distribution {
+  if (!Number.isInteger(factor) || factor < 1) return emptyDistribution();
+  if (factor === 1) return new Map(dist);
   const result = new Map<number, number>();
   for (const [k, p] of dist) {
-    const halved = Math.floor(k / 2);
-    result.set(halved, (result.get(halved) ?? 0) + p);
+    result.set(k * factor, p);
   }
   return result;
+}
+
+// Rounds down, so a negative total moves away from zero: -3 / 2 is -2. Totals
+// next to each other land on the same value, so the mass accumulates.
+export function divideFloor(dist: Distribution, divisor: number): Distribution {
+  if (!Number.isInteger(divisor) || divisor < 1) return emptyDistribution();
+  if (divisor === 1) return new Map(dist);
+  const result = new Map<number, number>();
+  for (const [k, p] of dist) {
+    const divided = Math.floor(k / divisor);
+    result.set(divided, (result.get(divided) ?? 0) + p);
+  }
+  return result;
+}
+
+export function halveFloor(dist: Distribution): Distribution {
+  return divideFloor(dist, 2);
 }
 
 export function convolve(a: Distribution, b: Distribution): Distribution {

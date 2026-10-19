@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { STARTER_PRESETS } from './starterRolls';
+import { STARTER_PRESETS, STARTER_ROWS } from './starterRolls';
 import { validateExpression } from '../state/persistedSchema';
+import { expressionDistribution } from '../engine/expression';
+import { computeRowStats } from '../state/rowStats';
 
 const EXPECTED_ORDER = [
   'Weapon attack',
@@ -29,46 +31,48 @@ const EXPECTED_STATS: Record<string, { mean: number; min: number; max: number }>
 
 describe('STARTER_PRESETS', () => {
   it('contains the 8 handoff presets in handoff order', () => {
-    expect(STARTER_PRESETS.map((p) => p.expr.name)).toEqual(EXPECTED_ORDER);
+    expect(STARTER_PRESETS.map((p) => p.name)).toEqual(EXPECTED_ORDER);
+    expect(STARTER_ROWS.map((e) => e.name)).toEqual(EXPECTED_ORDER);
   });
 
   it('every preset survives the persisted-state expression validator intact', () => {
-    for (const preset of STARTER_PRESETS) {
-      const roundTripped: unknown = JSON.parse(JSON.stringify(preset.expr));
-      expect(validateExpression(roundTripped)).toEqual(preset.expr);
+    for (const expr of STARTER_ROWS) {
+      const roundTripped: unknown = JSON.parse(JSON.stringify(expr));
+      expect(validateExpression(roundTripped)).toEqual(expr);
     }
   });
 
   it('uses unique expression and part ids across all presets', () => {
-    const ids = STARTER_PRESETS.flatMap((p) => [
-      p.expr.id,
-      ...p.expr.parts.map((part) => part.id),
+    const ids = STARTER_ROWS.flatMap((e) => [
+      e.id,
+      ...e.parts.map((part) => part.id),
     ]);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('only the pool preset carries a successThreshold, counting 8+ on d10s', () => {
-    for (const preset of STARTER_PRESETS) {
-      if (preset.expr.name === 'Success pool') {
-        expect(preset.expr.mode).toBe('pool');
-        expect(preset.expr.successThreshold).toEqual({
+    for (const expr of STARTER_ROWS) {
+      if (expr.name === 'Success pool') {
+        expect(expr.mode).toBe('pool');
+        expect(expr.successThreshold).toEqual({
           direction: 'gte',
           value: 8,
         });
       } else {
-        expect(preset.expr.mode).toBe('sum');
-        expect('successThreshold' in preset.expr).toBe(false);
+        expect(expr.mode).toBe('sum');
+        expect('successThreshold' in expr).toBe(false);
       }
     }
   });
 
   it('computes hand-checked mean and range for every preset', () => {
-    for (const preset of STARTER_PRESETS) {
-      const expected = EXPECTED_STATS[preset.expr.name]!;
-      expect(preset.stats.hasDist).toBe(true);
-      expect(preset.stats.mean).toBeCloseTo(expected.mean, 12);
-      expect(preset.stats.min).toBe(expected.min);
-      expect(preset.stats.max).toBe(expected.max);
+    for (const expr of STARTER_ROWS) {
+      const expected = EXPECTED_STATS[expr.name]!;
+      const stats = computeRowStats(expressionDistribution(expr));
+      expect(stats.hasDist).toBe(true);
+      expect(stats.mean).toBeCloseTo(expected.mean, 12);
+      expect(stats.min).toBe(expected.min);
+      expect(stats.max).toBe(expected.max);
     }
   });
 });

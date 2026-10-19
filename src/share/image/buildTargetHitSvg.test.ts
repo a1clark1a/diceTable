@@ -30,9 +30,12 @@ function sumRoll(name: string, modifier: number): Expression {
     id: `sum-${name}`,
     name,
     parts: [{ id: `sum-part-${name}`, count: 2, sides: 6 }],
-    flatModifier: modifier,
+    flatModifier: 0,
     rollMode: 'normal',
     mode: 'sum',
+    ...(modifier === 0
+      ? {}
+      : { mods: [{ op: modifier < 0 ? 'sub' : 'add', value: Math.abs(modifier) }] }),
   };
 }
 

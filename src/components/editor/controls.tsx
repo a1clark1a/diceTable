@@ -14,9 +14,23 @@ interface NumberStepperProps {
   value: number;
   onCommit: (next: number) => void;
   min: number;
-  max?: number;
+  max?: number | undefined;
   ariaLabel: string;
   invalid?: boolean;
+  /**
+   * Runs after Enter commits. The field blurs itself on Enter, which inside a
+   * non-modal popover drops focus to the page; this lets the caller hand it
+   * on instead.
+   */
+  onEnter?: () => void;
+  /**
+   * Hand a typed number below `min` to onCommit as typed, for a caller that
+   * refuses it with a reason rather than quietly changing it. The buttons
+   * still stop at `min`.
+   */
+  passBelowMin?: boolean;
+  /** The id of the message that says what is wrong, read out with the field. */
+  describedBy?: string | undefined;
 }
 
 export function NumberStepper({
@@ -26,6 +40,9 @@ export function NumberStepper({
   max,
   ariaLabel,
   invalid,
+  onEnter,
+  passBelowMin = false,
+  describedBy,
 }: NumberStepperProps) {
   // Typed input commits through the same [min, max] the +/- buttons respect.
   // Clamping in parse (not in commit) keeps the displayed buffer and the
@@ -37,11 +54,11 @@ export function NumberStepper({
     (raw: string): number => {
       const n = Number.parseInt(raw, 10);
       const parsed = Number.isFinite(n) ? n : 0;
-      if (parsed < min) return min;
+      if (parsed < min) return passBelowMin ? parsed : min;
       if (max !== undefined && parsed > max) return max;
       return parsed;
     },
-    [min, max],
+    [min, max, passBelowMin],
   );
   const buf = useBufferedValue<number>({
     committed: value,
@@ -87,10 +104,16 @@ export function NumberStepper({
       </IconButton>
       <Input
         aria-label={ariaLabel}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
         value={buf.value}
         onChange={(e) => buf.setValue(e.target.value)}
         onBlur={buf.onBlur}
-        onKeyDown={buf.onKeyDown}
+        onKeyDown={(e) => {
+          const enter = e.key === 'Enter';
+          buf.onKeyDown(e);
+          if (enter) onEnter?.();
+        }}
         inputMode="numeric"
         textAlign="center"
         fontFamily="mono"

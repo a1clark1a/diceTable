@@ -5,6 +5,7 @@ import type {
   EffectScale,
   Expression,
   KeepRule,
+  ModStep,
 } from '../../types';
 import { HelpTerm } from '../ui/help-term';
 import { tipForKeep } from '../../docs/dynamicTips';
@@ -12,9 +13,13 @@ import { tipForId } from '../../docs/glossary';
 import {
   CRIT_WORDS,
   SCALE_WORDS,
+  chainLayout,
   formatFaceList,
+  modStepAria,
+  modStepText,
   modifierNotation,
   partsNotation,
+  poolStepText,
 } from '../../share/notation';
 
 const KEEP_TOKEN = /(k[hl]\d+)/g;
@@ -43,6 +48,55 @@ function Middot() {
     <Text as="span" color="fg.muted">
       {' · '}
     </Text>
+  );
+}
+
+/** The glossary tip for a step, or null for a sum row's plain add or subtract. */
+function modStepTip(step: ModStep, pool: boolean): string | null {
+  switch (step.op) {
+    case 'add':
+    case 'sub':
+      return pool ? tipForId('poolAutoSuccess') : null;
+    case 'mul':
+      return tipForId(pool ? 'poolMultiply' : 'modMultiply');
+    case 'div':
+      return tipForId(pool ? 'poolDivide' : 'modDivide');
+  }
+}
+
+function SumStep({ step }: { step: ModStep }) {
+  const tip = modStepTip(step, false);
+  const text = modStepText(step);
+  if (tip === null) return <>{` ${text}`}</>;
+  return (
+    <>
+      {' '}
+      <HelpTerm tip={tip} ariaLabel={modStepAria(step, false)}>
+        <Text as="span" whiteSpace="nowrap">
+          {text}
+        </Text>
+      </HelpTerm>
+    </>
+  );
+}
+
+function PoolSteps({ mods }: { mods: readonly ModStep[] }) {
+  return (
+    <>
+      {mods.map((step, i) => (
+        // Index keys: these spans hold no state, and a step has no id of its own.
+        <Fragment key={i}>
+          <Middot />
+          <HelpTerm tip={modStepTip(step, true) ?? ''} ariaLabel={modStepAria(step, true)}>
+            {/* nowrap keeps each pool segment intact when the notation wraps
+                at narrow widths; the middots are the intended break points. */}
+            <Text as="span" color="purple.fg" whiteSpace="nowrap">
+              {poolStepText(step)}
+            </Text>
+          </HelpTerm>
+        </Fragment>
+      ))}
+    </>
   );
 }
 
@@ -166,29 +220,13 @@ export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextPro
             </HelpTerm>
           </>
         )}
-        {expr.flatModifier !== 0 && (
-          <>
-            <Middot />
-            <HelpTerm
-              tip={tipForId('poolAutoSuccess')}
-              ariaLabel={`${expr.flatModifier > 0 ? 'plus' : 'minus'} ${Math.abs(
-                expr.flatModifier,
-              )} automatic successes`}
-            >
-              <Text as="span" color="purple.fg" whiteSpace="nowrap">
-                {expr.flatModifier > 0
-                  ? `+${expr.flatModifier}`
-                  : `−${Math.abs(expr.flatModifier)}`}
-                {' auto'}
-              </Text>
-            </HelpTerm>
-          </>
-        )}
+        {expr.mods && <PoolSteps mods={expr.mods} />}
       </chakra.span>
     );
   }
 
-  const mod = modifierNotation(expr.flatModifier);
+  const layout =
+    expr.mode !== 'check' && expr.mods !== undefined ? chainLayout(body, expr.mods) : null;
   const rollSuffix =
     showRollMode && expr.rollMode !== 'normal'
       ? expr.rollMode === 'advantage'
@@ -200,8 +238,16 @@ export function ExpressionDiceText({ expr, showRollMode }: ExpressionDiceTextPro
 
   return (
     <chakra.span>
+      {layout !== null && '('.repeat(layout.opens)}
       {renderTokenized(body, 'body')}
-      {mod}
+      {layout === null
+        ? modifierNotation(expr.flatModifier)
+        : layout.steps.map(({ step, closeBefore }, i) => (
+            <Fragment key={i}>
+              {closeBefore && ')'}
+              <SumStep step={step} />
+            </Fragment>
+          ))}
       {/* On a check row the suffix describes the check roll, so it stays with
           the dice it belongs to instead of trailing the whole sentence. */}
       {rollSuffix && (

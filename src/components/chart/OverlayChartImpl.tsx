@@ -8,6 +8,7 @@ import {
   ComposedChart,
   LabelList,
   Line,
+  ReferenceArea,
   ReferenceDot,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -18,6 +19,7 @@ import {
 import { sortedKeys } from '../../engine/distribution';
 import { canMiss } from '../../engine/expression';
 import { hitProbability } from '../../engine/stats';
+import { SPREAD_BAND_OPACITY, SPREAD_BAND_Z_INDEX, spreadBand } from './spreadBand';
 import type {
   ChartView,
   Distribution,
@@ -375,6 +377,9 @@ export default function OverlayChartImpl({
 
   const lit =
     focusedId === null ? null : plotted.find((p) => p.id === focusedId) ?? null;
+  // Only the lit roll gets a band: twenty overlapping bands would shade the
+  // whole canvas and say nothing about any one roll.
+  const litBand = lit === null ? null : spreadBand(lit.dist);
   // A hundred capped-bar markers pile into one column and stop being labels.
   // Only the drawing is capped: missDescription below still names every row
   // that misses, so the number is never lost, just not stacked on itself.
@@ -448,6 +453,17 @@ export default function OverlayChartImpl({
               />
             }
           />
+          {lit !== null && litBand !== null && (
+            <ReferenceArea
+              x1={litBand[0] - 0.5}
+              x2={litBand[1] + 0.5}
+              fill={lit.color}
+              fillOpacity={SPREAD_BAND_OPACITY}
+              stroke="none"
+              ifOverflow="hidden"
+              zIndex={SPREAD_BAND_Z_INDEX}
+            />
+          )}
           {/* Two pens, and the field one is a separate branch rather than a
               tuning of the other. The sparse branch below is what a rail and a
               phone draw, it has no measured problem, and its dots composite

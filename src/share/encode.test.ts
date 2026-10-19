@@ -53,7 +53,8 @@ const sampleRolls: Expression[] = [
     parts: [
       { id: 'part-1', count: 4, sides: 6, keep: { type: 'highest', n: 3 } },
     ],
-    flatModifier: 2,
+    flatModifier: 0,
+    mods: [{ op: 'add', value: 2 }],
     rollMode: 'advantage',
     mode: 'sum',
   },
@@ -61,7 +62,8 @@ const sampleRolls: Expression[] = [
     id: 'expr-2',
     name: 'Longbow',
     parts: [{ id: 'part-2', count: 1, sides: 20 }],
-    flatModifier: 5,
+    flatModifier: 0,
+    mods: [{ op: 'add', value: 5 }],
     rollMode: 'normal',
     mode: 'sum',
   },
@@ -99,7 +101,8 @@ describe('encodeRollsToHash', () => {
           reroll: { values: [1], mode: 'once' },
         },
       ],
-      flatModifier: i,
+      flatModifier: 0,
+      ...(i === 0 ? {} : { mods: [{ op: 'add' as const, value: i }] }),
       rollMode: 'normal',
       mode: 'sum',
     }));
@@ -121,7 +124,12 @@ describe('encodeRollsToJson', () => {
     const parsed = JSON.parse(json) as Record<string, unknown>;
     expect(parsed.format).toBe(EXPORT_FORMAT_TAG);
     expect(parsed.exportVersion).toBe(EXPORT_VERSION);
-    expect(stripIds(parsed.rolls as unknown[])).toEqual(stripIds(sampleRolls));
+    // A chain of one add travels as the modifier every version reads.
+    const onTheWire = sampleRolls.map(({ mods, ...row }) => ({
+      ...row,
+      flatModifier: mods?.[0]?.value ?? 0,
+    }));
+    expect(stripIds(parsed.rolls as unknown[])).toEqual(stripIds(onTheWire));
   });
 
   it('is pretty-printed (contains newlines)', () => {
@@ -176,7 +184,8 @@ describe('link size', () => {
       id: 'expr-' + i,
       name: 'Roll number ' + i,
       parts: [{ id: 'part-' + i, count: 2, sides: 6 }],
-      flatModifier: 3,
+      flatModifier: 0,
+      mods: [{ op: 'add' as const, value: 3 }],
       rollMode: 'normal' as const,
       mode: 'sum' as const,
     }));
