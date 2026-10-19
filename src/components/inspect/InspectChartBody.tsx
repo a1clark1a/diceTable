@@ -261,7 +261,7 @@ export default function InspectChartBody({
             <RechartsTooltip
               cursor={{ fill: 'var(--chakra-colors-bg-emphasized)' }}
               formatter={(value) => [formatTooltipValue(value as number), '']}
-              labelFormatter={(label) => tooltipLabel(effectiveView, label)}
+              labelFormatter={(label) => tooltipLabel(effectiveView, String(label))}
               contentStyle={{
                 backgroundColor: 'var(--chakra-colors-bg-inverted)',
                 border: 'none',
