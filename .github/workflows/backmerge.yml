@@ -23,7 +23,7 @@ jobs:
       # (redundant but harmless: the content is identical to what CI already
       # passed on the release PR). It cannot loop back here, because this
       # workflow only fires on pushes to main.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: develop
           fetch-depth: 0
