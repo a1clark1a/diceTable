@@ -2,12 +2,16 @@ import * as React from 'react';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { MemoryRouter } from 'react-router-dom';
 import { Glossary } from './Glossary';
-import { glossaryEntries } from '../../docs/glossary';
+import { GLOSSARY_GROUP_ORDER, glossaryEntries } from '../../docs/glossary';
+import { findRecipePage, recipePath } from '../../presets/recipePages';
 import { RULING_OPTIONS } from '../targetRulingMeta';
 
 const Provider = ({ children }: { children: React.ReactNode }) => (
-  <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
+  <ChakraProvider value={defaultSystem}>
+    <MemoryRouter>{children}</MemoryRouter>
+  </ChakraProvider>
 );
 
 describe('Glossary', () => {
@@ -78,5 +82,29 @@ describe('Glossary', () => {
         expect(screen.getByText(expected)).toBeInTheDocument();
       }
     }
+  });
+
+  it('links each entry that has a recipe page, by the page’s heading, in the order the entries render', () => {
+    render(
+      <Provider>
+        <Glossary />
+      </Provider>,
+    );
+
+    const linked = GLOSSARY_GROUP_ORDER.flatMap((group) =>
+      glossaryEntries.flatMap((e) =>
+        e.group === group && e.recipePage !== undefined ? [e.recipePage] : [],
+      ),
+    );
+    expect(linked.length).toBeGreaterThan(0);
+    // The exact count also proves an entry without a recipe page links nowhere.
+    const links = screen.getAllByRole('link');
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(
+      linked.map((slug) => recipePath(slug)),
+    );
+    expect(links.map((a) => a.textContent)).toEqual(
+      linked.map((slug) => findRecipePage(slug)?.heading),
+    );
+    expect(screen.getAllByText(/^See it worked out:/)).toHaveLength(linked.length);
   });
 });

@@ -6,6 +6,9 @@
     <link rel="icon" sizes="32x32" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Agents that fetch this shell get no content without a script, so this
+         points them at the plain-text summary (the llmstxt.org convention). -->
+    <link rel="describedby" type="text/plain" href="/llms.txt" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Default title for non-JS crawlers and the pre-mount paint. RouteHead

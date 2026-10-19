@@ -67,17 +67,15 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // The app shell answers every navigation this route claims, offline
+        // included. Real files (robots.txt, sitemap.xml, llms.txt: a last path
+        // segment with an extension) and the functions under /api/ are what
+        // vercel.json does not rewrite to index.html, so the browser must fetch
+        // them. Workbox tests path plus query, hence the [^?]. No navigate rule
+        // in runtimeCaching: generateSW registers this route first and the
+        // first match wins, so it would only ever see the denylisted paths.
         navigateFallback: '/index.html',
-        runtimeCaching: [
-          {
-            urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'html',
-              networkTimeoutSeconds: 3,
-            },
-          },
-        ],
+        navigateFallbackDenylist: [/^\/api\//, /^[^?]*\.[^/?]+(?:\?|$)/],
       },
     }),
   ],

@@ -20,6 +20,12 @@ export interface GlossaryEntry {
    */
   details?: string;
   formal?: string;
+  /**
+   * The /recipes/:slug page that works this term through with real numbers.
+   * A RECIPE_PAGES slug such as '4d6-drop-lowest', never a library recipe
+   * slug such as 'ability-score'.
+   */
+  recipePage?: string;
 }
 
 export const GLOSSARY_GROUP_ORDER: readonly GlossaryGroup[] = [
@@ -72,6 +78,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     details:
       'Read kh / kl as "keep highest" and "keep lowest." The number after the letters is how many dice you keep; the rest are dropped before summing. Keep-highest pulls the average up and shrinks the chance of low rolls; keep-lowest does the opposite. The classic case is 4d6kh3 for D&D ability scores.',
     formal: '4d6kh3 → roll 4d6, drop the lowest, sum 3',
+    recipePage: '4d6-drop-lowest',
   },
   {
     id: 'reroll',
@@ -82,6 +89,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'Reroll specific faces. "Once" rerolls each die at most once; "always" keeps going until the result is acceptable.',
     details:
       'The number or comparison after r picks which faces trigger a reroll: r1 rerolls only ones, r<3 rerolls anything below three. "Once" replaces each triggering die a single time and accepts whatever comes up next. "Always" keeps rerolling that die until it lands on a face that is not in the trigger set, so the final result can never be one of the rerolled faces.',
+    recipePage: 'great-weapon-fighting',
   },
   {
     id: 'explode',
@@ -92,6 +100,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'When a die lands on a chosen face, roll it again and add the result. The chain stops after a few pops to keep the chart readable.',
     details:
       'Each "pop" on the trigger face adds another roll on top, so a single die could in theory stack into very large totals. To keep the chart readable, DiceTable stops the chain after a few pops; any tiny chance left beyond that gets folded into the last rolled face.',
+    recipePage: 'exploding-dice',
   },
   {
     id: 'pool',
@@ -102,6 +111,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'A roll scored by counting how many dice clear a threshold, instead of adding the faces into one total.',
     details:
       'Switch a roll to Pool in its Dice cell and each die simply succeeds or fails; the result is the number of successes. 7d10 · count ≥8 asks "out of seven d10s, how many show 8 or higher?" Keep and explode only make sense for totals, so they don’t apply while a roll is pooled. Reroll still works, and the per-die odds stay exact.',
+    recipePage: 'counting-successes',
   },
   {
     id: 'success',
@@ -141,6 +151,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'Rolls every part, then keeps only the best or worst dice instead of adding them all up. Works across dice of different sizes.',
     details:
       'Keep highest or lowest inside one part only compares dice of the same size, so 1d8 and 1d6 could never be weighed against each other. Keeping across parts lifts the rule to the whole roll: 1d8 + 1d6 · keep highest 1 is the trait-and-wild-die roll, and only the better of the two counts. Turning it on switches off the per-part keep rules, because the two describe the same choice twice.',
+    recipePage: 'keep-highest-mixed-dice',
   },
   {
     id: 'check',
@@ -151,6 +162,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'A roll that first tries to clear a number, then applies an effect depending on how it went. The row shows the effect, misses included.',
     details:
       'A check row is two rolls in one: the dice in the Dice cell are the check itself, and the effect carries its own dice and modifier. 1d20 + 7 ≥15 → 1d8 + 4 reads as "roll 1d20+7, succeed on 15 or more, then deal 1d8+4". Because misses are part of the picture, the row’s average is the average per attempt rather than the average when it lands, which is the number worth balancing against.',
+    recipePage: 'chance-to-hit-vs-ac',
   },
   {
     id: 'check-threshold',
@@ -181,6 +193,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
       'Faces that always succeed and hit harder: roll double the dice, roll one extra die, or add the highest the dice can show.',
     details:
       'A critical is read off the face the die shows, not off the total, which is why it needs a check of exactly one die. That also means advantage raises the chance of one: with crit on 20, rolling twice and taking the higher crits 9.75% of the time instead of 5%. A critical always counts as a success even when its face would have missed the threshold.',
+    recipePage: 'expanded-crit-range',
   },
 
   {
@@ -190,6 +203,7 @@ export const glossaryEntries: readonly GlossaryEntry[] = [
     plain: 'Roll the whole expression twice and take the higher result.',
     details:
       'Taking the higher of two rolls shifts the whole curve upward, so low results thin out and high ones crowd together. The best possible result does not change, you just reach it far more often: on 1d20 the chance of a 20 goes from 5% to 9.75%. On a check roll, advantage applies to the check itself and never to the effect, so it raises how often the roll clears the bar (and how often it crits) without changing what lands.',
+    recipePage: 'advantage-vs-disadvantage',
   },
   {
     id: 'disadvantage',

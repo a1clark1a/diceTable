@@ -10,6 +10,8 @@ import { validateExpression } from '../state/persistedSchema';
 import { normalizeExpression } from '../state/normalize';
 import { hitProbability } from '../engine/stats';
 import { formatNumber } from '../components/chart/format';
+import { glossaryEntries } from '../docs/glossary';
+import { mathOps } from '../docs/math';
 
 // The app's tsconfig has no Node types, so the file system is listed through
 // Vite instead. The glob is lazy: only its keys are used and no file is read.
@@ -896,6 +898,22 @@ describe('recipe pages in llms.txt', () => {
   it('links every recipe page once and no page that does not exist', () => {
     const linked = [...llms.matchAll(/\(https:\/\/dice-table\.app\/recipes\/([^)]+)\)/g)].map((m) => m[1]);
     expect(linked.sort()).toEqual(RECIPE_PAGES.map((p) => p.slug).sort());
+  });
+});
+
+describe('recipe pages linked from the glossary and The Math', () => {
+  const links = [
+    ...glossaryEntries.map((e) => ({ where: `glossary ${e.id}`, slug: e.recipePage })),
+    ...mathOps.map((op) => ({ where: `math ${op.id}`, slug: op.recipePage })),
+  ].filter((l): l is { where: string; slug: string } => l.slug !== undefined);
+
+  it('links from both tabs, so the check below has something to check', () => {
+    expect(links.some((l) => l.where.startsWith('glossary '))).toBe(true);
+    expect(links.some((l) => l.where.startsWith('math '))).toBe(true);
+  });
+
+  it('points every glossary and math link at a recipe page that exists', () => {
+    for (const { where, slug } of links) expect(findRecipePage(slug), where).toBeDefined();
   });
 });
 

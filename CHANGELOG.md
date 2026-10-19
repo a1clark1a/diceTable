@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Glossary and The Math now link to the dice question that puts each idea to work. Terms like Keep highest, Reroll, Explode, Dice pool, Critical and Advantage, and the math sections behind them, end with See it worked out and a link to the page where those rolls are already in a working table you can change.
+
+### Changed
+
+- Each part of the Docs now opens with its own title, such as Glossary or The Math, under a small Docs label, so a page you reach from a search or a shared link says which part of the Docs it is. The sentence that described all four parts at the top of every page is gone, since each part already opens with its own.
+
+### Fixed
+
+- Opening robots.txt, sitemap.xml or llms.txt in a browser that has used DiceTable before now shows the file, instead of the DiceTable app.
+
 ## [2.4.1] - 2026-10-11
 
 ### Added
