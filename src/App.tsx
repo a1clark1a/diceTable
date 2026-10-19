@@ -11,12 +11,17 @@ import { RollHistoryProvider } from './state/RollHistoryContext';
 import TablePage from './pages/TablePage';
 import NotFoundPage from './pages/NotFoundPage';
 import PrivacyPage from './pages/PrivacyPage';
+import RecipeRoute from './pages/RecipeRoute';
 
 const DocsPage = lazy(() => import('./pages/DocsPage'));
 
 function DocsFallback() {
   return (
     <Box py={8} display="flex" justifyContent="center">
+      {/* The page being left took its title with it, and RouteHead already
+          removed index.html's fallback, so the chunk's load would otherwise
+          leave the tab with no title at all. */}
+      <title>DiceTable</title>
       <Spinner />
     </Box>
   );
@@ -31,6 +36,9 @@ export default function App() {
         <AppProvider>
           <RollHistoryProvider>
             <Routes>
+              {/* Outside the shared layout: a recipe page wraps the shell in a
+                  table of its own, so it renders its own shell. */}
+              <Route path="recipes/:slug" element={<RecipeRoute />} />
               <Route element={<AppShell />}>
                 <Route index element={<TablePage />} />
                 <Route

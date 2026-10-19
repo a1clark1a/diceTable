@@ -371,7 +371,7 @@ describe('expressionDistribution: keepAcross in a whole roll', () => {
       expr({ parts, keepAcross: { type: 'highest', n: 1 } }),
     );
     const shifted = expressionDistribution(
-      expr({ parts, keepAcross: { type: 'highest', n: 1 }, flatModifier: 2 }),
+      expr({ parts, keepAcross: { type: 'highest', n: 1 }, mods: [{ op: 'add', value: 2 }] }),
     );
     expect(mean(shifted)).toBeCloseTo(mean(plain) + 2, 10);
     expect(stddev(shifted)).toBeCloseTo(stddev(plain), 10);

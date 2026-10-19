@@ -20,9 +20,10 @@ const validPayload: PersistedState = {
           keep: { type: 'highest', n: 3 },
         },
       ],
-      flatModifier: 2,
+      flatModifier: 0,
       rollMode: 'advantage',
       mode: 'sum',
+      mods: [{ op: 'add', value: 2 }],
     },
   ],
   ui: {
@@ -488,10 +489,22 @@ describe('validatePersistedState: older envelopes gain the new ui fields', () =>
     baselineId: null,
   };
 
+  // Before version 7 a sum row carried its modifier as flatModifier, not mods.
+  const legacyExpressions = [
+    {
+      id: 'expr-1',
+      name: '4d6kh3 + 2',
+      parts: [{ id: 'part-1', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }],
+      flatModifier: 2,
+      rollMode: 'advantage',
+      mode: 'sum',
+    },
+  ];
+
   function migrated(version: number): PersistedState {
     const result = validatePersistedState({
       version,
-      expressions: validPayload.expressions,
+      expressions: legacyExpressions,
       ui: legacyUi,
     });
     expect(result).not.toBeNull();
@@ -524,8 +537,12 @@ describe('validatePersistedState: older envelopes gain the new ui fields', () =>
     expect(newFields(5)).toEqual(NEW_FIELD_DEFAULTS);
   });
 
-  it('keeps the expressions of a version 5 payload intact', () => {
+  it('keeps the expressions of a version 5 payload, moving the modifier into the chain', () => {
     expect(migrated(5).expressions).toEqual(validPayload.expressions);
+  });
+
+  it('moves the modifier of a version 6 payload into the chain', () => {
+    expect(migrated(6).expressions).toEqual(validPayload.expressions);
   });
 
   it('keeps the older ui fields of a version 5 payload intact', () => {
@@ -539,12 +556,12 @@ describe('validatePersistedState: older envelopes gain the new ui fields', () =>
     expect(migrated(5).version).toBe(SCHEMA_VERSION);
   });
 
-  it('reports six as the current schema version', () => {
-    expect(SCHEMA_VERSION).toBe(6);
+  it('reports seven as the current schema version', () => {
+    expect(SCHEMA_VERSION).toBe(7);
   });
 
   it('rejects a payload from a schema version that does not exist yet', () => {
-    expect(validatePersistedState({ ...validPayload, version: 7 })).toBeNull();
+    expect(validatePersistedState({ ...validPayload, version: 8 })).toBeNull();
   });
 });
 

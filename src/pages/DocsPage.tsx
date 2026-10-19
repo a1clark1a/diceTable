@@ -16,13 +16,16 @@ import { Quickstart } from '../components/docs/Quickstart';
 import { quickstartSteps } from '../components/docs/quickstart-data';
 import { Glossary } from '../components/docs/Glossary';
 import { TheMath } from '../components/docs/TheMath';
+import { DiceQuestions } from '../components/docs/DiceQuestions';
 import { glossaryEntries } from '../docs/glossary';
+import { RECIPE_PAGES, recipePath } from '../presets/recipePages';
 import { RouteHead } from '../components/seo/RouteHead';
 import { JsonLd } from '../components/seo/JsonLd';
 import {
   SITE_ORIGIN,
   buildDefinedTermSetLd,
   buildHowToLd,
+  buildItemListLd,
 } from '../components/seo/structuredData';
 import NotFoundPage from './NotFoundPage';
 
@@ -41,6 +44,16 @@ const GLOSSARY_TERMSET_LD = buildDefinedTermSetLd(
   glossaryEntries,
 );
 
+const QUESTIONS_ITEMLIST_LD = buildItemListLd(
+  'Common dice questions',
+  'Common dice questions, each answered with exact odds on its own page.',
+  `${SITE_ORIGIN}${docsSectionPath('questions')}`,
+  RECIPE_PAGES.map((page) => ({
+    name: page.heading,
+    url: `${SITE_ORIGIN}${recipePath(page.slug)}`,
+  })),
+);
+
 function DocsLayout() {
   return (
     <Stack gap={6} maxW="920px" mx="auto">
@@ -49,8 +62,8 @@ function DocsLayout() {
           Docs
         </Heading>
         <Text fontSize="md" color="fg.muted">
-          How to use DiceTable, what every term means, and the math behind
-          every number.
+          How to use DiceTable, what every term means, the math behind every
+          number, and answers to common dice questions.
         </Text>
       </Stack>
 
@@ -111,6 +124,20 @@ function MathSection() {
   );
 }
 
+function QuestionsSection() {
+  return (
+    <>
+      <RouteHead
+        title="DiceTable Dice Questions: exact odds for common rolls"
+        description="Common dice questions answered with exact odds: 4d6 drop lowest, advantage, rerolling 1s and 2s, exploding dice, dice pools, crit range and chance to hit."
+        path={docsSectionPath('questions')}
+      />
+      <JsonLd data={QUESTIONS_ITEMLIST_LD} />
+      <DiceQuestions />
+    </>
+  );
+}
+
 export default function DocsPage() {
   return (
     <Routes>
@@ -119,6 +146,7 @@ export default function DocsPage() {
         <Route path="quickstart" element={<QuickstartSection />} />
         <Route path="glossary" element={<GlossarySection />} />
         <Route path="math" element={<MathSection />} />
+        <Route path="questions" element={<QuestionsSection />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

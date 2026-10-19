@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { Box, Flex, Grid, Heading, Stack, Text } from '@chakra-ui/react';
 import { RollsTable } from '../components/RollsTable';
 import { RollsCards } from '../components/RollsCards';
@@ -11,6 +11,7 @@ import { HeadToHeadView } from '../components/compare/HeadToHeadView';
 import { WorkshopToolbar } from '../components/WorkshopToolbar';
 import { WorkshopViewSwitcher } from '../components/WorkshopViewSwitcher';
 import { StartExamplesPanel } from '../components/presets/StartExamplesPanel';
+import { ExamplesDialog } from '../components/presets/ExamplesDialog';
 import { RowActions } from '../components/RowActions';
 import { RollModeControl } from '../components/RollModeControl';
 import { RailSplitter, RAIL_MIN, TABLE_WIDTH } from '../components/layout/RailSplitter';
@@ -22,6 +23,11 @@ import {
 } from '../components/chart/effectiveView';
 import type { WorkshopViewChip } from '../components/WorkshopViewSwitcher';
 import { RouteHead } from '../components/seo/RouteHead';
+import { JsonLd } from '../components/seo/JsonLd';
+import { buildHowToLd } from '../components/seo/structuredData';
+import { RecipeHero } from '../components/recipes/RecipeHero';
+import { recipePath, type RecipePage } from '../presets/recipePages';
+import type { Expression } from '../types';
 import { useTableFits } from '../hooks/useBreakpoint';
 import { useApp } from '../state/useApp';
 
@@ -35,7 +41,7 @@ interface WorkshopViewEntry extends WorkshopViewChip {
  * now, which left it changing these two views while being uneditable from them.
  * Scroll-to-top left with the same toolbar, and both of these views can run long.
  */
-function CompareActions() {
+function CompareActions({ onFindRoll }: { onFindRoll: () => void }) {
   return (
     <Flex
       gap={4}
@@ -48,13 +54,14 @@ function CompareActions() {
       // only thing that moves and this row has to be pinned to survive a long
       // one. No 2xl step for that reason: unlike the table's caption row,
       // nothing here ever stops travelling. Static below md, where the mobile
-      // toolbar already holds top:0 and this row's controls are hidden anyway.
+      // toolbar already holds top:0 and this row carries only Find a roll,
+      // which the toolbar's menu also reaches once the row has scrolled away.
       position={{ base: 'static', md: 'sticky' }}
       top={0}
       zIndex={2}
       bg="bg"
     >
-      <RowActions />
+      <RowActions onFindRoll={onFindRoll} />
       {/* Below md the sticky toolbar's overflow menu already holds it, so a
           second copy here would spend a line of a phone screen on a duplicate. */}
       <Box display={{ base: 'none', md: 'contents' }}>
@@ -66,7 +73,48 @@ function CompareActions() {
   );
 }
 
-export default function TablePage() {
+interface TablePageProps {
+  /**
+   * Set on a recipe page, where the table in context holds the recipe's rows
+   * rather than the visitor's saved ones, and `onOpen` copies them across.
+   */
+  recipe?: { page: RecipePage; onOpen: (rows: Expression[]) => void };
+}
+
+function HomeHero({ hasRows }: { hasRows: boolean }) {
+  return (
+    <>
+      <RouteHead
+        title="DiceTable: Build, compare and balance dice rolls"
+        description="Build dice rolls for any tabletop game or your own homebrew. Compare them side by side, see the exact odds of every result, and balance them."
+        path="/"
+      />
+      {/* srOnly rather than a conditional: the h1 stays mounted whatever the
+          table holds, so / never loses its only heading. The copy must match
+          the preboot hero in index.html byte for byte, or the first paint
+          flashes from one to the other. */}
+      <Stack gap={1} srOnly={hasRows}>
+        <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
+          Build, compare and balance dice rolls
+        </Heading>
+        <Text
+          fontSize={{ base: 'xs', md: 'sm' }}
+          color="fg.muted"
+          maxW="620px"
+          // Two lines is the whole pitch on a phone; the rest is chrome
+          // standing between the reader and the first roll.
+          lineClamp={{ base: 2, md: 'none' }}
+          css={{ textWrap: 'pretty' }}
+        >
+          Make a table of rolls from any game or your own homebrew, then see
+          their exact odds on one chart.
+        </Text>
+      </Stack>
+    </>
+  );
+}
+
+export default function TablePage({ recipe }: TablePageProps) {
   const tableFits = useTableFits();
   const chartRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -74,6 +122,12 @@ export default function TablePage() {
   // Session-only: a remembered pixel width is wrong the moment the viewport
   // changes, so this resets with the tab rather than persisting.
   const [tableWidth, setTableWidth] = useState(TABLE_WIDTH);
+  // One library for the whole page rather than one per button: adding the
+  // first roll swaps the empty panel for the table, and Target hit swaps its
+  // own layout once a row becomes chartable, and either would unmount a
+  // dialog that belonged to the button that opened it.
+  const [findOpen, setFindOpen] = useState(false);
+  const openFind = useCallback(() => setFindOpen(true), []);
   const { expressions, view, setView, chartViews, target } = useApp();
   // The shape column is the surface this line's chips drive, and it can offer
   // the target view whenever any row has something to measure against.
@@ -88,11 +142,14 @@ export default function TablePage() {
       // view renders exactly as it did when RollsTable/RollsCards owned it.
       render: () => (
         <>
-          <WorkshopToolbar chartRef={chartRef} />
+          <WorkshopToolbar chartRef={chartRef} onFindRoll={openFind} />
           <Grid
             ref={gridRef}
             flex="1"
-            minH={0}
+            // A recipe page's heading sits above this grid and never scrolls
+            // away in the 2xl layout, so without a floor it would squeeze the
+            // table and chart to a sliver; with one, the page scrolls instead.
+            minH={recipe ? { base: 0, '2xl': '26rem' } : 0}
             gap={{ base: 4, '2xl': 0 }}
             alignItems="stretch"
             // Capping the table rather than letting it fill a 1fr track is what
@@ -127,7 +184,7 @@ export default function TablePage() {
                 wrap="wrap"
                 minH="48px"
                 // Below md the sticky toolbar already holds top:0 and this band
-                // carries nothing but the caption; at 2xl the rolls scroll
+                // carries only the caption and Find a roll; at 2xl the rolls scroll
                 // inside the table box so it never moves. In between, the page
                 // itself scrolls and this is the row you need to keep.
                 position={{ base: 'static', md: 'sticky', '2xl': 'static' }}
@@ -135,7 +192,12 @@ export default function TablePage() {
                 zIndex={2}
                 bg="bg"
               >
-                <BaselineCaption />
+                {/* On a phone the caption shares this line with Find a roll, so
+                    it wraps beside the button instead of pushing it onto a line
+                    of its own. */}
+                <Box flex={{ base: '1', md: 'initial' }} minW={0}>
+                  <BaselineCaption />
+                </Box>
                 <Flex gap={2} align="center" ms="auto">
                   {/* Below md the sticky toolbar carries these instead. While
                       the cards are showing they always apply, since every card
@@ -157,8 +219,12 @@ export default function TablePage() {
                       density="24px"
                     />
                   </Box>
-                  <RowActions />
-                  <ScrollButtons chartRef={chartRef} />
+                  <RowActions onFindRoll={openFind} />
+                  {/* Its buttons hide below md, but the empty group would still
+                      take a gap and pull Find a roll off the cards' right edge. */}
+                  <Box display={{ base: 'none', md: 'contents' }}>
+                    <ScrollButtons chartRef={chartRef} />
+                  </Box>
                 </Flex>
               </Flex>
               {tableFits ? <RollsTable /> : <RollsCards />}
@@ -187,7 +253,7 @@ export default function TablePage() {
       mobileLabel: 'Target',
       render: () => (
         <>
-          <WorkshopToolbar />
+          <WorkshopToolbar onFindRoll={openFind} />
           <Stack gap={3}>
             <Flex
               gap={3}
@@ -200,11 +266,20 @@ export default function TablePage() {
               zIndex={2}
               bg="bg"
             >
-              <TargetToolbar />
-              <Box flex="1" minW={0} />
-              <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
+              {/* The toolbar takes the row's free space rather than sitting
+                  beside a spacer. In a row, its own flexShrink={0} sized it to
+                  its content, about 390px of full-width phone rows, which ran
+                  the Edit buttons off a 360px screen. */}
+              <Box flex="1" minW={0}>
+                <TargetToolbar />
+              </Box>
+              {/* Its buttons hide below md, but the empty group would still
+                  take a gap and pull the Edit buttons off the cards' edge. */}
+              <Box display={{ base: 'none', md: 'contents' }}>
+                <ScrollButtons display={{ base: 'none', md: 'inline-flex' }} />
+              </Box>
             </Flex>
-            <TargetHitView />
+            <TargetHitView onFindRoll={openFind} />
           </Stack>
         </>
       ),
@@ -214,9 +289,9 @@ export default function TablePage() {
       label: 'Roll-off',
       render: () => (
         <>
-          <WorkshopToolbar />
+          <WorkshopToolbar onFindRoll={openFind} />
           <Stack gap={3} align="flex-start">
-            <CompareActions />
+            <CompareActions onFindRoll={openFind} />
             <RollOffView />
           </Stack>
         </>
@@ -228,9 +303,9 @@ export default function TablePage() {
       mobileLabel: 'Versus',
       render: () => (
         <>
-          <WorkshopToolbar />
+          <WorkshopToolbar onFindRoll={openFind} />
           <Stack gap={3} align="flex-start">
-            <CompareActions />
+            <CompareActions onFindRoll={openFind} />
             <HeadToHeadView />
           </Stack>
         </>
@@ -242,36 +317,41 @@ export default function TablePage() {
 
   return (
     <Stack gap={{ base: 4, md: 6 }} flex="1" minH={0}>
-      <RouteHead
-        title="DiceTable — Dice probability comparison for tabletop gaming"
-        description="Compare named dice rolls side by side. Build a table of expressions, set a target, and read the math behind every distribution."
-        path="/"
-      />
-      {/* srOnly rather than a conditional: the h1 stays mounted whatever the
-          table holds, so / never loses its only heading. */}
-      <Stack gap={1} srOnly={expressions.length > 0}>
-        <Heading as="h1" size={{ base: 'md', md: 'xl' }} letterSpacing="tight">
-          Compare dice rolls side by side
-        </Heading>
-        <Text
-          fontSize={{ base: 'xs', md: 'sm' }}
-          color="fg.muted"
-          maxW="620px"
-          // Two lines is the whole pitch on a phone; the rest is chrome
-          // standing between the reader and the first roll.
-          lineClamp={{ base: 2, md: 'none' }}
-          css={{ textWrap: 'pretty' }}
-        >
-          Build a table of named rolls, set a target number, and see the exact
-          probability for every result on one chart.
-        </Text>
-      </Stack>
+      {recipe ? (
+        <>
+          <RouteHead
+            title={recipe.page.title}
+            description={recipe.page.description}
+            path={recipePath(recipe.page.slug)}
+          />
+          <JsonLd
+            data={buildHowToLd(
+              recipe.page.heading,
+              recipe.page.description,
+              recipe.page.steps,
+            )}
+          />
+          <RecipeHero
+            page={recipe.page}
+            onOpen={
+              expressions.length > 0 ? () => recipe.onOpen(expressions) : null
+            }
+          />
+        </>
+      ) : (
+        <HomeHero hasRows={expressions.length > 0} />
+      )}
       <WorkshopViewSwitcher
         views={registry}
         active={active.id}
         onSelect={setView}
       />
-      {expressions.length === 0 ? <StartExamplesPanel /> : active.render()}
+      {expressions.length === 0 ? (
+        <StartExamplesPanel onFindRoll={openFind} />
+      ) : (
+        active.render()
+      )}
+      <ExamplesDialog open={findOpen} onOpenChange={setFindOpen} />
     </Stack>
   );
 }

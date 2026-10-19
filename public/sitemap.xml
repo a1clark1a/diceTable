@@ -21,6 +21,61 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://dice-table.app/docs/questions</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/4d6-drop-lowest</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/advantage-vs-disadvantage</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/great-weapon-fighting</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/elven-accuracy</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/exploding-dice</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/counting-successes</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/expanded-crit-range</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/chance-to-hit-vs-ac</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/keep-highest-mixed-dice</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://dice-table.app/recipes/2d6-vs-3d6-vs-1d20</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://dice-table.app/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

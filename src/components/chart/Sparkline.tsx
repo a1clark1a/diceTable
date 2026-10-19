@@ -15,6 +15,7 @@ import { buildStepAreaPath, buildStepPath, type Point } from './stepPath';
 import { buildMonotonePath } from './monotonePath';
 import { shapeHeaderView } from './effectiveView';
 import { missProbability, rowPeak } from './zeroSpike';
+import { SPREAD_BAND_OPACITY, spreadBand } from './spreadBand';
 
 const VIEW_LABELS: Record<ChartView, { text: string; tip: string }> = {
   pmf: { text: 'PMF', tip: tipForId('pmf') },
@@ -81,6 +82,8 @@ interface SparklineGeometry {
   stepWidth: number;
   baselineY: number;
   effectiveView: ChartView;
+  /** The spread band's first and last bucket, or null where it is not drawn. */
+  band: [number, number] | null;
   empty: boolean;
 }
 
@@ -97,6 +100,7 @@ const EMPTY_GEOM: SparklineGeometry = {
   stepWidth: 0,
   baselineY: 0,
   effectiveView: 'pmf',
+  band: null,
   empty: true,
 };
 
@@ -288,6 +292,17 @@ function buildGeometry(
     }
   }
 
+  // The target view already shades what it is about, and a second shaded
+  // region there would read as a second target. A band over every bucket says
+  // nothing and turns a flat roll's light fill into a slab, so it is dropped.
+  let band: [number, number] | null = null;
+  const range = resolvedView !== 'target' ? spreadBand(dist) : null;
+  if (range !== null) {
+    const first = bucketOf(range[0] - min);
+    const last = bucketOf(range[1] - min);
+    if (first > 0 || last < buckets - 1) band = [first, last];
+  }
+
   return {
     topPoints,
     hitZones,
@@ -297,6 +312,7 @@ function buildGeometry(
     stepWidth: bucketStep,
     baselineY,
     effectiveView: resolvedView,
+    band,
     empty: false,
   };
 }
@@ -344,6 +360,7 @@ export const Sparkline = memo(function Sparkline({
     stepWidth,
     baselineY,
     effectiveView,
+    band,
   } = geom;
   const stepOpts = { stepWidth };
   const isFilledView = effectiveView === 'pmf' || effectiveView === 'target';
@@ -386,6 +403,18 @@ export const Sparkline = memo(function Sparkline({
   const modeCx = modePoint ? modePoint.x + stepWidth / 2 : 0;
   const modeTopY = modePoint ? modePoint.y : 0;
 
+  // The line views stretch their points edge to edge, so the band follows the
+  // curve's own x for them and the bucket edges for the stepped views.
+  const lastBucket = topPoints.length - 1;
+  const bandX = (b: number, end: boolean): number => {
+    if (isLineView) return lastBucket > 0 ? (b / lastBucket) * width : end ? width : 0;
+    return b * stepWidth + (end ? stepWidth : 0);
+  };
+  const bandRect =
+    band === null
+      ? null
+      : { x: bandX(band[0], false), w: bandX(band[1], true) - bandX(band[0], false) };
+
   return (
     <svg
       width={fill ? '100%' : width}
@@ -405,6 +434,17 @@ export const Sparkline = memo(function Sparkline({
         strokeWidth={1}
         vectorEffect="non-scaling-stroke"
       />
+      {bandRect !== null && bandRect.w > 0 && (
+        <rect
+          data-spread-band=""
+          x={bandRect.x}
+          y={0}
+          width={bandRect.w}
+          height={baselineY}
+          fill={color}
+          fillOpacity={SPREAD_BAND_OPACITY}
+        />
+      )}
       {areaD !== '' && (
         <path d={areaD} fill={color} fillOpacity={0.16} />
       )}

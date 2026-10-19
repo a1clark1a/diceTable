@@ -48,7 +48,7 @@ describe('applyRollMode', () => {
 
 describe('expressionDistribution', () => {
   it('1d6 + 2 shifts mean to 5.5', () => {
-    const d = expressionDistribution(expr({ flatModifier: 2 }));
+    const d = expressionDistribution(expr({ mods: [{ op: 'add', value: 2 }] }));
     expect(mean(d)).toBeCloseTo(5.5, 10);
     expect(d.get(3)).toBeCloseTo(1 / 6, 12);
     expect(d.get(8)).toBeCloseTo(1 / 6, 12);
@@ -68,7 +68,7 @@ describe('expressionDistribution', () => {
   it('4d6kh3 + 2 advantage = base mean shifted, then CDF-squared', () => {
     const d = expressionDistribution(expr({
       parts: [{ id: 'p', count: 4, sides: 6, keep: { type: 'highest', n: 3 } }],
-      flatModifier: 2,
+      mods: [{ op: 'add', value: 2 }],
       rollMode: 'advantage',
     }));
     expect(totalMass(d)).toBeCloseTo(1, 9);

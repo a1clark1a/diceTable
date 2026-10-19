@@ -1,14 +1,18 @@
 import type { Expression } from '../types';
 import { validateExpression } from '../state/persistedSchema';
+import { singleModifier } from '../state/modChain';
 
 export const EXPORT_FORMAT_TAG = 'dicetable-rolls' as const;
-export const EXPORT_VERSION = 4 as const;
+export const EXPORT_VERSION = 5 as const;
 
 // v1 predates pool mode. Its rows carry no `mode`, which validateExpression reads
 // as a sum row, so old links and files keep importing unchanged. v3 rows may carry
 // `keepAcross` and `check`, optional fields older readers simply never wrote.
-// v4 drops row and part ids, which every import throws away anyway.
-const ACCEPTED_EXPORT_VERSIONS: readonly number[] = [1, 2, 3, 4];
+// v4 drops row and part ids, which every import throws away anyway. v5 moves the
+// sum and pool modifier into `mods`; validateExpression carries an older row's
+// modifier across. An older build has to refuse a v5 link rather than read a
+// chain as nothing, and it does: it rejects any version above its own.
+const ACCEPTED_EXPORT_VERSIONS: readonly number[] = [1, 2, 3, 4, 5];
 
 export interface ExportEnvelope {
   format: typeof EXPORT_FORMAT_TAG;
@@ -33,6 +37,15 @@ function omitId(v: object): Record<string, unknown> {
 function withoutIds(expr: Expression): Record<string, unknown> {
   const out = omitId(expr);
   out.parts = expr.parts.map(omitId);
+  // A chain of one add or subtract is nearly every row, and as a `mods` array
+  // it took a hundred rows from 2,647 characters to 3,381. It travels as the
+  // flatModifier every version wrote instead, and validateExpression moves it
+  // back into the chain on arrival, the same as for an older link.
+  const single = expr.mode === 'check' ? null : singleModifier(expr.mods);
+  if (single !== null) {
+    out.flatModifier = single;
+    delete out.mods;
+  }
   if (expr.check !== undefined) {
     out.check = {
       ...expr.check,

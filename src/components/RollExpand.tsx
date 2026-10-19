@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Flex,
   HStack,
   Stack,
   Text,
@@ -12,7 +13,10 @@ import type { DicePart, Expression, ExpressionMode, RollMode } from '../types';
 import { CheckEditor } from './editor/CheckEditor';
 import { DicePartRow } from './editor/DicePartRow';
 import { KeepAcrossPanel } from './editor/KeepAcrossPanel';
+import { ModChainBlocked, ModChainEditor } from './editor/ModChainEditor';
 import { Panel } from './editor/controls';
+import { RowTools } from './editor/RowTools';
+import { NoteField } from './editor/NoteField';
 import { ExpressionDiceText } from './editor/ExpressionRender';
 import { Tooltip } from './ui/tooltip';
 import { tipForId } from '../docs/glossary';
@@ -89,37 +93,55 @@ export function RollExpand({ expression }: RollExpandProps) {
         mx={{ base: 'auto', lg: '0' }}
       >
         <Box pb={3} borderBottomWidth="1px" borderColor="border.subtle">
-          <Box px={3}>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="fg.muted"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={1}
-            >
-              Formula
-            </Text>
-            <Box
-              fontFamily="mono"
-              fontSize="lg"
-              color="fg"
-              style={{ fontVariantNumeric: 'tabular-nums' }}
-            >
-              <ExpressionDiceText expr={expression} showRollMode />
+          {/* The table's pinned actions column has no width to spare, so the
+              row's order and copy controls live here, where both layouts
+              render them from one place. On a phone they wrap onto their own
+              line under the formula; the note always sits below both. */}
+          <Flex px={3} columnGap={2} rowGap={2} wrap="wrap" align="flex-start">
+            <Box flex="1 1 9rem" minW={0}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="fg.muted"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={1}
+              >
+                Formula
+              </Text>
+              <Box
+                fontFamily="mono"
+                fontSize="lg"
+                color="fg"
+                wordBreak="break-word"
+                style={{ fontVariantNumeric: 'tabular-nums' }}
+              >
+                <ExpressionDiceText expr={expression} showRollMode />
+              </Box>
             </Box>
+            <RowTools expression={expression} />
+          </Flex>
+          <Box px={3}>
+            <NoteField
+              exprId={expression.id}
+              note={expression.note}
+              updateExpression={updateExpression}
+            />
           </Box>
         </Box>
 
         {check ? (
-          <CheckEditor
-            expression={expression}
-            check={check}
-            updateExpression={updateExpression}
-            updatePart={updatePart}
-            addPart={addPart}
-            removePart={removePart}
-          />
+          <>
+            <CheckEditor
+              expression={expression}
+              check={check}
+              updateExpression={updateExpression}
+              updatePart={updatePart}
+              addPart={addPart}
+              removePart={removePart}
+            />
+            <ModChainBlocked />
+          </>
         ) : (
           <>
           <Panel label="Dice parts">
@@ -149,6 +171,13 @@ export function RollExpand({ expression }: RollExpandProps) {
           </Panel>
 
           <KeepAcrossPanel
+            expression={expression}
+            updateExpression={updateExpression}
+          />
+
+          {/* After the dice and any keep across them, before the roll mode:
+              the order the row computes in. */}
+          <ModChainEditor
             expression={expression}
             updateExpression={updateExpression}
           />

@@ -5,7 +5,7 @@
 [![Made with React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
-A focused dice probability tool for tabletop and strategy gaming. Build a single table of named dice rolls, see exact stats for each, and overlay every distribution on one chart to compare them at a glance.
+A dice probability tool for building and balancing tabletop rolls, for existing mechanics and your own homebrew. Build a single table of named dice rolls, see exact stats for each, and overlay every distribution on one chart to compare them at a glance.
 
 **[Live demo: dice-table.app](https://dice-table.app/)**
 

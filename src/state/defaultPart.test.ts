@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { applyPartPatch, defaultPart, newId } from './defaultPart';
+import { applyPartPatch, defaultPart, newId, sidesPatch } from './defaultPart';
 import { normalizeExpression } from './normalize';
 import { validateExpression } from './persistedSchema';
 import type { DicePart, Expression } from '../types';
@@ -159,5 +159,105 @@ describe('applyPartPatch', () => {
     ];
     expect(part).toEqual(snapshot);
     for (const result of results) expect(result).not.toBe(part);
+  });
+});
+
+describe('sidesPatch', () => {
+  it('only changes the die size on a part with no face rules', () => {
+    const part: DicePart = { id: 'p', count: 2, sides: 6, keep: { type: 'highest', n: 1 } };
+    expect(applyPartPatch(part, sidesPatch(part, 10))).toEqual({
+      id: 'p',
+      count: 2,
+      sides: 10,
+      keep: { type: 'highest', n: 1 },
+    });
+  });
+
+  it('keeps reroll faces the new die can still show', () => {
+    const part: DicePart = { id: 'p', count: 1, sides: 6, reroll: { values: [1, 2], mode: 'once' } };
+    expect(applyPartPatch(part, sidesPatch(part, 4)).reroll).toEqual({
+      values: [1, 2],
+      mode: 'once',
+    });
+  });
+
+  it('drops reroll faces the smaller die cannot show and keeps the mode', () => {
+    const part: DicePart = {
+      id: 'p',
+      count: 1,
+      sides: 8,
+      reroll: { values: [1, 7, 8], mode: 'always' },
+    };
+    expect(applyPartPatch(part, sidesPatch(part, 6)).reroll).toEqual({
+      values: [1],
+      mode: 'always',
+    });
+  });
+
+  // An empty rule is what a hand resize leaves behind; the face picker then
+  // asks for a face rather than hiding one the user cannot see or deselect.
+  it('empties the explode faces when the die shrinks under all of them, keeping the depth', () => {
+    const part: DicePart = { id: 'p', count: 1, sides: 6, explode: { onFaces: [5, 6], depthCap: 3 } };
+    expect(applyPartPatch(part, sidesPatch(part, 4)).explode).toEqual({
+      onFaces: [],
+      depthCap: 3,
+    });
+  });
+
+  it('keeps explode faces where they were when the die grows', () => {
+    const part: DicePart = { id: 'p', count: 1, sides: 6, explode: { onFaces: [6], depthCap: 2 } };
+    expect(applyPartPatch(part, sidesPatch(part, 10)).explode).toEqual({
+      onFaces: [6],
+      depthCap: 2,
+    });
+  });
+
+  it('clamps reroll and explode together on one part', () => {
+    const part: DicePart = {
+      id: 'p',
+      count: 1,
+      sides: 6,
+      reroll: { values: [1], mode: 'once' },
+      explode: { onFaces: [6], depthCap: 2 },
+    };
+    const next = applyPartPatch(part, sidesPatch(part, 4));
+    expect(next.sides).toBe(4);
+    expect(next.reroll).toEqual({ values: [1], mode: 'once' });
+    expect(next.explode).toEqual({ onFaces: [], depthCap: 2 });
+  });
+
+  it('keeps no faces for a size no die can have', () => {
+    const part: DicePart = {
+      id: 'p',
+      count: 1,
+      sides: 6,
+      reroll: { values: [1], mode: 'once' },
+      explode: { onFaces: [6], depthCap: 2 },
+    };
+    for (const sides of [1, 0, 4.5]) {
+      const patch = sidesPatch(part, sides);
+      expect(patch.reroll?.values).toEqual([]);
+      expect(patch.explode?.onFaces).toEqual([]);
+    }
+  });
+
+  it('adds no reroll or explode rule to a part that had none', () => {
+    const part: DicePart = { id: 'p', count: 1, sides: 6 };
+    const next = applyPartPatch(part, sidesPatch(part, 4));
+    expect('reroll' in next).toBe(false);
+    expect('explode' in next).toBe(false);
+  });
+
+  it('never mutates the part it reads', () => {
+    const part: DicePart = {
+      id: 'p',
+      count: 1,
+      sides: 8,
+      reroll: { values: [1, 8], mode: 'once' },
+      explode: { onFaces: [7, 8], depthCap: 2 },
+    };
+    const snapshot = structuredClone(part);
+    applyPartPatch(part, sidesPatch(part, 4));
+    expect(part).toEqual(snapshot);
   });
 });

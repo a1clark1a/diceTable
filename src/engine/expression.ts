@@ -1,12 +1,8 @@
 import type { Distribution, Expression } from '../types';
 import { checkDistribution } from './check';
 import { expressionTooComplex } from './complexity';
-import {
-  convolveMany,
-  emptyDistribution,
-  shift,
-  shiftClampedAtZero,
-} from './distribution';
+import { clampAtZero, convolveMany, emptyDistribution } from './distribution';
+import { applyMods } from './mods';
 import { poolPartDistribution } from './parts';
 import { applyRollMode, sumPartsDistribution } from './roll';
 
@@ -39,14 +35,15 @@ function poolDistribution(expr: Expression): Distribution {
     partDists.push(d);
   }
 
-  let dist = convolveMany(partDists);
-  if (dist.size === 0) return emptyDistribution();
+  const counted = convolveMany(partDists);
+  if (counted.size === 0) return emptyDistribution();
+  if (expr.mods === undefined) return counted;
 
-  if (Number.isFinite(expr.flatModifier) && expr.flatModifier !== 0) {
-    dist = shiftClampedAtZero(dist, expr.flatModifier);
-  }
-
-  return dist;
+  // Once, after the whole chain: "lose 2, then gain 1" on a single success
+  // nets zero, where clamping between the steps would hand back a success the
+  // chain took away.
+  const dist = applyMods(counted, expr.mods);
+  return dist.size === 0 ? dist : clampAtZero(dist);
 }
 
 export function expressionDistribution(expr: Expression): Distribution {
@@ -59,9 +56,12 @@ export function expressionDistribution(expr: Expression): Distribution {
   let dist = sumPartsDistribution(expr.parts, expr.keepAcross);
   if (dist.size === 0) return emptyDistribution();
 
-  if (Number.isFinite(expr.flatModifier) && expr.flatModifier !== 0) {
-    dist = shift(dist, expr.flatModifier);
-  }
+  // Before advantage, which keeps the better of two whole rolls. Picking the
+  // better total and then applying the chain only equals applying the chain
+  // and then picking because no step can turn a bigger total into a smaller
+  // one. A negative multiplier would break that silently.
+  dist = applyMods(dist, expr.mods);
+  if (dist.size === 0) return emptyDistribution();
 
   if (expr.rollMode !== 'normal') {
     dist = applyRollMode(dist, expr.rollMode);
